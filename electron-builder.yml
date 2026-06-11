@@ -10,6 +10,7 @@ publish:
   provider: github
   owner: Johann0601
   repo: spiele-hub
+  releaseType: release # sofort veröffentlichen (kein Entwurf — Entwürfe sieht der Updater nicht)
 
 directories:
   output: release # hier landet die fertige Setup-exe
