@@ -1109,3 +1109,68 @@ body {
 .update-ready-btn:hover {
   background: rgba(255, 184, 77, 0.2);
 }
+
+/* ---- Changelog der App ---- */
+.changelog {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 760px;
+}
+
+.changelog-entry {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  padding: 18px 22px;
+}
+
+.changelog-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.changelog-version {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.changelog-title {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.changelog-current {
+  font-size: 11px;
+  font-weight: 700;
+  color: #7dd87d;
+  border: 1px solid rgba(125, 216, 125, 0.5);
+  border-radius: 999px;
+  padding: 2px 9px;
+  white-space: nowrap;
+}
+
+.changelog-date {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.changelog-list {
+  margin: 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--text);
+}
+
+.changelog-list li::marker {
+  color: var(--muted);
+}
