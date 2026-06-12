@@ -135,6 +135,15 @@ const MIGRATIONS: ((db: Database.Database) => void)[] = [
       ALTER TABLE wishlist ADD COLUMN shop TEXT NOT NULL DEFAULT 'steam';
       ALTER TABLE wishlist ADD COLUMN store_url TEXT;
     `)
+  },
+  // v10: Deinstallierte Spiele erkennen. installed=0 versteckt den Eintrag
+  //      (Bibliothek, Glocke, Tracking) — Spielzeiten bleiben aber erhalten
+  //      und leben bei einer Neuinstallation einfach wieder auf.
+  (database) => {
+    database.exec(`
+      ALTER TABLE games ADD COLUMN installed INTEGER NOT NULL DEFAULT 1;
+      ALTER TABLE games ADD COLUMN last_seen_at INTEGER;
+    `)
   }
 ]
 
@@ -186,8 +195,8 @@ export interface UpsertGameInput {
  */
 export function upsertGame(input: UpsertGameInput): void {
   const stmt = getDatabase().prepare(`
-    INSERT INTO games (platform, platform_id, name, install_dir, cover_url, last_played, imported_playtime_sec, kind, launch_target, exe_names)
-    VALUES (@platform, @platformId, @name, @installDir, @coverPath, @lastPlayed, @importedPlaytimeSec, @kind, @launchTarget, @exeNames)
+    INSERT INTO games (platform, platform_id, name, install_dir, cover_url, last_played, imported_playtime_sec, kind, launch_target, exe_names, installed, last_seen_at)
+    VALUES (@platform, @platformId, @name, @installDir, @coverPath, @lastPlayed, @importedPlaytimeSec, @kind, @launchTarget, @exeNames, 1, strftime('%s','now'))
     ON CONFLICT(platform, platform_id) DO UPDATE SET
       name          = excluded.name,
       install_dir   = excluded.install_dir,
@@ -197,9 +206,30 @@ export function upsertGame(input: UpsertGameInput): void {
       kind          = excluded.kind,
       launch_target = excluded.launch_target,
       exe_names     = excluded.exe_names,
-      last_played   = MAX(COALESCE(games.last_played, 0), COALESCE(excluded.last_played, 0))
+      last_played   = MAX(COALESCE(games.last_played, 0), COALESCE(excluded.last_played, 0)),
+      -- Vom Scanner gesehen = (wieder) installiert.
+      installed     = 1,
+      last_seen_at  = strftime('%s','now')
   `)
   stmt.run(input)
+}
+
+/**
+ * Spiele einer Plattform, die der gerade abgeschlossene Scan NICHT mehr
+ * gesehen hat, als deinstalliert markieren (inkl. Update-Hinweis löschen).
+ * Wird nur für Plattformen aufgerufen, deren Scan erfolgreich lief.
+ */
+export function markMissingUninstalled(platforms: string[], scanStartedAt: number): number {
+  if (platforms.length === 0) return 0
+  const marks = platforms.map(() => '?').join(',')
+  const info = getDatabase()
+    .prepare(
+      `UPDATE games SET installed = 0, update_pending = 0
+       WHERE kind = 'game' AND installed = 1 AND platform IN (${marks})
+         AND (last_seen_at IS NULL OR last_seen_at < ?)`
+    )
+    .run(...platforms, scanStartedAt)
+  return info.changes
 }
 
 interface GameRow {
@@ -232,6 +262,7 @@ export function listGames(): GameCard[] {
           + COALESCE((SELECT SUM(s.duration_sec) FROM play_sessions s
                       WHERE s.game_id = g.id AND s.duration_sec IS NOT NULL), 0) AS total_playtime_sec
       FROM games g
+      WHERE g.installed = 1
       ORDER BY total_playtime_sec DESC, g.name COLLATE NOCASE ASC
     `
     )
@@ -298,7 +329,7 @@ export function listTrackableGames(): TrackableGame[] {
   const rows = getDatabase()
     .prepare(`SELECT id, platform_id AS platformId, install_dir AS installDir, exe_names AS exeNames
               FROM games
-              WHERE kind = 'game' AND install_dir IS NOT NULL AND install_dir <> ''`)
+              WHERE kind = 'game' AND installed = 1 AND install_dir IS NOT NULL AND install_dir <> ''`)
     .all() as { id: number; platformId: string; installDir: string; exeNames: string | null }[]
 
   return rows.map((r) => ({
@@ -335,7 +366,7 @@ export function listGamesForStorage(): GameStorageInfo[] {
       `SELECT id AS gameId, platform_id AS platformId, name, platform, install_dir AS installDir,
               size_bytes AS sizeBytes, size_checked_at AS checkedAt, last_played AS lastPlayed
        FROM games
-       WHERE kind = 'game' AND install_dir IS NOT NULL AND install_dir <> ''
+       WHERE kind = 'game' AND installed = 1 AND install_dir IS NOT NULL AND install_dir <> ''
        ORDER BY size_bytes DESC NULLS LAST, name COLLATE NOCASE ASC`
     )
     .all() as GameStorageInfo[]
@@ -596,7 +627,8 @@ export function listGamesWithoutCover(
   return getDatabase()
     .prepare(
       `SELECT platform, platform_id AS platformId, name FROM games
-       WHERE kind = 'game' AND (cover_url IS NULL OR cover_url = '') AND platform IN (${marks})`
+       WHERE kind = 'game' AND installed = 1
+         AND (cover_url IS NULL OR cover_url = '') AND platform IN (${marks})`
     )
     .all(...platforms) as { platform: string; platformId: string; name: string }[]
 }

@@ -11,6 +11,15 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.8.2',
+    date: '2026-06-12',
+    title: 'Deinstallierte Spiele werden erkannt',
+    changes: [
+      'Deinstallierst du ein Spiel, verschwindet es jetzt automatisch aus der Bibliothek — samt veralteter Update-Hinweise in der 🔔-Glocke (vorher blieb beides hängen).',
+      'Deine Spielzeiten bleiben dabei vollständig erhalten: Installierst du das Spiel später neu, ist alles sofort wieder da.'
+    ]
+  },
+  {
     version: '0.8.1',
     date: '2026-06-12',
     title: 'Sidebar-Feinschliff',
