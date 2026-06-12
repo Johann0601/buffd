@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { GameCard, UpdateEvent } from '@shared/types'
 import { formatLastPlayed } from './format'
+import { updateActionFor } from './updateAction'
 
 function UpdatesView(): JSX.Element {
   const [games, setGames] = useState<GameCard[]>([])
@@ -41,37 +42,44 @@ function UpdatesView(): JSX.Element {
 
       <main className="content">
         <div className="banner info">
-          Die App erkennt ausstehende <strong>Steam</strong>-Updates über die lokalen
-          Steam-Dateien und führt eine eigene Historie. Heruntergeladen/installiert wird
-          ausschließlich über den Steam-Client. Für Epic-Spiele ist keine zuverlässige
-          Update-Erkennung möglich.
+          Die App erkennt ausstehende Updates für <strong>Steam</strong> (lokale
+          Steam-Dateien) und <strong>Battle.net</strong> (Abgleich mit Blizzards
+          Versions-Server) und führt eine eigene Historie. Installiert wird ausschließlich
+          über den jeweiligen Launcher. Für Epic-, Ubisoft-, Riot- und RSI-Spiele ist keine
+          zuverlässige Update-Erkennung möglich.
         </div>
 
         <h2 className="section-title">Ausstehende Updates</h2>
         {pending.length === 0 ? (
-          <div className="empty-inline">✓ Alle Steam-Spiele sind auf dem neuesten Stand.</div>
+          <div className="empty-inline">✓ Alle Spiele sind auf dem neuesten Stand.</div>
         ) : (
           <div className="device-list">
-            {pending.map((g) => (
-              <div key={g.id} className="device-row">
-                <div className="device-row-top">
-                  <div className="device-main">
-                    <div className="device-name">
-                      {g.name} <span className="tag update">Update verfügbar</span>
+            {pending.map((g) => {
+              const action = updateActionFor(g)
+              return (
+                <div key={g.id} className="device-row">
+                  <div className="device-row-top">
+                    <div className="device-main">
+                      <div className="device-name">
+                        {g.name} <span className="tag update">Update verfügbar</span>
+                      </div>
+                      <div className="device-vendor">
+                        {g.manifestLastUpdated
+                          ? `Zuletzt aktualisiert: ${formatLastPlayed(g.manifestLastUpdated)}`
+                          : g.platform === 'battlenet'
+                            ? 'Battle.net-Spiel'
+                            : ''}
+                      </div>
                     </div>
-                    <div className="device-vendor">
-                      Zuletzt aktualisiert: {formatLastPlayed(g.manifestLastUpdated)}
-                    </div>
+                    {action && (
+                      <button className="btn small" onClick={action.run}>
+                        {action.label}
+                      </button>
+                    )}
                   </div>
-                  <button
-                    className="btn small"
-                    onClick={() => window.open(`steam://nav/games/details/${g.platformId}`, '_blank')}
-                  >
-                    In Steam aktualisieren ↗
-                  </button>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
 

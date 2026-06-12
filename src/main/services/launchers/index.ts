@@ -9,6 +9,8 @@ interface LauncherDef {
   platform: Platform
   name: string
   candidates: string[] // mögliche exe-Pfade, erster Treffer gewinnt
+  launchTarget?: string // Sonderfälle (z. B. UWP-Apps) — überschreibt den exe-Pfad
+  alwaysPresent?: boolean // ohne prüfbare exe (UWP) -> immer anbieten
 }
 
 function launcherDefs(): LauncherDef[] {
@@ -52,6 +54,68 @@ function launcherDefs(): LauncherDef[] {
       platform: 'ftb',
       name: 'FTB App',
       candidates: [`${localApp}\\Programs\\ftb-app\\FTB Electron App.exe`]
+    },
+    {
+      platform: 'battlenet',
+      name: 'Battle.net',
+      candidates: [
+        'C:\\Program Files (x86)\\Battle.net\\Battle.net.exe',
+        'C:\\Program Files\\Battle.net\\Battle.net.exe'
+      ]
+    },
+    {
+      platform: 'ubisoft',
+      name: 'Ubisoft Connect',
+      candidates: [
+        'C:\\Program Files (x86)\\Ubisoft\\Ubisoft Game Launcher\\UbisoftConnect.exe',
+        'C:\\Program Files (x86)\\Ubisoft\\Ubisoft Game Launcher\\upc.exe'
+      ]
+    },
+    {
+      platform: 'riot',
+      name: 'Riot Client',
+      candidates: ['C:\\Riot Games\\Riot Client\\RiotClientServices.exe']
+    },
+    {
+      platform: 'ea',
+      name: 'EA App',
+      candidates: ['C:\\Program Files\\Electronic Arts\\EA Desktop\\EA Desktop\\EADesktop.exe']
+    },
+    {
+      platform: 'rsi',
+      name: 'RSI Launcher',
+      candidates: [
+        'C:\\Program Files\\Roberts Space Industries\\RSI Launcher\\RSI Launcher.exe',
+        `${localApp}\\Programs\\rsilauncher\\RSI Launcher.exe`
+      ]
+    },
+    {
+      platform: 'wargaming',
+      name: 'Wargaming Game Center',
+      candidates: [
+        'C:\\ProgramData\\Wargaming.net\\GameCenter\\wgc.exe',
+        'C:\\ProgramData\\Wargaming.net\\GameCenter for Steam\\wgc.exe'
+      ]
+    },
+    {
+      platform: 'rockstar',
+      name: 'Rockstar Games',
+      candidates: [
+        'C:\\Program Files\\Rockstar Games\\Launcher\\Launcher.exe',
+        'C:\\Program Files (x86)\\Rockstar Games\\Launcher\\Launcher.exe'
+      ]
+    },
+    {
+      platform: 'xbox',
+      name: 'Xbox App',
+      candidates: [], // UWP-App ohne klassische exe
+      alwaysPresent: true, // gehört zur Windows-Grundausstattung
+      launchTarget:
+        'spawn:' +
+        JSON.stringify({
+          exe: 'explorer.exe',
+          args: ['shell:AppsFolder\\Microsoft.GamingApp_8wekyb3d8bbwe!Microsoft.Xbox.App']
+        })
     }
   ]
 }
@@ -64,14 +128,16 @@ export async function persistLaunchers(): Promise<number> {
   let count = 0
   for (const def of launcherDefs()) {
     const exe = def.candidates.find((c) => c && existsSync(c))
-    if (!exe) continue // nicht installiert -> überspringen
+    if (!exe && !def.alwaysPresent) continue // nicht installiert -> überspringen
 
     let iconDataUrl: string | null = null
-    try {
-      const icon = await app.getFileIcon(exe, { size: 'large' })
-      if (!icon.isEmpty()) iconDataUrl = icon.toDataURL()
-    } catch {
-      // kein Icon -> Buchstaben-Platzhalter
+    if (exe) {
+      try {
+        const icon = await app.getFileIcon(exe, { size: 'large' })
+        if (!icon.isEmpty()) iconDataUrl = icon.toDataURL()
+      } catch {
+        // kein Icon -> Buchstaben-Platzhalter
+      }
     }
 
     upsertGame({
@@ -83,7 +149,7 @@ export async function persistLaunchers(): Promise<number> {
       lastPlayed: null,
       importedPlaytimeSec: 0,
       kind: 'launcher',
-      launchTarget: exe, // wird per shell.openPath gestartet
+      launchTarget: def.launchTarget ?? exe ?? null, // exe via openPath, Sonderfälle via spawn:
       exeNames: null // Launcher werden nicht getrackt
     })
     count++

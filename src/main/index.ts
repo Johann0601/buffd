@@ -1,12 +1,14 @@
 import { app, shell, BrowserWindow, ipcMain, protocol, net } from 'electron'
 import { join } from 'path'
 import { existsSync } from 'fs'
+import { spawn } from 'child_process'
 import { pathToFileURL } from 'url'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { autoUpdater } from 'electron-updater'
 import {
   initDatabase,
   getDatabase,
+  getLauncherTarget,
   listGames,
   getCoverPath,
   getLaunchInfo,
@@ -161,19 +163,40 @@ app.whenReady().then(() => {
 
   // Starten: je nach Eintrag eine URL (Steam/Epic) im jeweiligen Client öffnen
   // oder eine exe direkt starten (Launcher). Die Zeitmessung macht der Wächter.
+  // Ein Start-Ziel ausführen: spawn:-JSON (exe + Argumente), URL oder exe-Pfad.
+  const executeLaunchTarget = (target: string | null): boolean => {
+    if (!target) return false
+    if (target.startsWith('spawn:')) {
+      // Programm mit Argumenten starten (z. B. Battle.net --exec="launch WTCG").
+      try {
+        const { exe, args } = JSON.parse(target.slice(6)) as { exe: string; args?: string[] }
+        spawn(exe, args ?? [], { detached: true, stdio: 'ignore' }).unref()
+        return true
+      } catch {
+        return false
+      }
+    }
+    if (target.includes('://')) {
+      shell.openExternal(target) // steam:// oder com.epicgames.launcher://
+    } else {
+      shell.openPath(target) // exe-Pfad (Launcher)
+    }
+    return true
+  }
+
   ipcMain.handle('game:launch', (_e, id: number) => {
     const info = getLaunchInfo(id)
     if (!info) return { ok: false }
-    const target = info.launchTarget
-    if (target && target.includes('://')) {
-      shell.openExternal(target) // steam:// oder com.epicgames.launcher://
-    } else if (target) {
-      shell.openPath(target) // exe-Pfad (Launcher)
-    } else {
-      shell.openExternal(`steam://rungameid/${info.platformId}`) // Rückfall
-    }
-    return { ok: true }
+    const ok = info.launchTarget
+      ? executeLaunchTarget(info.launchTarget)
+      : executeLaunchTarget(`steam://rungameid/${info.platformId}`) // Rückfall
+    return { ok }
   })
+
+  // Den Launcher einer Plattform öffnen (z. B. Battle.net fürs Spiel-Update).
+  ipcMain.handle('platform:open-launcher', (_e, platform: string) =>
+    executeLaunchTarget(getLauncherTarget(platform))
+  )
 
   // Spiel schließen: alle Prozesse im Installationsordner beenden.
   ipcMain.handle('game:close', (_e, gameId: number) => closeGame(gameId))

@@ -1,4 +1,4 @@
-import { applySteamUpdateState, getDatabase, listGames, upsertGame } from '../../db'
+import { applyUpdateState, getDatabase, listGames, upsertGame } from '../../db'
 import { scanSteam } from './scanner'
 import { findGameExeNames } from '../exeNames'
 import type { ScanResult } from '@shared/types'
@@ -37,7 +37,7 @@ export function scanAndPersistSteam(): ScanResult {
         exeNames: g.installDir ? findGameExeNames(g.installDir).join(',') || null : null
       })
       // Phase 3: Update-Zustand verarbeiten (erkennt neue Updates & schreibt Historie).
-      applySteamUpdateState(g.appid, g.buildId, g.updatePending, g.manifestLastUpdated)
+      applyUpdateState('steam', g.appid, g.buildId, g.updatePending, g.manifestLastUpdated)
     }
   })
   writeAll()

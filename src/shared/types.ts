@@ -1,7 +1,20 @@
 // Typen, die sowohl der Main-Prozess als auch der React-Renderer kennen.
 // Ein einziger Ort für die "Form" unserer Daten -> keine Doppel-Definitionen.
 
-export type Platform = 'steam' | 'epic' | 'modrinth' | 'curseforge' | 'ftb'
+export type Platform =
+  | 'steam'
+  | 'epic'
+  | 'modrinth'
+  | 'curseforge'
+  | 'ftb'
+  | 'battlenet'
+  | 'ubisoft'
+  | 'riot'
+  | 'rsi'
+  | 'ea'
+  | 'wargaming'
+  | 'rockstar'
+  | 'xbox'
 
 /** 'game' = spielbarer Eintrag mit Tracking, 'launcher' = startbare App ohne Tracking. */
 export type GameKind = 'game' | 'launcher'

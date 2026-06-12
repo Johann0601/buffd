@@ -1209,6 +1209,14 @@ body {
   background: rgba(255, 184, 77, 0.06);
 }
 
+/* Logo statt Box-Art (z. B. von Wikipedia): einpassen statt beschneiden. */
+img.logo-cover {
+  object-fit: contain !important;
+  padding: 16%;
+  box-sizing: border-box;
+  background: radial-gradient(circle at 50% 40%, #232838 0%, #14171f 75%);
+}
+
 /* ---- Changelog der App ---- */
 .changelog {
   display: flex;

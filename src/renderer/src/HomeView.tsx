@@ -227,7 +227,12 @@ function HomeTile({ game, onOpen }: { game: GameCard; onOpen: () => void }): JSX
     <div className="tile home-tile" title={game.name} onClick={onOpen}>
       <div className="cover">
         {game.coverUrl && !imgFailed ? (
-          <img src={game.coverUrl} alt={game.name} onError={() => setImgFailed(true)} />
+          <img
+            src={game.coverUrl}
+            alt={game.name}
+            className={game.coverUrl.includes('upload.wikimedia.org') ? 'logo-cover' : undefined}
+            onError={() => setImgFailed(true)}
+          />
         ) : (
           <div className="cover-fallback">{game.name.charAt(0).toUpperCase()}</div>
         )}

@@ -151,7 +151,9 @@ export function upsertGame(input: UpsertGameInput): void {
     ON CONFLICT(platform, platform_id) DO UPDATE SET
       name          = excluded.name,
       install_dir   = excluded.install_dir,
-      cover_url     = excluded.cover_url,
+      -- Vorhandenes Cover behalten, wenn der Scanner keins liefert
+      -- (Online-Cover werden separat nachgetragen und sollen überleben).
+      cover_url     = COALESCE(excluded.cover_url, games.cover_url),
       kind          = excluded.kind,
       launch_target = excluded.launch_target,
       exe_names     = excluded.exe_names,
@@ -382,13 +384,14 @@ export function getWotInstallDir(): string | null {
 // ---------------------------------------------------------------------------
 
 /**
- * Verarbeitet den frisch gescannten Update-Zustand eines Steam-Spiels und
- * schreibt bei Änderungen Historie-Einträge:
- *  - Build-Nummer hat sich geändert  -> Ereignis 'installiert' (Update wurde eingespielt)
- *  - update_pending wechselt auf 1   -> Ereignis 'erkannt' (Update steht aus)
+ * Verarbeitet den frisch gescannten Update-Zustand eines Spiels (Steam,
+ * Battle.net, …) und schreibt bei Änderungen Historie-Einträge:
+ *  - Build/Version hat sich geändert  -> Ereignis 'installiert' (Update wurde eingespielt)
+ *  - update_pending wechselt auf 1    -> Ereignis 'erkannt' (Update steht aus)
  * Gibt true zurück, wenn sich etwas geändert hat.
  */
-export function applySteamUpdateState(
+export function applyUpdateState(
+  platform: string,
   platformId: string,
   buildId: string | null,
   updatePending: boolean,
@@ -398,9 +401,11 @@ export function applySteamUpdateState(
   const prev = db
     .prepare(
       `SELECT id, build_id AS buildId, update_pending AS pending
-       FROM games WHERE platform = 'steam' AND platform_id = ?`
+       FROM games WHERE platform = ? AND platform_id = ?`
     )
-    .get(platformId) as { id: number; buildId: string | null; pending: number } | undefined
+    .get(platform, platformId) as
+    | { id: number; buildId: string | null; pending: number }
+    | undefined
   if (!prev) return false
 
   let changed = false
@@ -425,6 +430,37 @@ export function applySteamUpdateState(
   ).run(buildId, updatePending ? 1 : 0, manifestUpdated, prev.id)
 
   return changed
+}
+
+/** Cover-URL eines Spiels nachträglich setzen (z. B. aus Online-Quellen). */
+export function setGameCover(platform: string, platformId: string, url: string): void {
+  getDatabase()
+    .prepare('UPDATE games SET cover_url = ? WHERE platform = ? AND platform_id = ?')
+    .run(url, platform, platformId)
+}
+
+/** Spiele ohne Cover (für die Online-Cover-Suche). */
+export function listGamesWithoutCover(
+  platforms: string[]
+): { platform: string; platformId: string; name: string }[] {
+  const marks = platforms.map(() => '?').join(',')
+  return getDatabase()
+    .prepare(
+      `SELECT platform, platform_id AS platformId, name FROM games
+       WHERE kind = 'game' AND (cover_url IS NULL OR cover_url = '') AND platform IN (${marks})`
+    )
+    .all(...platforms) as { platform: string; platformId: string; name: string }[]
+}
+
+/** Start-Ziel des Launcher-Eintrags einer Plattform (z. B. Battle.net öffnen). */
+export function getLauncherTarget(platform: string): string | null {
+  const row = getDatabase()
+    .prepare(
+      `SELECT launch_target AS target FROM games
+       WHERE platform = ? AND platform_id = 'launcher'`
+    )
+    .get(platform) as { target: string | null } | undefined
+  return row?.target ?? null
 }
 
 /** Die Update-Historie (neueste zuerst), optional auf ein Spiel begrenzt. */

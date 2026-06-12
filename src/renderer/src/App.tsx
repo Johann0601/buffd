@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { GameCard, NvidiaUpdate, RunningGame } from '@shared/types'
 import { formatLastPlayed, formatPlaytime } from './format'
+import { updateActionFor } from './updateAction'
 import HomeView from './HomeView'
 import ModsView from './ModsView'
 import NotificationsView from './NotificationsView'
@@ -309,7 +310,16 @@ function GamesView({
 function Cover({ game }: { game: GameCard }): JSX.Element {
   const [failed, setFailed] = useState(false)
   if (game.coverUrl && !failed) {
-    return <img src={game.coverUrl} alt={game.name} onError={() => setFailed(true)} />
+    // Wikipedia liefert oft Logos statt Box-Art -> eingepasst statt beschnitten.
+    const isLogo = game.coverUrl.includes('upload.wikimedia.org')
+    return (
+      <img
+        src={game.coverUrl}
+        alt={game.name}
+        className={isLogo ? 'logo-cover' : undefined}
+        onError={() => setFailed(true)}
+      />
+    )
   }
   return <div className="cover-fallback">{game.name.charAt(0).toUpperCase()}</div>
 }
@@ -476,13 +486,15 @@ function GameDetail({
 
           {game.updatePending && (
             <div className="nvidia-update available" style={{ marginBottom: 22 }}>
-              <span>⬆ Für dieses Spiel steht ein Steam-Update aus.</span>
-              <button
-                className="btn small"
-                onClick={() => window.open(`steam://nav/games/details/${game.platformId}`, '_blank')}
-              >
-                In Steam aktualisieren ↗
-              </button>
+              <span>⬆️ Für dieses Spiel steht ein Update aus.</span>
+              {(() => {
+                const action = updateActionFor(game)
+                return action ? (
+                  <button className="btn small" onClick={action.run}>
+                    {action.label}
+                  </button>
+                ) : null
+              })()}
             </div>
           )}
 

@@ -44,6 +44,10 @@ const api = {
   /** Spiel/Launcher starten (per Eintrags-ID). */
   launchGame: (id: number): Promise<{ ok: boolean }> => ipcRenderer.invoke('game:launch', id),
 
+  /** Den Launcher einer Plattform öffnen (z. B. Battle.net fürs Update). */
+  openPlatformLauncher: (platform: string): Promise<boolean> =>
+    ipcRenderer.invoke('platform:open-launcher', platform),
+
   /** Laufendes Spiel schließen. */
   closeGame: (gameId: number): Promise<boolean> => ipcRenderer.invoke('game:close', gameId),
 

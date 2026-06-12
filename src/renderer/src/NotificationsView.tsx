@@ -1,4 +1,5 @@
 import type { GameCard, NvidiaUpdate } from '@shared/types'
+import { updateActionFor } from './updateAction'
 
 // Benachrichtigungen: alles, was mit Updates zu tun hat, an einem Ort —
 // App-Update (bereit zum Neustart), Steam-Spiel-Updates, Nvidia-Treiber.
@@ -77,22 +78,27 @@ function NotificationsView({
             </div>
           )}
 
-          {/* Steam-Spiel-Updates */}
-          {pendingGames.map((g) => (
-            <div key={g.id} className="settings-row">
-              <span className="settings-row-icon">🎮</span>
-              <div className="settings-row-main">
-                <div className="settings-row-title">{g.name}</div>
-                <div className="settings-row-desc">Für dieses Spiel steht ein Steam-Update aus.</div>
+          {/* Spiel-Updates (Steam & Battle.net) */}
+          {pendingGames.map((g) => {
+            const action = updateActionFor(g)
+            return (
+              <div key={g.id} className="settings-row">
+                <span className="settings-row-icon">🎮</span>
+                <div className="settings-row-main">
+                  <div className="settings-row-title">{g.name}</div>
+                  <div className="settings-row-desc">
+                    Für dieses Spiel steht ein Update aus (
+                    {g.platform === 'battlenet' ? 'Battle.net' : 'Steam'}).
+                  </div>
+                </div>
+                {action && (
+                  <button className="btn small" onClick={action.run}>
+                    {action.label}
+                  </button>
+                )}
               </div>
-              <button
-                className="btn small"
-                onClick={() => window.open(`steam://nav/games/details/${g.platformId}`, '_blank')}
-              >
-                In Steam aktualisieren ↗
-              </button>
-            </div>
-          ))}
+            )
+          })}
         </div>
 
         <p className="hint">

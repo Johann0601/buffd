@@ -11,6 +11,17 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.5.0',
+    date: '2026-06-12',
+    title: 'Launcher-Welle 2',
+    changes: [
+      'Sechs neue Launcher als Schnellstart: Battle.net, Ubisoft Connect, Riot Client, EA App, Rockstar Games, Wargaming Game Center und die Xbox App.',
+      'Spiele dieser Launcher werden automatisch erkannt und getrackt — z. B. Call of Duty, Hearthstone (Battle.net) und Star Citizen (RSI); Ubisoft- und Riot-Spiele erscheinen, sobald welche installiert sind.',
+      'Update-Erkennung für Battle.net-Spiele: Die App vergleicht die installierte Version mit Blizzards Versions-Server — Hinweise erscheinen in der 🔔-Glocke und im Updates-Tab, inklusive Historie.',
+      'Online-Cover für Spiele ohne lokale Bilder (über die Steam-Store-Suche bzw. Wikipedia); Logos werden als elegante Logo-Kacheln dargestellt.'
+    ]
+  },
+  {
     version: '0.4.1',
     date: '2026-06-12',
     title: 'Aufgeräumte Startseite & Sidebar-Verhalten',
