@@ -1,7 +1,14 @@
 import { app } from 'electron'
 import { join } from 'path'
 import Database from 'better-sqlite3'
-import type { GameCard, GameKind, GameStorageInfo, Platform, UpdateEvent } from '@shared/types'
+import type {
+  GameCard,
+  GameKind,
+  GameStorageInfo,
+  Platform,
+  UpdateEvent,
+  WishlistItem
+} from '@shared/types'
 
 // Eine einzige, app-weite DB-Verbindung. better-sqlite3 arbeitet synchron —
 // das ist im Electron-Main-Prozess gewollt und einfach zu handhaben.
@@ -102,6 +109,31 @@ const MIGRATIONS: ((db: Database.Database) => void)[] = [
     database.exec(`
       ALTER TABLE games ADD COLUMN size_bytes INTEGER;
       ALTER TABLE games ADD COLUMN size_checked_at INTEGER;
+    `)
+  },
+  // v8: Wunschliste mit Preisalarm — Steam-Spiele, deren Preis die App
+  //     regelmäßig prüft. Rabatte landen in der 🔔-Glocke.
+  (database) => {
+    database.exec(`
+      CREATE TABLE IF NOT EXISTS wishlist (
+        id             INTEGER PRIMARY KEY AUTOINCREMENT,
+        app_id         TEXT    NOT NULL UNIQUE,   -- Steam-AppID
+        name           TEXT    NOT NULL,
+        cover_url      TEXT,
+        price_cents    INTEGER,                   -- letzter geprüfter Preis
+        original_cents INTEGER,                   -- Preis ohne Rabatt
+        discount_pct   INTEGER NOT NULL DEFAULT 0,
+        checked_at     INTEGER,
+        added_at       INTEGER NOT NULL DEFAULT (strftime('%s','now'))
+      );
+    `)
+  },
+  // v9: Wunschliste wird shop-übergreifend — Epic-Spiele kommen dazu.
+  //     app_id ist bei Epic "namespace:offerId", shop unterscheidet die Quellen.
+  (database) => {
+    database.exec(`
+      ALTER TABLE wishlist ADD COLUMN shop TEXT NOT NULL DEFAULT 'steam';
+      ALTER TABLE wishlist ADD COLUMN store_url TEXT;
     `)
   }
 ]
@@ -307,6 +339,64 @@ export function listGamesForStorage(): GameStorageInfo[] {
        ORDER BY size_bytes DESC NULLS LAST, name COLLATE NOCASE ASC`
     )
     .all() as GameStorageInfo[]
+}
+
+// ---------------------------------------------------------------------------
+//  Wunschliste (Preisalarm)
+// ---------------------------------------------------------------------------
+
+export function listWishlist(): WishlistItem[] {
+  return getDatabase()
+    .prepare(
+      `SELECT id, app_id AS appId, shop, name, cover_url AS coverUrl, store_url AS storeUrl,
+              price_cents AS priceCents, original_cents AS originalCents,
+              discount_pct AS discountPct, checked_at AS checkedAt
+       FROM wishlist
+       ORDER BY discount_pct DESC, name COLLATE NOCASE ASC`
+    )
+    .all() as WishlistItem[]
+}
+
+export function addWishlistItem(
+  appId: string,
+  name: string,
+  coverUrl: string | null,
+  shop: 'steam' | 'epic' = 'steam',
+  storeUrl: string | null = null
+): void {
+  getDatabase()
+    .prepare(
+      `INSERT INTO wishlist (app_id, name, cover_url, shop, store_url) VALUES (?, ?, ?, ?, ?)
+       ON CONFLICT(app_id) DO NOTHING`
+    )
+    .run(appId, name, coverUrl, shop, storeUrl)
+}
+
+export function removeWishlistItem(appId: string): void {
+  getDatabase().prepare('DELETE FROM wishlist WHERE app_id = ?').run(appId)
+}
+
+/** Name/Cover eines Wunschlisten-Eintrags auffrischen (z. B. beim Steam-Import). */
+export function updateWishlistMeta(appId: string, name: string, coverUrl: string | null): void {
+  getDatabase()
+    .prepare('UPDATE wishlist SET name = ?, cover_url = COALESCE(?, cover_url) WHERE app_id = ?')
+    .run(name, coverUrl, appId)
+}
+
+/** Geprüften Preis eines Wunschlisten-Eintrags speichern. */
+export function updateWishlistPrice(
+  appId: string,
+  priceCents: number | null,
+  originalCents: number | null,
+  discountPct: number
+): void {
+  getDatabase()
+    .prepare(
+      `UPDATE wishlist SET price_cents = ?, original_cents = ?, discount_pct = ?,
+              checked_at = strftime('%s','now')
+       WHERE app_id = ?`
+    )
+    .run(priceCents, originalCents, discountPct, appId)
 }
 
 /** Grunddaten eines Eintrags (für Detail-Abfragen wie Store-Infos/News/Erfolge). */

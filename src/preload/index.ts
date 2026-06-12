@@ -6,11 +6,14 @@ import type {
   EpicAccountStatus,
   EpicFreeGame,
   EpicLibraryResult,
+  EpicSearchResult,
   EpicSyncResult,
   GameCard,
   GameDetails,
   GameNewsItem,
+  GamePriceInfo,
   GameStorageInfo,
+  ItadStatus,
   NvidiaUpdate,
   RunningGame,
   McProfile,
@@ -18,7 +21,9 @@ import type {
   SgdbStatus,
   SteamKeyStatus,
   SteamOffer,
+  SteamSearchResult,
   UpdateEvent,
+  WishlistItem,
   WotStatus
 } from '@shared/types'
 
@@ -150,7 +155,53 @@ const api = {
     const handler = (_e: unknown, info: GameStorageInfo): void => cb(info)
     ipcRenderer.on('storage:progress', handler)
     return () => ipcRenderer.removeListener('storage:progress', handler)
-  }
+  },
+
+  /** Wunschliste mit Preisalarm. */
+  getWishlist: (): Promise<WishlistItem[]> => ipcRenderer.invoke('wishlist:list'),
+  addToWishlist: (item: {
+    appId: string
+    name: string
+    coverUrl: string | null
+    shop?: 'steam' | 'epic'
+    storeUrl?: string | null
+  }): Promise<WishlistItem[]> => ipcRenderer.invoke('wishlist:add', item),
+  removeFromWishlist: (appId: string): Promise<WishlistItem[]> =>
+    ipcRenderer.invoke('wishlist:remove', appId),
+  checkWishlistPrices: (): Promise<WishlistItem[]> => ipcRenderer.invoke('wishlist:check'),
+  importSteamWishlist: (): Promise<{
+    ok: boolean
+    imported: number
+    total: number
+    error?: string
+  }> => ipcRenderer.invoke('wishlist:import-steam'),
+
+  /** Meldet sich, wenn die regelmäßige Preisprüfung neue Daten hat. */
+  onWishlistRefresh: (cb: () => void): (() => void) => {
+    const handler = (): void => cb()
+    ipcRenderer.on('wishlist:refresh', handler)
+    return () => ipcRenderer.removeListener('wishlist:refresh', handler)
+  },
+
+  /** Steam-Store-Suche (zum Befüllen der Wunschliste). */
+  searchSteamStore: (term: string): Promise<SteamSearchResult[]> =>
+    ipcRenderer.invoke('steam:search', term),
+
+  /** Epic-Store-Suche (zum Befüllen der Wunschliste). */
+  searchEpicStore: (
+    term: string
+  ): Promise<{ ok: true; results: EpicSearchResult[] } | { ok: false; error: string }> =>
+    ipcRenderer.invoke('epic:search', term),
+
+  /** Preis-Infos zu einem Spiel (Steam + IsThereAnyDeal). */
+  getGamePrices: (gameId: number): Promise<GamePriceInfo> =>
+    ipcRenderer.invoke('game:prices', gameId),
+
+  /** IsThereAnyDeal-Key verwalten. */
+  getItadStatus: (): Promise<ItadStatus> => ipcRenderer.invoke('itad:status'),
+  setItadKey: (key: string): Promise<{ ok: true } | { ok: false; error: string }> =>
+    ipcRenderer.invoke('itad:set', key),
+  clearItadKey: (): Promise<ItadStatus> => ipcRenderer.invoke('itad:clear')
 }
 
 if (process.contextIsolated) {

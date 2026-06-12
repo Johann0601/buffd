@@ -1,19 +1,31 @@
-import type { GameCard, NvidiaUpdate } from '@shared/types'
+import type { EpicFreeGame, GameCard, NvidiaUpdate, WishlistItem } from '@shared/types'
+import { formatEuro } from './format'
 import { updateActionFor } from './updateAction'
 
-// Benachrichtigungen: alles, was mit Updates zu tun hat, an einem Ort —
-// App-Update (bereit zum Neustart), Steam-Spiel-Updates, Nvidia-Treiber.
+// Benachrichtigungen: alles Wichtige an einem Ort — App-Update (bereit zum
+// Neustart), Spiel-Updates, Nvidia-Treiber, Wunschlisten-Rabatte und nicht
+// eingelöste Epic-Gratisspiele.
 function NotificationsView({
   appUpdateVersion,
   pendingGames,
-  nvidia
+  nvidia,
+  wishlistDeals,
+  epicFreebies,
+  onDismissFreebie
 }: {
   appUpdateVersion: string | null
   pendingGames: GameCard[]
   nvidia: NvidiaUpdate | null
+  wishlistDeals: WishlistItem[]
+  epicFreebies: EpicFreeGame[]
+  onDismissFreebie: (title: string) => void
 }): JSX.Element {
   const count =
-    (appUpdateVersion ? 1 : 0) + pendingGames.length + (nvidia?.updateAvailable ? 1 : 0)
+    (appUpdateVersion ? 1 : 0) +
+    pendingGames.length +
+    (nvidia?.updateAvailable ? 1 : 0) +
+    wishlistDeals.length +
+    epicFreebies.length
 
   return (
     <div className="app">
@@ -78,6 +90,65 @@ function NotificationsView({
             </div>
           )}
 
+          {/* Epic-Gratisspiele, die noch nicht eingelöst sind */}
+          {epicFreebies.map((f) => (
+            <div key={f.title} className="settings-row notif-attention">
+              <span className="settings-row-icon">🎁</span>
+              <div className="settings-row-main">
+                <div className="settings-row-title">Gratis bei Epic: {f.title}</div>
+                <div className="settings-row-desc">
+                  Noch nicht in deiner Bibliothek — einmal kostenlos einlösen, dauerhaft behalten.
+                  {f.endDate
+                    ? ` Nur bis ${new Date(f.endDate * 1000).toLocaleDateString('de-DE', {
+                        day: 'numeric',
+                        month: 'long'
+                      })}!`
+                    : ''}
+                </div>
+              </div>
+              {f.storeUrl && (
+                <button className="btn primary small" onClick={() => window.open(f.storeUrl!, '_blank')}>
+                  Im Epic Store einlösen ↗
+                </button>
+              )}
+              <button
+                className="btn small"
+                title="Diese Erinnerung ausblenden"
+                onClick={() => onDismissFreebie(f.title)}
+              >
+                ✕
+              </button>
+            </div>
+          ))}
+
+          {/* Wunschlisten-Spiele im Angebot */}
+          {wishlistDeals.map((w) => (
+            <div key={w.appId} className="settings-row notif-attention">
+              <span className="settings-row-icon">💶</span>
+              <div className="settings-row-main">
+                <div className="settings-row-title">
+                  {w.name} ist im Angebot (−{w.discountPct} %)
+                </div>
+                <div className="settings-row-desc">
+                  Jetzt {w.priceCents !== null ? formatEuro(w.priceCents) : '—'}
+                  {w.originalCents !== null ? ` statt ${formatEuro(w.originalCents)}` : ''} — von
+                  deiner Wunschliste.
+                </div>
+              </div>
+              <button
+                className="btn small"
+                onClick={() =>
+                  window.open(
+                    w.storeUrl ?? `https://store.steampowered.com/app/${w.appId}/`,
+                    '_blank'
+                  )
+                }
+              >
+                {w.shop === 'epic' ? 'Im Epic Store ↗' : 'Im Steam-Store ↗'}
+              </button>
+            </div>
+          ))}
+
           {/* Spiel-Updates (Steam & Battle.net) */}
           {pendingGames.map((g) => {
             const action = updateActionFor(g)
@@ -102,8 +173,9 @@ function NotificationsView({
         </div>
 
         <p className="hint">
-          Hier landet alles rund um Updates: die App selbst, deine Steam-Spiele und der
-          Nvidia-Treiber. Spiel-Updates werden alle 10 Minuten im Hintergrund neu geprüft.
+          Hier landet alles Wichtige: App-Updates, Spiel-Updates, Nvidia-Treiber,
+          Wunschlisten-Rabatte (Preisprüfung alle 6 Stunden) und Epic-Gratisspiele, die du noch
+          nicht eingelöst hast.
         </p>
       </main>
     </div>

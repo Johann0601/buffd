@@ -1,6 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import type { GameCard, NvidiaUpdate, RunningGame } from '@shared/types'
+import type {
+  EpicFreeGame,
+  GameCard,
+  NvidiaUpdate,
+  Platform,
+  RunningGame,
+  WishlistItem
+} from '@shared/types'
 import { formatGameSize, formatLastPlayed, formatPlaytime } from './format'
+import { platformLabel } from './platforms'
 import { updateActionFor } from './updateAction'
 import { uninstallActionFor } from './uninstallAction'
 import GameDetailExtras from './GameDetailExtras'
@@ -37,10 +45,59 @@ function App(): JSX.Element {
     localStorage.getItem('theme') === 'light' ? 'light' : 'dark'
   )
 
-  // Daten für die Benachrichtigungs-Glocke: ausstehende Spiel-Updates
-  // und der Nvidia-Treiber-Status.
+  // Daten für die Benachrichtigungs-Glocke: ausstehende Spiel-Updates,
+  // Nvidia-Treiber, Wunschlisten-Rabatte und nicht eingelöste Epic-Gratisspiele.
   const [pendingGames, setPendingGames] = useState<GameCard[]>([])
   const [nvidia, setNvidia] = useState<NvidiaUpdate | null>(null)
+  const [wishlistDeals, setWishlistDeals] = useState<WishlistItem[]>([])
+  const [epicFreebies, setEpicFreebies] = useState<EpicFreeGame[]>([])
+  const [dismissedFreebies, setDismissedFreebies] = useState<string[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('epic-free-dismissed') ?? '[]') as string[]
+    } catch {
+      return []
+    }
+  })
+
+  // Wunschliste: nur Einträge MIT Rabatt landen in der Glocke.
+  useEffect(() => {
+    const loadDeals = (): void => {
+      window.api
+        .getWishlist()
+        .then((items) => setWishlistDeals(items.filter((i) => i.discountPct > 0)))
+        .catch(() => {})
+    }
+    loadDeals()
+    return window.api.onWishlistRefresh(loadDeals) // nach jeder Preisprüfung
+  }, [])
+
+  // Epic-Gratisspiele, die noch NICHT in der Bibliothek sind (braucht Konto).
+  useEffect(() => {
+    ;(async () => {
+      try {
+        const [free, lib] = await Promise.all([
+          window.api.getEpicFreeGames(),
+          window.api.getEpicLibrary()
+        ])
+        if (!lib.ok) return // ohne verbundenes Konto keine Erinnerung
+        const owned = new Set(lib.games.map((g) => g.title.toLowerCase().trim()))
+        setEpicFreebies(
+          free.filter((f) => f.status === 'gratis' && !owned.has(f.title.toLowerCase().trim()))
+        )
+      } catch {
+        /* offline o. ä. */
+      }
+    })()
+  }, [])
+
+  const visibleFreebies = epicFreebies.filter((f) => !dismissedFreebies.includes(f.title))
+  const dismissFreebie = (title: string): void => {
+    setDismissedFreebies((prev) => {
+      const next = [...prev, title]
+      localStorage.setItem('epic-free-dismissed', JSON.stringify(next))
+      return next
+    })
+  }
 
   useEffect(() => {
     window.api.getAppVersion().then(setAppVersion).catch(() => {})
@@ -69,7 +126,11 @@ function App(): JSX.Element {
   }, [])
 
   const notifCount =
-    (updateVersion ? 1 : 0) + pendingGames.length + (nvidia?.updateAvailable ? 1 : 0)
+    (updateVersion ? 1 : 0) +
+    pendingGames.length +
+    (nvidia?.updateAvailable ? 1 : 0) +
+    wishlistDeals.length +
+    visibleFreebies.length
 
   // Theme als Attribut ans Wurzel-Element — das CSS schaltet darüber um.
   useEffect(() => {
@@ -167,6 +228,9 @@ function App(): JSX.Element {
             appUpdateVersion={updateVersion}
             pendingGames={pendingGames}
             nvidia={nvidia}
+            wishlistDeals={wishlistDeals}
+            epicFreebies={visibleFreebies}
+            onDismissFreebie={dismissFreebie}
           />
         )}
         {inSettings && (
@@ -176,6 +240,16 @@ function App(): JSX.Element {
     </div>
   )
 }
+
+// Sortier-Möglichkeiten der Spiele-Seite.
+type GameSort = 'playtime' | 'lastPlayed' | 'name' | 'size'
+
+const SORT_OPTIONS: { value: GameSort; label: string }[] = [
+  { value: 'playtime', label: 'Spielzeit' },
+  { value: 'lastPlayed', label: 'Zuletzt gespielt' },
+  { value: 'name', label: 'Name (A–Z)' },
+  { value: 'size', label: 'Größe' }
+]
 
 function GamesView({
   initialSelectedId = null
@@ -188,6 +262,22 @@ function GamesView({
   const [scanning, setScanning] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [now, setNow] = useState(() => Math.floor(Date.now() / 1000))
+  // Suche, Plattform-Filter und Sortierung (Filter + Sortierung werden gemerkt).
+  const [search, setSearch] = useState('')
+  const [platformFilter, setPlatformFilter] = useState<string>(
+    () => localStorage.getItem('games-filter-platform') ?? 'all'
+  )
+  const [sortBy, setSortBy] = useState<GameSort>(() => {
+    const saved = localStorage.getItem('games-sort')
+    return SORT_OPTIONS.some((o) => o.value === saved) ? (saved as GameSort) : 'playtime'
+  })
+
+  useEffect(() => {
+    localStorage.setItem('games-filter-platform', platformFilter)
+  }, [platformFilter])
+  useEffect(() => {
+    localStorage.setItem('games-sort', sortBy)
+  }, [sortBy])
 
   const reloadGames = useCallback(async () => {
     try {
@@ -251,6 +341,36 @@ function GamesView({
   const launchers = useMemo(() => games.filter((g) => g.kind === 'launcher'), [games])
   const playable = useMemo(() => games.filter((g) => g.kind === 'game'), [games])
 
+  // Nur Plattformen anbieten, von denen es auch Spiele gibt.
+  const availablePlatforms = useMemo(
+    () => [...new Set(playable.map((g) => g.platform))] as Platform[],
+    [playable]
+  )
+
+  // Suche + Filter + Sortierung anwenden.
+  const visible = useMemo(() => {
+    const term = search.trim().toLowerCase()
+    const list = playable.filter(
+      (g) =>
+        (platformFilter === 'all' || g.platform === platformFilter) &&
+        (term === '' || g.name.toLowerCase().includes(term))
+    )
+    switch (sortBy) {
+      case 'name':
+        list.sort((a, b) => a.name.localeCompare(b.name, 'de'))
+        break
+      case 'lastPlayed':
+        list.sort((a, b) => (b.lastPlayed ?? 0) - (a.lastPlayed ?? 0))
+        break
+      case 'size':
+        list.sort((a, b) => (b.sizeBytes ?? -1) - (a.sizeBytes ?? -1))
+        break
+      default: // Spielzeit (wie bisher)
+        list.sort((a, b) => liveTotal(b) - liveTotal(a))
+    }
+    return list
+  }, [playable, search, platformFilter, sortBy, liveTotal])
+
   if (selected) {
     return (
       <GameDetail
@@ -292,9 +412,58 @@ function GamesView({
           </section>
         )}
 
-        {playable.length > 0 && <h2 className="section-title">Spiele</h2>}
+        {playable.length > 0 && (
+          <div className="games-head">
+            <h2 className="section-title">
+              Spiele
+              {visible.length !== playable.length && (
+                <span className="games-count">
+                  {' '}
+                  ({visible.length} von {playable.length})
+                </span>
+              )}
+            </h2>
+            <div className="games-toolbar">
+              <input
+                type="text"
+                className="toolbar-input"
+                placeholder="🔍 Spiel suchen …"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+              <select
+                className="toolbar-select"
+                value={platformFilter}
+                onChange={(e) => setPlatformFilter(e.target.value)}
+                title="Nach Plattform filtern"
+              >
+                <option value="all">Alle Plattformen</option>
+                {availablePlatforms.map((p) => (
+                  <option key={p} value={p}>
+                    {platformLabel(p)}
+                  </option>
+                ))}
+              </select>
+              <select
+                className="toolbar-select"
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as GameSort)}
+                title="Sortierung"
+              >
+                {SORT_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    Sortieren: {o.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        )}
+        {playable.length > 0 && visible.length === 0 && (
+          <div className="empty">Kein Spiel passt zu Suche/Filter.</div>
+        )}
         <div className="grid">
-          {playable.map((game) => (
+          {visible.map((game) => (
             <GameTile
               key={game.id}
               game={game}
@@ -312,8 +481,9 @@ function GamesView({
 function Cover({ game }: { game: GameCard }): JSX.Element {
   const [failed, setFailed] = useState(false)
   if (game.coverUrl && !failed) {
-    // Wikipedia liefert oft Logos statt Box-Art -> eingepasst statt beschnitten.
-    const isLogo = game.coverUrl.includes('upload.wikimedia.org')
+    // Wikipedia-Logos und quadratische Xbox-Logos -> eingepasst statt beschnitten.
+    const isLogo =
+      game.coverUrl.includes('upload.wikimedia.org') || game.coverUrl.startsWith('cover://xbox/')
     return (
       <img
         src={game.coverUrl}

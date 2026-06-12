@@ -45,8 +45,8 @@ function UpdatesView(): JSX.Element {
           Die App erkennt ausstehende Updates für <strong>Steam</strong> (lokale
           Steam-Dateien) und <strong>Battle.net</strong> (Abgleich mit Blizzards
           Versions-Server) und führt eine eigene Historie. Installiert wird ausschließlich
-          über den jeweiligen Launcher. Für Epic-, Ubisoft-, Riot- und RSI-Spiele ist keine
-          zuverlässige Update-Erkennung möglich.
+          über den jeweiligen Launcher. Für Epic-, Ubisoft-, Riot-, RSI- und Xbox-Spiele ist
+          keine zuverlässige Update-Erkennung möglich.
         </div>
 
         <h2 className="section-title">Ausstehende Updates</h2>

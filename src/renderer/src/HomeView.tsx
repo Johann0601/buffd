@@ -230,7 +230,12 @@ function HomeTile({ game, onOpen }: { game: GameCard; onOpen: () => void }): JSX
           <img
             src={game.coverUrl}
             alt={game.name}
-            className={game.coverUrl.includes('upload.wikimedia.org') ? 'logo-cover' : undefined}
+            className={
+              game.coverUrl.includes('upload.wikimedia.org') ||
+              game.coverUrl.startsWith('cover://xbox/')
+                ? 'logo-cover'
+                : undefined
+            }
             onError={() => setImgFailed(true)}
           />
         ) : (

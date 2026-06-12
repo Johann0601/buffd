@@ -8,6 +8,11 @@ export function formatPlaytime(totalSec: number): string {
   return `${hours} h ${minutes} min`
 }
 
+/** Cent -> "19,99 €". */
+export function formatEuro(cents: number): string {
+  return `${(cents / 100).toLocaleString('de-DE', { minimumFractionDigits: 2 })} €`
+}
+
 /** Bytes -> "120,4 GB" / "850 MB" — für Spiel-Ordnergrößen. */
 export function formatGameSize(bytes: number): string {
   const gib = bytes / 1024 ** 3

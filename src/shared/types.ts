@@ -254,6 +254,70 @@ export interface SgdbStatus {
   connected: boolean
 }
 
+// --- Wunschliste & Preise ---
+
+/** Aus welchem Shop ein Wunschlisten-Eintrag stammt. */
+export type WishlistShop = 'steam' | 'epic'
+
+/** Ein Spiel auf der Wunschliste (mit zuletzt geprüftem Preis). */
+export interface WishlistItem {
+  id: number
+  appId: string // Steam-AppID bzw. Epic "namespace:offerId"
+  shop: WishlistShop
+  name: string
+  coverUrl: string | null
+  storeUrl: string | null // direkte Store-Seite
+  priceCents: number | null // aktueller Preis (null = unbekannt/gratis)
+  originalCents: number | null // Preis ohne Rabatt
+  discountPct: number // 0 = kein Rabatt -> keine Benachrichtigung
+  checkedAt: number | null // letzte Preisprüfung (Unix-Sekunden)
+}
+
+/** Ein Suchtreffer aus dem Steam-Store (zum Hinzufügen zur Wunschliste). */
+export interface SteamSearchResult {
+  appId: string
+  name: string
+  coverUrl: string | null
+  priceCents: number | null // aktueller Preis (null = gratis/unbekannt)
+  originalCents: number | null
+  discountPct: number
+  storeUrl: string
+}
+
+/** Ein Suchtreffer aus dem Epic Store. */
+export interface EpicSearchResult {
+  id: string // "namespace:offerId" (eindeutig, == WishlistItem.appId)
+  name: string
+  coverUrl: string | null
+  priceCents: number | null
+  originalCents: number | null
+  discountPct: number
+  storeUrl: string | null
+}
+
+/** Preis-Infos zu einem Spiel (Steam aktuell + IsThereAnyDeal-Vergleich). */
+export interface GamePriceInfo {
+  ok: boolean
+  appId: number | null
+  /** Aktueller Steam-Preis (null = gratis oder nicht im Verkauf). */
+  steam: {
+    priceCents: number
+    originalCents: number
+    discountPct: number
+  } | null
+  /** Bester aktueller Preis über alle Shops (IsThereAnyDeal, braucht Key). */
+  best: { shop: string; priceCents: number; cut: number; url: string } | null
+  /** Historischer Tiefstpreis (IsThereAnyDeal, braucht Key). */
+  historyLowCents: number | null
+  itadKeyMissing: boolean
+  error?: string
+}
+
+/** Zustand des hinterlegten IsThereAnyDeal-Keys. */
+export interface ItadStatus {
+  connected: boolean
+}
+
 /** Ein Steam-Angebot (aktueller Sale). */
 export interface SteamOffer {
   appId: number

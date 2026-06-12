@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { EpicAccountStatus, SgdbStatus, SteamKeyStatus } from '@shared/types'
+import type { EpicAccountStatus, ItadStatus, SgdbStatus, SteamKeyStatus } from '@shared/types'
 
 // Konten-Bereich: externe Konten mit der App VERBINDEN (kein eigenes
 // App-Login). Aktuell: Epic Games — lesend für Spielzeiten & Bibliothek.
@@ -14,7 +14,7 @@ function AccountsView({ onBack }: { onBack?: () => void }): JSX.Element {
         )}
         <div className="brand">
           <h1>👤 Konten</h1>
-          <span className="subtitle">Externe Konten mit der App verbinden</span>
+          <span className="subtitle">Externe Konten & API-Keys für Zusatzfunktionen</span>
         </div>
       </header>
 
@@ -22,11 +22,12 @@ function AccountsView({ onBack }: { onBack?: () => void }): JSX.Element {
         <EpicAccountCard />
         <SteamKeyCard />
         <SgdbKeyCard />
+        <ItadKeyCard />
         <p className="hint">
-          Die App liest nur Daten (Spielzeiten, Bibliothek) — sie verändert nie etwas an deinen
-          Konten. Dein Passwort gibst du ausschließlich auf der offiziellen Epic-Seite ein; die App
-          bekommt es nie zu sehen. Die Zugangsdaten werden mit Windows-Verschlüsselung nur auf
-          diesem PC gespeichert.
+          Die App liest nur Daten (Spielzeiten, Bibliothek, Erfolge, Preise) — sie verändert nie
+          etwas an deinen Konten. Passwörter gibst du ausschließlich auf den offiziellen Seiten
+          ein; die App bekommt sie nie zu sehen. Zugangsdaten und alle API-Keys werden mit
+          Windows-Verschlüsselung nur auf diesem PC gespeichert.
         </p>
       </main>
     </div>
@@ -362,6 +363,104 @@ function SgdbKeyCard(): JSX.Element {
       )}
 
       {message && <div className={`account-message ${message.kind}`}>{message.text}</div>}
+    </section>
+  )
+}
+
+// IsThereAnyDeal-Key: kostenlos, schaltet Preisvergleich über alle Shops und
+// historische Tiefstpreise auf den Spiel-Detailseiten frei.
+function ItadKeyCard(): JSX.Element {
+  const [status, setStatus] = useState<ItadStatus | null>(null)
+  const [key, setKey] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [message, setMessage] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null)
+
+  useEffect(() => {
+    window.api.getItadStatus().then(setStatus).catch(() => {})
+  }, [])
+
+  const save = async (): Promise<void> => {
+    if (!key.trim()) return
+    setBusy(true)
+    setMessage(null)
+    const result = await window.api.setItadKey(key)
+    setBusy(false)
+    if (result.ok) {
+      setStatus({ connected: true })
+      setKey('')
+      setMessage({
+        kind: 'ok',
+        text: 'Key gespeichert — Detailseiten zeigen jetzt Bestpreis und historischen Tiefstpreis.'
+      })
+    } else {
+      setMessage({ kind: 'error', text: result.error })
+    }
+  }
+
+  const remove = async (): Promise<void> => {
+    setStatus(await window.api.clearItadKey())
+    setMessage({ kind: 'ok', text: 'Key entfernt.' })
+  }
+
+  return (
+    <section className="account-card">
+      <div className="account-head">
+        <span className="account-icon">💶</span>
+        <div>
+          <div className="account-title">IsThereAnyDeal (Preisvergleich)</div>
+          <div className="account-state">
+            {status === null ? 'lade …' : status.connected ? '✓ Aktiv' : 'Kein Key hinterlegt'}
+          </div>
+        </div>
+      </div>
+
+      {status?.connected ? (
+        <div className="account-actions">
+          <button className="btn danger" onClick={remove} disabled={busy}>
+            Key entfernen
+          </button>
+        </div>
+      ) : (
+        status !== null && (
+          <div className="account-connect">
+            <ol className="account-steps">
+              <li>
+                Öffne{' '}
+                <a href="https://isthereanydeal.com/dev/apps/" target="_blank" rel="noreferrer">
+                  isthereanydeal.com/dev/apps
+                </a>{' '}
+                und melde dich an (kostenloses Konto).
+              </li>
+              <li>Registriere eine neue App (Name egal, z. B. „Spiele Hub") und kopiere den API-Key.</li>
+              <li>Hier einfügen — fertig.</li>
+            </ol>
+            <div className="account-actions">
+              <input
+                type="text"
+                className="account-code-input"
+                placeholder="IsThereAnyDeal-API-Key einfügen"
+                value={key}
+                onChange={(e) => setKey(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') save()
+                }}
+              />
+              <button className="btn primary" onClick={save} disabled={busy || !key.trim()}>
+                {busy ? 'Prüfe …' : 'Speichern'}
+              </button>
+            </div>
+          </div>
+        )
+      )}
+
+      {message && <div className={`account-message ${message.kind}`}>{message.text}</div>}
+
+      {status?.connected && (
+        <p className="account-note">
+          Die Spiel-Detailseiten zeigen damit den günstigsten aktuellen Shop-Preis und den
+          historischen Tiefstpreis (Quelle: IsThereAnyDeal, Preise für Deutschland).
+        </p>
+      )}
     </section>
   )
 }

@@ -59,7 +59,9 @@ function SettingsView({
             <span className="settings-row-icon">👤</span>
             <div className="settings-row-main">
               <div className="settings-row-title">Konten</div>
-              <div className="settings-row-desc">Epic-Konto verbinden und Spielzeit abgleichen</div>
+              <div className="settings-row-desc">
+                Epic-Konto sowie Keys für Steam-Erfolge, SteamGridDB-Cover und Preisvergleich
+              </div>
             </div>
             <span className="settings-row-arrow">→</span>
           </button>
@@ -68,7 +70,7 @@ function SettingsView({
             <div className="settings-row-main">
               <div className="settings-row-title">System / Treiber</div>
               <div className="settings-row-desc">
-                Geräte mit Treiberversionen, Nvidia-Update-Prüfung, Laufwerke
+                Hardware mit Treiberversionen, Nvidia-Update-Prüfung, Speicherplatz der Spiele
               </div>
             </div>
             <span className="settings-row-arrow">→</span>

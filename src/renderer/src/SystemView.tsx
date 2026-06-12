@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
-import type { DeviceCategory, DeviceInfo, GameStorageInfo, NvidiaUpdate, Platform } from '@shared/types'
+import type { DeviceCategory, DeviceInfo, GameStorageInfo, NvidiaUpdate } from '@shared/types'
 import { formatGameSize, formatLastPlayed } from './format'
+import { platformLabel } from './platforms'
 import { uninstallActionFor } from './uninstallAction'
 
 const CATEGORY_ICON: Record<DeviceCategory, string> = {
@@ -188,19 +189,6 @@ function SystemView({ onBack }: { onBack?: () => void }): JSX.Element {
   )
 }
 
-const PLATFORM_LABEL: Partial<Record<Platform, string>> = {
-  steam: 'Steam',
-  epic: 'Epic',
-  battlenet: 'Battle.net',
-  ubisoft: 'Ubisoft',
-  riot: 'Riot',
-  rsi: 'RSI',
-  ea: 'EA',
-  rockstar: 'Rockstar',
-  wargaming: 'Wargaming',
-  xbox: 'Xbox'
-}
-
 // Ab dieser Größe + Inaktivität wird ein Spiel als Aufräum-Kandidat markiert.
 const CLEANUP_MIN_BYTES = 10 * 1024 ** 3 // 10 GB
 const CLEANUP_IDLE_SEC = 90 * 24 * 3600 // 90 Tage
@@ -282,7 +270,7 @@ function GameStorageSection(): JSX.Element {
               <div className="storage-game-head">
                 <span className="storage-game-name">{g.name}</span>
                 <span className="storage-game-meta">
-                  {PLATFORM_LABEL[g.platform] ?? g.platform} · {g.installDir.charAt(0).toUpperCase()}:
+                  {platformLabel(g.platform)} · {g.installDir.charAt(0).toUpperCase()}:
                   {' · zuletzt gespielt: '}
                   {formatLastPlayed(g.lastPlayed)}
                 </span>

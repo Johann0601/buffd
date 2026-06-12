@@ -6,6 +6,7 @@ import { persistBattlenet } from './battlenet'
 import { persistUbisoft } from './ubisoft'
 import { persistRiot } from './riot'
 import { persistRsi } from './rsi'
+import { persistXbox } from './xbox'
 import { resolveMissingCovers } from './covers'
 import type { ScanResult } from '@shared/types'
 
@@ -47,6 +48,12 @@ export async function scanLibrary(): Promise<ScanResult> {
   }
   try {
     persistRsi()
+  } catch {
+    /* weiter */
+  }
+  try {
+    persistXbox() // Xbox-App-Spiele (XboxGames-Ordner) — vor den Launchern,
+    // damit deren PowerShell-Abfrage auch das Xbox-App-Logo mitliefert
   } catch {
     /* weiter */
   }

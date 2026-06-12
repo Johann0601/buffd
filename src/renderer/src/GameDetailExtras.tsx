@@ -1,5 +1,12 @@
 import { useEffect, useState } from 'react'
-import type { AchievementsResult, GameCard, GameDetails, GameNewsItem } from '@shared/types'
+import type {
+  AchievementsResult,
+  GameCard,
+  GameDetails,
+  GameNewsItem,
+  GamePriceInfo
+} from '@shared/types'
+import { formatEuro } from './format'
 
 // Zusatz-Bereiche der Spiel-Detailseite: Store-Infos (Beschreibung, Genres,
 // Screenshots), Steam-Erfolge und News/Patchnotes. Alles wird erst geladen,
@@ -17,6 +24,7 @@ function GameDetailExtras({ game }: { game: GameCard }): JSX.Element | null {
   const [details, setDetails] = useState<GameDetails | null>(null)
   const [news, setNews] = useState<GameNewsItem[] | null>(null)
   const [achievements, setAchievements] = useState<AchievementsResult | null>(null)
+  const [prices, setPrices] = useState<GamePriceInfo | null>(null)
   const [lightbox, setLightbox] = useState<string | null>(null) // Screenshot in groß
 
   useEffect(() => {
@@ -24,6 +32,7 @@ function GameDetailExtras({ game }: { game: GameCard }): JSX.Element | null {
     setDetails(null)
     setNews(null)
     setAchievements(null)
+    setPrices(null)
     setLightbox(null)
     let cancelled = false
     window.api.getGameDetails(game.id).then((d) => !cancelled && setDetails(d)).catch(() => {})
@@ -32,6 +41,7 @@ function GameDetailExtras({ game }: { game: GameCard }): JSX.Element | null {
       .getGameAchievements(game.id)
       .then((a) => !cancelled && setAchievements(a))
       .catch(() => {})
+    window.api.getGamePrices(game.id).then((p) => !cancelled && setPrices(p)).catch(() => {})
     return () => {
       cancelled = true
     }
@@ -94,6 +104,55 @@ function GameDetailExtras({ game }: { game: GameCard }): JSX.Element | null {
                 />
               ))}
             </div>
+          )}
+        </section>
+      )}
+
+      {prices && (prices.steam || prices.best || prices.historyLowCents !== null) && (
+        <section className="detail-section">
+          <h3 className="section-title">Preis</h3>
+          <div className="price-row">
+            {prices.steam && (
+              <div className="price-card">
+                <span className="price-label">Steam aktuell</span>
+                <span className="price-value">
+                  {formatEuro(prices.steam.priceCents)}
+                  {prices.steam.discountPct > 0 && (
+                    <>
+                      {' '}
+                      <s>{formatEuro(prices.steam.originalCents)}</s>{' '}
+                      <span className="offer-badge discount">-{prices.steam.discountPct}%</span>
+                    </>
+                  )}
+                </span>
+              </div>
+            )}
+            {prices.best && (
+              <a className="price-card clickable" href={prices.best.url} target="_blank" rel="noreferrer">
+                <span className="price-label">Bester Preis ({prices.best.shop}) ↗</span>
+                <span className="price-value">
+                  {formatEuro(prices.best.priceCents)}
+                  {prices.best.cut > 0 && (
+                    <>
+                      {' '}
+                      <span className="offer-badge discount">-{prices.best.cut}%</span>
+                    </>
+                  )}
+                </span>
+              </a>
+            )}
+            {prices.historyLowCents !== null && (
+              <div className="price-card">
+                <span className="price-label">Historischer Tiefstpreis</span>
+                <span className="price-value">{formatEuro(prices.historyLowCents)}</span>
+              </div>
+            )}
+          </div>
+          {prices.itadKeyMissing && (
+            <p className="hint">
+              Mit einem kostenlosen IsThereAnyDeal-Key (Einstellungen → Konten) siehst du hier
+              zusätzlich den besten Preis über alle Shops und den historischen Tiefstpreis.
+            </p>
           )}
         </section>
       )}

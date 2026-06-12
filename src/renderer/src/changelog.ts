@@ -11,6 +11,20 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.8.0',
+    date: '2026-06-12',
+    title: 'Wunschliste, Preise & Xbox-Spiele',
+    changes: [
+      'Shop-übergreifende Wunschliste mit Preisalarm (Shops → ⭐ Wunschliste): Spiele aus Steam UND Epic per Suche oder ☆ hinzufügen, die App prüft Preise alle 6 Stunden — Rabatte melden sich in der 🔔-Glocke.',
+      'Steam-Wunschliste importieren: Ein Klick übernimmt die Wunschliste deines Steam-Kontos.',
+      'Epic-Gratisspiel-Erinnerung: Die Glocke meldet Wochen-Gratisspiele, die noch nicht in deiner Epic-Bibliothek sind (ausblendbar).',
+      'Preise auf den Spiel-Detailseiten: aktueller Steam-Preis, mit IsThereAnyDeal-Key (Einstellungen → Konten) zusätzlich bester Shop-Preis und historischer Tiefstpreis.',
+      'Store-Suche in den Shop-Bereichen von Steam und Epic; die Shop-Übersicht zeigt Highlights aus allen Shops.',
+      'Spiele-Seite: Suchleiste, Plattform-Filter und Sortierung (Spielzeit, zuletzt gespielt, Name, Größe) — Filter und Sortierung werden gemerkt.',
+      'Xbox-App-Spiele werden erkannt und getrackt (z. B. Minecraft Launcher und Roblox aus dem XboxGames-Ordner); der Xbox-Launcher-Chip zeigt jetzt das echte Logo.'
+    ]
+  },
+  {
     version: '0.7.0',
     date: '2026-06-12',
     title: 'Speicherplatz-Analyse',

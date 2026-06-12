@@ -8,8 +8,9 @@
 import { app } from 'electron'
 import { existsSync, readFileSync, writeFileSync } from 'fs'
 import { join } from 'path'
-import type { GameDetails, GameNewsItem } from '@shared/types'
+import type { GameDetails, GameNewsItem, GamePriceInfo } from '@shared/types'
 import { getGameBasic } from '../db'
+import { getItadPrices, itadStatus } from './itad'
 import { steamSearchAppId } from './steam/storesearch'
 
 // --- Festplatten-Cache -------------------------------------------------------
@@ -138,6 +139,60 @@ export async function getGameDetails(gameId: number): Promise<GameDetails> {
     if (cached) return { ok: true, ...EMPTY, appId: cached.appId, ...(cached.details ?? {}) }
     return { ok: false, ...EMPTY, error: 'Store-Infos konnten nicht geladen werden.' }
   }
+}
+
+// --- Preise (Steam aktuell + IsThereAnyDeal-Vergleich) -----------------------
+
+/**
+ * Preis-Infos zu einem Spiel: aktueller Steam-Preis (live, ohne Key) plus —
+ * falls ein IsThereAnyDeal-Key hinterlegt ist — bester Shop-Preis und
+ * historischer Tiefstpreis.
+ */
+export async function getGamePrices(gameId: number): Promise<GamePriceInfo> {
+  const empty: GamePriceInfo = {
+    ok: true,
+    appId: null,
+    steam: null,
+    best: null,
+    historyLowCents: null,
+    itadKeyMissing: !itadStatus().connected
+  }
+
+  // getGameDetails liefert die (gecachte) AppID-Zuordnung mit.
+  const details = await getGameDetails(gameId)
+  if (!details.appId) return empty
+  empty.appId = details.appId
+
+  // Aktuellen Steam-Preis LIVE holen (der Details-Cache wäre zu alt für Preise).
+  try {
+    const res = await fetch(
+      `https://store.steampowered.com/api/appdetails?appids=${details.appId}&cc=DE&filters=price_overview`,
+      { signal: AbortSignal.timeout(10000) }
+    )
+    if (res.ok) {
+      const json = (await res.json()) as Record<
+        string,
+        {
+          success: boolean
+          data?: { price_overview?: { final: number; initial: number; discount_percent: number } }
+        }
+      >
+      const p = json[String(details.appId)]?.data?.price_overview
+      if (p) {
+        empty.steam = { priceCents: p.final, originalCents: p.initial, discountPct: p.discount_percent }
+      }
+    }
+  } catch {
+    /* offline -> nur ITAD/nichts */
+  }
+
+  // IsThereAnyDeal: bester Shop-Preis + Allzeit-Tief (nur mit Key).
+  const itad = await getItadPrices(details.appId)
+  if (itad) {
+    empty.best = itad.best
+    empty.historyLowCents = itad.historyLowCents
+  }
+  return empty
 }
 
 // --- News & Patchnotes -------------------------------------------------------

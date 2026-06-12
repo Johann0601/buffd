@@ -9,6 +9,7 @@ import { join } from 'path'
 interface StoredKeys {
   steamApiKey?: string
   sgdbApiKey?: string
+  itadApiKey?: string // IsThereAnyDeal (Preisvergleich/Tiefstpreise)
 }
 
 let cached: StoredKeys | undefined // undefined = noch nicht geladen

@@ -1,8 +1,9 @@
-import { app } from 'electron'
+import { app, nativeImage } from 'electron'
 import { existsSync } from 'fs'
 import { join } from 'path'
 import { upsertGame } from '../../db'
 import { resolveSteamPath } from '../steam/scanner'
+import { getXboxAppIconPath } from '../xbox'
 import type { Platform } from '@shared/types'
 
 interface LauncherDef {
@@ -137,6 +138,18 @@ export async function persistLaunchers(): Promise<number> {
         if (!icon.isEmpty()) iconDataUrl = icon.toDataURL()
       } catch {
         // kein Icon -> Buchstaben-Platzhalter
+      }
+    }
+    // UWP-Apps (Xbox) haben keine exe — deren Logo-PNG liegt im Paketordner.
+    if (!iconDataUrl && def.platform === 'xbox') {
+      const logoPath = getXboxAppIconPath()
+      if (logoPath) {
+        try {
+          const icon = nativeImage.createFromPath(logoPath).resize({ width: 64 })
+          if (!icon.isEmpty()) iconDataUrl = icon.toDataURL()
+        } catch {
+          /* Buchstaben-Platzhalter */
+        }
       }
     }
 

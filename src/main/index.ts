@@ -35,9 +35,13 @@ import {
   syncEpicPlaytime
 } from './services/epic/account'
 import { getEpicFreeGames } from './services/epic/store'
+import { searchEpicStore } from './services/epic/search'
 import { getEpicLibrary } from './services/epic/library'
 import { getSteamOffers } from './services/steam/offers'
-import { getGameDetails, getGameNews } from './services/gamedetails'
+import { getGameDetails, getGameNews, getGamePrices } from './services/gamedetails'
+import { checkWishlistPrices, importSteamWishlist, searchSteamStore } from './services/wishlist'
+import { itadStatus, setItadKey, clearItadKey } from './services/itad'
+import { addWishlistItem, listWishlist, removeWishlistItem } from './db'
 import { getGameAchievements } from './services/steam/achievements'
 import { steamKeyStatus, setSteamApiKey, clearSteamApiKey } from './services/steam/webapi'
 import { sgdbStatus, setSgdbKey, clearSgdbKey, upgradeWikiCovers } from './services/sgdb'
@@ -297,6 +301,58 @@ app.whenReady().then(() => {
     return { ok: true as const, upgradedCovers: upgraded }
   })
   ipcMain.handle('sgdb:clear', () => clearSgdbKey())
+
+  // Wunschliste mit Preisalarm + Steam-Store-Suche + Preis-Infos.
+  ipcMain.handle('wishlist:list', () => listWishlist())
+  ipcMain.handle(
+    'wishlist:add',
+    async (
+      _e,
+      item: {
+        appId: string
+        name: string
+        coverUrl: string | null
+        shop?: 'steam' | 'epic'
+        storeUrl?: string | null
+      }
+    ) => {
+      addWishlistItem(item.appId, item.name, item.coverUrl, item.shop ?? 'steam', item.storeUrl ?? null)
+      return checkWishlistPrices() // direkt den aktuellen Preis holen
+    }
+  )
+  ipcMain.handle('wishlist:remove', (_e, appId: string) => {
+    removeWishlistItem(appId)
+    return listWishlist()
+  })
+  ipcMain.handle('wishlist:check', () => checkWishlistPrices())
+  ipcMain.handle('wishlist:import-steam', async () => {
+    const result = await importSteamWishlist()
+    if (result.ok && result.imported > 0 && mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('wishlist:refresh') // Glocke aktualisieren
+    }
+    return result
+  })
+  ipcMain.handle('steam:search', (_e, term: string) => searchSteamStore(term))
+  ipcMain.handle('epic:search', (_e, term: string) => searchEpicStore(term))
+  ipcMain.handle('game:prices', (_e, gameId: number) => getGamePrices(gameId))
+
+  // IsThereAnyDeal-Key (Preisvergleich/Tiefstpreise) verwalten.
+  ipcMain.handle('itad:status', () => itadStatus())
+  ipcMain.handle('itad:set', (_e, key: string) => setItadKey(key))
+  ipcMain.handle('itad:clear', () => clearItadKey())
+
+  // Preise beim Start und danach alle 6 h prüfen; die Glocke lädt dann neu.
+  const checkPrices = (): void => {
+    checkWishlistPrices()
+      .then(() => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('wishlist:refresh')
+        }
+      })
+      .catch(() => {})
+  }
+  checkPrices()
+  setInterval(checkPrices, 6 * 60 * 60 * 1000)
 
   // Speicherplatz-Analyse: gecachter Stand, komplette Neuberechnung
   // (mit Live-Fortschritt pro Spiel) und Einzelberechnung für die Detailseite.
