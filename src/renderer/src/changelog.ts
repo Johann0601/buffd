@@ -11,6 +11,18 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.7.0',
+    date: '2026-06-12',
+    title: 'Speicherplatz-Analyse',
+    changes: [
+      'Neuer Bereich „Speicherplatz der Spiele" unter System / Treiber: alle Spiele nach Größe sortiert, mit Balken, Gesamtsumme und Laufwerk — einmal berechnet, dauerhaft gespeichert.',
+      'Aufräum-Tipps: Spiele über 10 GB, die seit über 3 Monaten nicht gespielt wurden, zeigen an, wie viel Platz eine Deinstallation freigeben würde.',
+      'Deinstallieren-Knopf (🗑) in der Speicherplatz-Liste und auf der Spiel-Detailseite: bei Steam öffnet sich direkt der offizielle Bestätigungs-Dialog, bei anderen Launchern der passende Launcher mit Wegbeschreibung. Die App selbst löscht nie etwas.',
+      'Spiel-Detailseite zeigt den belegten Speicher als eigene Kachel (mit Berechnen-Knopf).',
+      'System / Treiber aufgeräumt: zwei aufklappbare Hauptbereiche „Speicherplatz der Spiele" und „Hardware" — die Geräteliste steht damit wieder direkt oben.'
+    ]
+  },
+  {
     version: '0.6.0',
     date: '2026-06-12',
     title: 'Spiel-Detailseiten',

@@ -10,6 +10,7 @@ import type {
   GameCard,
   GameDetails,
   GameNewsItem,
+  GameStorageInfo,
   NvidiaUpdate,
   RunningGame,
   McProfile,
@@ -136,7 +137,20 @@ const api = {
     key: string
   ): Promise<{ ok: true; upgradedCovers: number } | { ok: false; error: string }> =>
     ipcRenderer.invoke('sgdb:set', key),
-  clearSgdbKey: (): Promise<SgdbStatus> => ipcRenderer.invoke('sgdb:clear')
+  clearSgdbKey: (): Promise<SgdbStatus> => ipcRenderer.invoke('sgdb:clear'),
+
+  /** Speicherplatz-Analyse: gecachter Stand und komplette Neuberechnung. */
+  getGameStorage: (): Promise<GameStorageInfo[]> => ipcRenderer.invoke('storage:list'),
+  analyzeGameStorage: (): Promise<GameStorageInfo[]> => ipcRenderer.invoke('storage:analyze'),
+  computeGameSize: (gameId: number): Promise<number | null> =>
+    ipcRenderer.invoke('storage:game', gameId),
+
+  /** Meldet während der Analyse jedes fertig berechnete Spiel einzeln. */
+  onStorageProgress: (cb: (info: GameStorageInfo) => void): (() => void) => {
+    const handler = (_e: unknown, info: GameStorageInfo): void => cb(info)
+    ipcRenderer.on('storage:progress', handler)
+    return () => ipcRenderer.removeListener('storage:progress', handler)
+  }
 }
 
 if (process.contextIsolated) {

@@ -42,6 +42,7 @@ import { getGameAchievements } from './services/steam/achievements'
 import { steamKeyStatus, setSteamApiKey, clearSteamApiKey } from './services/steam/webapi'
 import { sgdbStatus, setSgdbKey, clearSgdbKey, upgradeWikiCovers } from './services/sgdb'
 import { COVER_PLATFORMS } from './services/covers'
+import { analyzeGameStorage, computeGameSize, listGameStorage } from './services/storage'
 
 // Referenz aufs Hauptfenster, damit der Wächter Live-Updates schicken kann.
 let mainWindow: BrowserWindow | null = null
@@ -296,6 +297,18 @@ app.whenReady().then(() => {
     return { ok: true as const, upgradedCovers: upgraded }
   })
   ipcMain.handle('sgdb:clear', () => clearSgdbKey())
+
+  // Speicherplatz-Analyse: gecachter Stand, komplette Neuberechnung
+  // (mit Live-Fortschritt pro Spiel) und Einzelberechnung für die Detailseite.
+  ipcMain.handle('storage:list', () => listGameStorage())
+  ipcMain.handle('storage:analyze', () =>
+    analyzeGameStorage((info) => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('storage:progress', info)
+      }
+    })
+  )
+  ipcMain.handle('storage:game', (_e, gameId: number) => computeGameSize(gameId))
 
   // Beim Start (falls verbunden) die Epic-Spielzeiten still abgleichen.
   if (epicAccountStatus().connected) {

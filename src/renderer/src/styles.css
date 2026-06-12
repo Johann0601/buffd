@@ -1910,3 +1910,115 @@ img.logo-cover {
   color: var(--accent);
   margin-top: 7px;
 }
+
+/* ---- Speicherplatz-Analyse (System-Ansicht) ---- */
+/* Die zwei Hauptbereiche (Speicherplatz / Hardware) — etwas größer als
+   die Geräte-Kategorien darunter. */
+.main-group {
+  margin-bottom: 6px;
+}
+
+.group-header.main .group-title {
+  font-size: 17px;
+  font-weight: 800;
+}
+
+/* Inhalt eines aufgeklappten Hauptbereichs: leicht eingerückt. */
+.subgroup-list {
+  margin-left: 22px;
+}
+
+.storage-controls {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 4px 0 10px;
+}
+
+.storage-total {
+  font-size: 12.5px;
+  color: var(--muted);
+  flex: 1;
+}
+
+.storage-game-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 860px;
+  margin-top: 4px;
+}
+
+.storage-game-row {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  padding: 10px 14px;
+}
+
+.storage-game-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 7px;
+}
+
+.storage-game-name {
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.storage-game-meta {
+  flex: 1;
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.storage-game-size {
+  font-size: 14px;
+  font-weight: 800;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.storage-track.slim {
+  height: 6px;
+}
+
+.storage-cleanup-tip {
+  margin-top: 8px;
+  font-size: 12.5px;
+  color: var(--muted);
+  background: var(--panel-2);
+  border-radius: 8px;
+  padding: 7px 11px;
+}
+
+.storage-cleanup-tip b {
+  color: var(--text);
+}
+
+/* Deinstallieren-Knopf in der Speicherplatz-Zeile (dezent, rot beim Hover). */
+.uninstall-btn {
+  flex: none;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1;
+  padding: 5px 9px;
+  cursor: pointer;
+  transition: border-color 0.12s ease, color 0.12s ease;
+}
+
+.uninstall-btn:hover {
+  border-color: var(--error);
+  color: var(--error);
+}

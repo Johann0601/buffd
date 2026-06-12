@@ -8,6 +8,16 @@ export function formatPlaytime(totalSec: number): string {
   return `${hours} h ${minutes} min`
 }
 
+/** Bytes -> "120,4 GB" / "850 MB" — für Spiel-Ordnergrößen. */
+export function formatGameSize(bytes: number): string {
+  const gib = bytes / 1024 ** 3
+  if (gib >= 100) return `${Math.round(gib)} GB`
+  if (gib >= 1) return `${gib.toFixed(1).replace('.', ',')} GB`
+  const mib = bytes / 1024 ** 2
+  if (mib >= 1) return `${Math.round(mib)} MB`
+  return `${Math.max(1, Math.round(bytes / 1024))} KB`
+}
+
 /** Unix-Sekunden -> lesbares Datum (deutsch), oder "nie". */
 export function formatLastPlayed(unixSec: number | null): string {
   if (!unixSec) return 'nie'

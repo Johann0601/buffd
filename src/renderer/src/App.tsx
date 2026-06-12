@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { GameCard, NvidiaUpdate, RunningGame } from '@shared/types'
-import { formatLastPlayed, formatPlaytime } from './format'
+import { formatGameSize, formatLastPlayed, formatPlaytime } from './format'
 import { updateActionFor } from './updateAction'
+import { uninstallActionFor } from './uninstallAction'
 import GameDetailExtras from './GameDetailExtras'
 import HomeView from './HomeView'
 import ModsView from './ModsView'
@@ -387,6 +388,17 @@ function GameDetail({
   const [busy, setBusy] = useState<null | 'launch' | 'close'>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [editingHours, setEditingHours] = useState<string | null>(null) // null = nicht im Bearbeiten-Modus
+  const [computingSize, setComputingSize] = useState(false)
+
+  const computeSize = async (): Promise<void> => {
+    setComputingSize(true)
+    try {
+      await window.api.computeGameSize(game.id)
+      onGamesUpdated(await window.api.listGames()) // frische Liste inkl. Größe
+    } finally {
+      setComputingSize(false)
+    }
+  }
 
   const savePlaytime = async (): Promise<void> => {
     const hours = parseFloat((editingHours ?? '').replace(',', '.'))
@@ -484,6 +496,23 @@ function GameDetail({
                 <span className="stat-value">{formatLastPlayed(game.manifestLastUpdated)}</span>
               </div>
             )}
+            {game.installDir && (
+              <div className="stat">
+                <span className="stat-label">Belegter Speicher</span>
+                {game.sizeBytes !== null ? (
+                  <span className="stat-value">{formatGameSize(game.sizeBytes)}</span>
+                ) : (
+                  <button
+                    className="btn small"
+                    onClick={computeSize}
+                    disabled={computingSize}
+                    title="Ordnergröße jetzt berechnen"
+                  >
+                    {computingSize ? 'Berechne …' : 'Berechnen'}
+                  </button>
+                )}
+              </div>
+            )}
           </div>
 
           {game.updatePending && (
@@ -510,6 +539,27 @@ function GameDetail({
                 {busy === 'close' ? 'Schließe …' : '■ Schließen'}
               </button>
             )}
+            {!isRunning &&
+              game.installDir &&
+              (() => {
+                const action = uninstallActionFor(game.platform, game.platformId)
+                return action ? (
+                  <button
+                    className="btn"
+                    title={
+                      game.platform === 'steam'
+                        ? 'Öffnet Steams Bestätigungs-Dialog — nichts wird sofort gelöscht'
+                        : 'Öffnet den Launcher — deinstalliert wird dort'
+                    }
+                    onClick={() => {
+                      action.run()
+                      setNotice(action.hint)
+                    }}
+                  >
+                    🗑 Deinstallieren
+                  </button>
+                ) : null
+              })()}
           </div>
 
             {notice && <div className="notice">{notice}</div>}

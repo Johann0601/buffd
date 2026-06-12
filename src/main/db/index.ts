@@ -1,7 +1,7 @@
 import { app } from 'electron'
 import { join } from 'path'
 import Database from 'better-sqlite3'
-import type { GameCard, GameKind, Platform, UpdateEvent } from '@shared/types'
+import type { GameCard, GameKind, GameStorageInfo, Platform, UpdateEvent } from '@shared/types'
 
 // Eine einzige, app-weite DB-Verbindung. better-sqlite3 arbeitet synchron —
 // das ist im Electron-Main-Prozess gewollt und einfach zu handhaben.
@@ -95,6 +95,14 @@ const MIGRATIONS: ((db: Database.Database) => void)[] = [
         added_at   INTEGER NOT NULL DEFAULT (strftime('%s','now'))
       );
     `)
+  },
+  // v7: Speicherplatz-Analyse — berechnete Ordnergröße pro Spiel (gecacht,
+  //     weil das Durchlaufen großer Spielordner einige Sekunden dauert).
+  (database) => {
+    database.exec(`
+      ALTER TABLE games ADD COLUMN size_bytes INTEGER;
+      ALTER TABLE games ADD COLUMN size_checked_at INTEGER;
+    `)
   }
 ]
 
@@ -174,6 +182,7 @@ interface GameRow {
   total_playtime_sec: number
   update_pending: number
   manifest_updated: number | null
+  size_bytes: number | null
 }
 
 /**
@@ -186,7 +195,7 @@ export function listGames(): GameCard[] {
       `
       SELECT
         g.id, g.kind, g.platform, g.platform_id, g.name, g.install_dir, g.cover_url, g.last_played,
-        g.update_pending, g.manifest_updated,
+        g.update_pending, g.manifest_updated, g.size_bytes,
         g.imported_playtime_sec
           + COALESCE((SELECT SUM(s.duration_sec) FROM play_sessions s
                       WHERE s.game_id = g.id AND s.duration_sec IS NOT NULL), 0) AS total_playtime_sec
@@ -207,7 +216,8 @@ export function listGames(): GameCard[] {
     totalPlaytimeSec: r.total_playtime_sec,
     lastPlayed: r.last_played,
     updatePending: r.update_pending === 1,
-    manifestLastUpdated: r.manifest_updated
+    manifestLastUpdated: r.manifest_updated,
+    sizeBytes: r.size_bytes
   }))
 }
 
@@ -275,6 +285,28 @@ export function getLaunchInfo(
     .prepare('SELECT platform, platform_id AS platformId, launch_target AS launchTarget FROM games WHERE id = ?')
     .get(id) as { platform: Platform; platformId: string; launchTarget: string | null } | undefined
   return row ?? null
+}
+
+/** Berechnete Ordnergröße eines Spiels speichern (mit Zeitstempel). */
+export function setGameSize(gameId: number, sizeBytes: number): void {
+  getDatabase()
+    .prepare(
+      `UPDATE games SET size_bytes = ?, size_checked_at = strftime('%s','now') WHERE id = ?`
+    )
+    .run(sizeBytes, gameId)
+}
+
+/** Alle installierten Spiele für die Speicherplatz-Analyse (inkl. Cache-Stand). */
+export function listGamesForStorage(): GameStorageInfo[] {
+  return getDatabase()
+    .prepare(
+      `SELECT id AS gameId, platform_id AS platformId, name, platform, install_dir AS installDir,
+              size_bytes AS sizeBytes, size_checked_at AS checkedAt, last_played AS lastPlayed
+       FROM games
+       WHERE kind = 'game' AND install_dir IS NOT NULL AND install_dir <> ''
+       ORDER BY size_bytes DESC NULLS LAST, name COLLATE NOCASE ASC`
+    )
+    .all() as GameStorageInfo[]
 }
 
 /** Grunddaten eines Eintrags (für Detail-Abfragen wie Store-Infos/News/Erfolge). */

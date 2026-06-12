@@ -32,6 +32,21 @@ export interface GameCard {
   lastPlayed: number | null // Unix-Zeit (Sekunden)
   updatePending: boolean // Steam meldet ein ausstehendes Update (StateFlags Bit 2)
   manifestLastUpdated: number | null // letzter Update-Zeitpunkt laut Steam (Unix-Sek.)
+  sizeBytes: number | null // Ordnergröße der Installation (null = noch nicht berechnet)
+}
+
+// --- Speicherplatz-Analyse ---
+
+/** Speicherbelegung eines installierten Spiels. */
+export interface GameStorageInfo {
+  gameId: number
+  platformId: string // z. B. Steam-AppID (für den Deinstallieren-Knopf)
+  name: string
+  platform: Platform
+  installDir: string
+  sizeBytes: number | null // null = noch nicht berechnet
+  checkedAt: number | null // wann zuletzt berechnet (Unix-Sekunden)
+  lastPlayed: number | null
 }
 
 // --- Phase 5: Minecraft-Profile/Modpacks ---
