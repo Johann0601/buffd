@@ -11,6 +11,14 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.8.1',
+    date: '2026-06-12',
+    title: 'Sidebar-Feinschliff',
+    changes: [
+      'Die Seitenleiste klappt beim Drüberfahren wieder sofort auf — die kurze Wartezeit ist raus.'
+    ]
+  },
+  {
     version: '0.8.0',
     date: '2026-06-12',
     title: 'Wunschliste, Preise & Xbox-Spiele',
