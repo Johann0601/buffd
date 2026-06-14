@@ -280,6 +280,65 @@ export interface AchievementsResult {
   error?: string
 }
 
+// --- Freunde (Stufe A: Steam-Freunde nur lesen) ---
+
+/** Steam-Online-Status eines Freundes (vereinfacht aus personastate). */
+export type FriendState = 'offline' | 'online' | 'away' | 'busy' | 'ingame'
+
+/** Ein Steam-Freund mit öffentlich sichtbarem Status. */
+export interface SteamFriend {
+  steamId: string
+  personaName: string
+  avatarUrl: string | null // volle https-URL (kein Proxy nötig)
+  state: FriendState
+  currentGame: string | null // Name des gerade gespielten Spiels (state 'ingame')
+  currentGameAppId: number | null
+  profileUrl: string | null // Link zum Steam-Profil
+  lastLogoff: number | null // zuletzt online (Unix-Sek.) — nur wenn nicht privat
+  private: boolean // true = Profil privat -> Bibliothek/Spielzeit nicht abrufbar
+}
+
+/** Ergebnis des Freundeslisten-Abrufs. */
+export interface SteamFriendsResult {
+  ok: boolean
+  friends: SteamFriend[]
+  keyMissing: boolean // true = kein Steam-Web-API-Key hinterlegt
+  listPrivate: boolean // true = die EIGENE Freundesliste ist privat (nicht abrufbar)
+  error?: string
+}
+
+/** Ein Spiel aus der Bibliothek eines Freundes. */
+export interface FriendGame {
+  appId: number
+  name: string
+  playtimeSec: number
+  lastPlayed: number | null // Unix-Sek. (nur wenn Steam es liefert)
+  coverUrl: string | null
+}
+
+/** Ergebnis des Bibliotheks-Abrufs für einen Freund. */
+export interface FriendGamesResult {
+  ok: boolean
+  games: FriendGame[]
+  private: boolean // true = Spieldetails des Freundes sind privat
+  error?: string
+}
+
+/** Ein Freund, der ein bestimmtes Spiel besitzt (für die Detailseite). */
+export interface FriendOnGame {
+  steamId: string
+  personaName: string
+  avatarUrl: string | null
+  playtimeSec: number // 0 = besitzt es, aber (noch) nicht gespielt
+}
+
+/** Ergebnis: welche Freunde ein bestimmtes Spiel besitzen/gespielt haben. */
+export interface FriendsForGameResult {
+  ok: boolean
+  friends: FriendOnGame[] // nach Spielzeit absteigend
+  keyMissing: boolean // kein Steam-Web-API-Key hinterlegt
+}
+
 /** Zustand des hinterlegten Steam-Web-API-Keys. */
 export interface SteamKeyStatus {
   connected: boolean

@@ -11,6 +11,19 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.14.0',
+    date: '2026-06-14',
+    title: 'Freunde (Steam)',
+    changes: [
+      'Neuer Bereich „👥 Freunde": zeigt deine Steam-Freunde mit Online-Status und dem Spiel, das sie gerade spielen.',
+      'Ein Klick auf einen Freund öffnet (sofern öffentlich) seine Bibliothek mit den meistgespielten Spielen und Spielzeiten.',
+      'Auf der Spiel-Detailseite gibt es jetzt „Freunde mit diesem Spiel" (direkt unter den Knöpfen, bei vielen Freunden mehrspaltig) — wer es besitzt und wie viel Zeit er darin verbracht hat.',
+      'Neuer Knopf „⚙ Verwalten" auf der Detailseite: öffnet ein Fenster, über das du den Installationsordner im Explorer öffnen oder das Spiel deinstallieren kannst.',
+      'Spiele ohne Steam-Cover werden in der Freundes-Bibliothek nun mit ihrem Namen statt einem kaputten Bild angezeigt.',
+      'Alles nur lesend über die offizielle Steam-Web-API — sichtbar ist ausschließlich, was jeder Freund über seine eigenen Steam-Privatsphäre-Einstellungen freigibt. Braucht den (kostenlosen) Steam-Web-API-Key.'
+    ]
+  },
+  {
     version: '0.13.1',
     date: '2026-06-14',
     title: 'Update-Hinweis als Pop-up',

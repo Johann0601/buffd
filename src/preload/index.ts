@@ -8,6 +8,8 @@ import type {
   EpicLibraryResult,
   EpicSearchResult,
   EpicSyncResult,
+  FriendGamesResult,
+  FriendsForGameResult,
   GameCard,
   GameDetails,
   GameNewsItem,
@@ -21,6 +23,7 @@ import type {
   NotInstalledResult,
   ScanResult,
   SgdbStatus,
+  SteamFriendsResult,
   SteamKeyStatus,
   SteamOffer,
   SteamSearchResult,
@@ -37,6 +40,9 @@ const api = {
 
   /** Aktuelle App-Version (aus package.json). */
   getAppVersion: (): Promise<string> => ipcRenderer.invoke('app:version'),
+
+  /** true = experimenteller Test-/Vorab-Build (nicht die installierte Release-Version). */
+  isExperimentalBuild: (): Promise<boolean> => ipcRenderer.invoke('app:experimental'),
 
   /** Heruntergeladenes App-Update jetzt installieren (App startet neu). */
   installAppUpdate: (): Promise<void> => ipcRenderer.invoke('app:install-update'),
@@ -138,6 +144,17 @@ const api = {
   getGameNews: (ref: GameRef): Promise<GameNewsItem[]> => ipcRenderer.invoke('game:news', ref),
   getGameAchievements: (ref: GameRef): Promise<AchievementsResult> =>
     ipcRenderer.invoke('game:achievements', ref),
+
+  /** Freunde (Stufe A): Steam-Freundesliste + Bibliothek eines Freundes. */
+  getSteamFriends: (): Promise<SteamFriendsResult> => ipcRenderer.invoke('friends:list'),
+  getFriendGames: (steamId: string): Promise<FriendGamesResult> =>
+    ipcRenderer.invoke('friends:games', steamId),
+  getFriendsForGame: (appId: number): Promise<FriendsForGameResult> =>
+    ipcRenderer.invoke('friends:for-game', appId),
+
+  /** Installationsordner eines Spiels im Datei-Explorer öffnen. */
+  openGameFolder: (path: string): Promise<boolean> =>
+    ipcRenderer.invoke('game:open-folder', path),
 
   /** Steam-Web-API-Key (für Erfolge) verwalten. */
   getSteamKeyStatus: (): Promise<SteamKeyStatus> => ipcRenderer.invoke('steamkey:status'),

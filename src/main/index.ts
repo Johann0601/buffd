@@ -47,6 +47,7 @@ import { itadStatus, setItadKey, clearItadKey } from './services/itad'
 import { addWishlistItem, listWishlist, removeWishlistItem } from './db'
 import { getGameAchievements } from './services/steam/achievements'
 import { steamKeyStatus, setSteamApiKey, clearSteamApiKey } from './services/steam/webapi'
+import { getSteamFriends, getFriendGames, getFriendsForGame } from './services/steam/friends'
 import { sgdbStatus, setSgdbKey, clearSgdbKey, upgradeWikiCovers } from './services/sgdb'
 import { COVER_PLATFORMS } from './services/covers'
 import { analyzeGameStorage, computeGameSize, listGameStorage } from './services/storage'
@@ -171,6 +172,15 @@ app.whenReady().then(() => {
   ipcMain.handle('app:version', () => app.getVersion())
   ipcMain.handle('app:install-update', () => autoUpdater.quitAndInstall())
 
+  // Experimenteller (Test-)Build? Die veröffentlichte/installierte Version liegt
+  // unter „…\Programs\spiele-hub\". Läuft die App woanders (z. B. direkt aus dem
+  // gebauten release\win-unpacked\-Ordner) oder unverpackt im Dev-Modus, ist es
+  // ein Vorab-Build -> die Oberfläche kennzeichnet ihn als „Experimentell".
+  ipcMain.handle('app:experimental', () => {
+    if (!app.isPackaged) return true
+    return !app.getPath('exe').toLowerCase().includes('\\programs\\spiele-hub\\')
+  })
+
   ipcMain.handle('library:scan', () => scanLibrary())
   ipcMain.handle('games:list', () => listGames())
   ipcMain.handle('games:not-installed', () => listNotInstalledGames())
@@ -293,6 +303,17 @@ app.whenReady().then(() => {
   ipcMain.handle('game:details', (_e, ref: GameRef) => getGameDetails(ref))
   ipcMain.handle('game:news', (_e, ref: GameRef) => getGameNews(ref))
   ipcMain.handle('game:achievements', (_e, ref: GameRef) => getGameAchievements(ref))
+
+  // Freunde (Stufe A): Steam-Freundesliste + Bibliothek eines Freundes (read-only).
+  ipcMain.handle('friends:list', () => getSteamFriends())
+  ipcMain.handle('friends:games', (_e, steamId: string) => getFriendGames(steamId))
+  ipcMain.handle('friends:for-game', (_e, appId: number) => getFriendsForGame(appId))
+
+  // Installationsordner eines Spiels im Datei-Explorer öffnen.
+  ipcMain.handle('game:open-folder', (_e, path: string) => {
+    if (path && existsSync(path)) shell.openPath(path)
+    return existsSync(path)
+  })
 
   // Steam-Web-API-Key (für Erfolge) verwalten.
   ipcMain.handle('steamkey:status', () => steamKeyStatus())

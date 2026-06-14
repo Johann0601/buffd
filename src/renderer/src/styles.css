@@ -1388,6 +1388,20 @@ body {
   color: var(--muted);
 }
 
+/* Kennzeichnung eines Test-/Vorab-Builds (nur außerhalb der Release-Installation). */
+.exp-badge {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: #e0a23a;
+  background: rgba(255, 184, 77, 0.12);
+  border: 1px solid rgba(255, 184, 77, 0.4);
+  border-radius: 6px;
+  padding: 3px 7px;
+  margin-bottom: 6px;
+  white-space: nowrap;
+}
+
 /* Hervorgehobene Benachrichtigung (Handlungsbedarf). */
 .settings-row.notif-attention {
   border-color: rgba(255, 184, 77, 0.55);
@@ -2494,4 +2508,264 @@ img.logo-cover {
 .price-value .offer-badge,
 .shop-row .offer-badge {
   position: static;
+}
+
+/* --- Freunde (Stufe A: Steam-Freunde) --- */
+.friend-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.friend-card {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--panel);
+  overflow: hidden;
+}
+.friend-card.open {
+  border-color: var(--accent);
+}
+
+.friend-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 14px;
+  background: none;
+  border: none;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+}
+.friend-head:hover {
+  background: var(--panel-2);
+}
+
+.friend-avatar-wrap {
+  position: relative;
+  flex: 0 0 auto;
+  line-height: 0;
+}
+.friend-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  object-fit: cover;
+  background: var(--panel-2);
+}
+.friend-avatar-fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+}
+.friend-dot {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  border: 2px solid var(--panel);
+}
+.friend-dot.state-ingame {
+  background: #90ba3c;
+}
+.friend-dot.state-online {
+  background: #57cbde;
+}
+.friend-dot.state-away,
+.friend-dot.state-busy {
+  background: #c9a13b;
+}
+.friend-dot.state-offline {
+  background: var(--muted);
+}
+
+.friend-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.friend-name {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.friend-status {
+  font-size: 13px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.friend-card .friend-head:has(.state-ingame) .friend-status {
+  color: #90ba3c;
+}
+.friend-card .friend-head:has(.state-online) .friend-status {
+  color: #57cbde;
+}
+
+.friend-caret,
+.friend-private {
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.friend-body {
+  padding: 4px 14px 14px;
+  border-top: 1px solid var(--border);
+}
+.friend-note {
+  color: var(--muted);
+  font-size: 13px;
+  padding: 10px 2px;
+}
+.friend-lib-head {
+  font-size: 13px;
+  color: var(--muted);
+  margin: 8px 0;
+}
+
+.friend-games {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 10px;
+}
+.friend-game {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-decoration: none;
+  color: var(--text);
+}
+.friend-game-cover {
+  position: relative;
+  aspect-ratio: 2 / 3;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+}
+.friend-game-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.friend-game:hover .friend-game-cover {
+  border-color: var(--accent);
+}
+.friend-game-noart {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 6px;
+  font-size: 11px;
+  text-align: center;
+  color: var(--muted);
+}
+.friend-game-name {
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.friend-game-time {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* Freunde mit diesem Spiel (Spiel-Detailseite). Mehrspaltig bei vielen Freunden. */
+.fog-section {
+  margin-top: 14px;
+}
+.fog-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 6px;
+}
+.fog-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel);
+}
+.fog-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  object-fit: cover;
+  background: var(--panel-2);
+  flex: 0 0 auto;
+}
+.fog-avatar-fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+}
+.fog-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fog-time {
+  flex: 0 0 auto;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+/* Verwalten-Popup (Ordner öffnen / deinstallieren). */
+.manage-modal {
+  max-width: 520px;
+}
+.manage-section {
+  margin: 14px 0;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+.manage-section:last-of-type {
+  border-bottom: none;
+}
+.manage-label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+.manage-path {
+  font-size: 13px;
+  word-break: break-all;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 7px 9px;
+  margin-bottom: 10px;
+  color: var(--text);
+}
+.manage-hint {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 6px;
+}
+.manage-warn {
+  font-size: 13px;
+  color: var(--error);
+  margin-top: 6px;
 }

@@ -14,6 +14,8 @@ import { platformLabel } from './platforms'
 import { updateActionFor } from './updateAction'
 import { uninstallActionFor } from './uninstallAction'
 import logoUrl from './assets/logo.svg'
+import FriendsForGame from './FriendsForGame'
+import FriendsView from './FriendsView'
 import GameDetailExtras from './GameDetailExtras'
 import HomeView from './HomeView'
 import ModsView from './ModsView'
@@ -29,6 +31,7 @@ export type View =
   | 'updates'
   | 'mods'
   | 'shops'
+  | 'friends'
   | 'notifications'
   | 'settings'
   | 'settings-accounts'
@@ -44,6 +47,7 @@ function App(): JSX.Element {
   // Von der Startseite aus kann ein Spiel direkt in der Detailansicht geöffnet werden.
   const [gameToShow, setGameToShow] = useState<number | null>(null)
   const [appVersion, setAppVersion] = useState('')
+  const [experimental, setExperimental] = useState(false) // Test-/Vorab-Build?
   const [updateVersion, setUpdateVersion] = useState<string | null>(null) // fertig geladenes App-Update
   const [theme, setTheme] = useState<Theme>(() =>
     localStorage.getItem('theme') === 'light' ? 'light' : 'dark'
@@ -154,6 +158,7 @@ function App(): JSX.Element {
 
   useEffect(() => {
     window.api.getAppVersion().then(setAppVersion).catch(() => {})
+    window.api.isExperimentalBuild().then(setExperimental).catch(() => {})
     return window.api.onAppUpdateReady(setUpdateVersion)
   }, [])
 
@@ -236,6 +241,14 @@ function App(): JSX.Element {
           <span className="nav-icon">🛒</span>
           <span className="nav-label">Shops</span>
         </button>
+        <button
+          className={`nav-item ${view === 'friends' ? 'active' : ''}`}
+          onClick={() => setView('friends')}
+          title="Freunde"
+        >
+          <span className="nav-icon">👥</span>
+          <span className="nav-label">Freunde</span>
+        </button>
 
         <button
           className={`nav-item nav-bottom ${view === 'notifications' ? 'active' : ''}`}
@@ -257,6 +270,11 @@ function App(): JSX.Element {
           <span className="nav-label">Einstellungen</span>
         </button>
         <div className="sidebar-footer">
+          {experimental && (
+            <span className="exp-badge nav-label" title="Test-/Vorab-Build — keine veröffentlichte Version">
+              🧪 Experimenteller Build
+            </span>
+          )}
           {appVersion && <span className="app-version nav-label">Version {appVersion}</span>}
         </div>
       </nav>
@@ -274,6 +292,9 @@ function App(): JSX.Element {
         {view === 'updates' && <UpdatesView />}
         {view === 'mods' && <ModsView />}
         {view === 'shops' && <ShopsView />}
+        {view === 'friends' && (
+          <FriendsView onOpenAccounts={() => setView('settings-accounts')} />
+        )}
         {view === 'notifications' && (
           <NotificationsView
             appUpdateVersion={updateVersion}
@@ -927,6 +948,7 @@ function GameDetail({
   const [notice, setNotice] = useState<string | null>(null)
   const [editingHours, setEditingHours] = useState<string | null>(null) // null = nicht im Bearbeiten-Modus
   const [computingSize, setComputingSize] = useState(false)
+  const [showManage, setShowManage] = useState(false) // „Verwalten"-Popup
 
   const computeSize = async (): Promise<void> => {
     setComputingSize(true)
@@ -1077,32 +1099,18 @@ function GameDetail({
                 {busy === 'close' ? 'Schließe …' : '■ Schließen'}
               </button>
             )}
-            {!isRunning &&
-              game.installDir &&
-              (() => {
-                const action = uninstallActionFor(game.platform, game.platformId)
-                return action ? (
-                  <button
-                    className="btn"
-                    title={
-                      game.platform === 'steam'
-                        ? 'Öffnet Steams Bestätigungs-Dialog — nichts wird sofort gelöscht'
-                        : 'Öffnet den Launcher — deinstalliert wird dort'
-                    }
-                    onClick={() => {
-                      action.run()
-                      setNotice(action.hint)
-                    }}
-                  >
-                    🗑 Deinstallieren
-                  </button>
-                ) : null
-              })()}
+            {game.installDir && (
+              <button className="btn" onClick={() => setShowManage(true)} title="Spiel verwalten">
+                ⚙ Verwalten
+              </button>
+            )}
           </div>
 
             {notice && <div className="notice">{notice}</div>}
 
-            {game.installDir && <div className="install-path">{game.installDir}</div>}
+            <FriendsForGame
+              gameRef={{ platform: game.platform, platformId: game.platformId, name: game.name }}
+            />
           </div>
         </div>
 
@@ -1110,6 +1118,94 @@ function GameDetail({
           gameRef={{ platform: game.platform, platformId: game.platformId, name: game.name }}
         />
       </main>
+
+      {showManage && (
+        <ManageGameModal
+          game={game}
+          isRunning={isRunning}
+          onClose={() => setShowManage(false)}
+          onNotice={setNotice}
+        />
+      )}
+    </div>
+  )
+}
+
+/** Popup „Verwalten": Installationsordner öffnen oder das Spiel deinstallieren. */
+function ManageGameModal({
+  game,
+  isRunning,
+  onClose,
+  onNotice
+}: {
+  game: GameCard
+  isRunning: boolean
+  onClose: () => void
+  onNotice: (text: string | null) => void
+}): JSX.Element {
+  const [pathError, setPathError] = useState(false)
+  const uninstall = uninstallActionFor(game.platform, game.platformId)
+
+  const openFolder = async (): Promise<void> => {
+    if (!game.installDir) return
+    const ok = await window.api.openGameFolder(game.installDir)
+    setPathError(!ok)
+  }
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal manage-modal" onClick={(e) => e.stopPropagation()}>
+        <h2>⚙ {game.name} verwalten</h2>
+
+        <div className="manage-section">
+          <div className="manage-label">Installationsordner</div>
+          <div className="manage-path">{game.installDir ?? 'Unbekannt'}</div>
+          <button className="btn" onClick={openFolder} disabled={!game.installDir}>
+            📂 Im Explorer öffnen
+          </button>
+          {pathError && (
+            <div className="manage-warn">
+              Der Ordner wurde nicht gefunden — vielleicht wurde das Spiel verschoben oder bereits
+              entfernt.
+            </div>
+          )}
+        </div>
+
+        <div className="manage-section">
+          <div className="manage-label">Deinstallieren</div>
+          {isRunning ? (
+            <div className="manage-warn">Bitte zuerst das laufende Spiel schließen.</div>
+          ) : uninstall ? (
+            <>
+              <button
+                className="btn danger"
+                onClick={() => {
+                  uninstall.run()
+                  onNotice(uninstall.hint)
+                  onClose()
+                }}
+              >
+                🗑 Deinstallieren
+              </button>
+              <div className="manage-hint">
+                {game.platform === 'steam'
+                  ? 'Öffnet Steams Bestätigungs-Dialog — es wird nichts sofort gelöscht.'
+                  : 'Öffnet den zuständigen Launcher — deinstalliert wird dort.'}
+              </div>
+            </>
+          ) : (
+            <div className="manage-hint">
+              Für diese Plattform ist kein automatisches Deinstallieren möglich.
+            </div>
+          )}
+        </div>
+
+        <div className="onboard-actions">
+          <button className="btn" onClick={onClose}>
+            Schließen
+          </button>
+        </div>
+      </div>
     </div>
   )
 }
@@ -1196,6 +1292,10 @@ function NotInstalledDetail({
                 {game.installUrl ? '⬇ Installieren' : '↗ Launcher öffnen'}
               </button>
             </div>
+
+            <FriendsForGame
+              gameRef={{ platform: game.source, platformId: game.platformId, name: game.name }}
+            />
           </div>
         </div>
 
