@@ -204,13 +204,13 @@ function SteamKeyCard(): JSX.Element {
       <div className="account-head">
         <span className="account-icon">🏆</span>
         <div>
-          <div className="account-title">Steam-Erfolge (Web-API-Key)</div>
+          <div className="account-title">Steam-Web-API-Key (optional)</div>
           <div className="account-state">
             {status === null
               ? 'lade …'
               : status.connected
                 ? `✓ Aktiv${status.personaName ? ` für ${status.personaName}` : ''}`
-                : 'Kein Key hinterlegt'}
+                : 'Kein Key hinterlegt (optional)'}
           </div>
         </div>
       </div>
@@ -224,6 +224,11 @@ function SteamKeyCard(): JSX.Element {
       ) : (
         status !== null && (
           <div className="account-connect">
+            <p className="account-note">
+              Nur nötig für persönliche Extras: deine freigeschalteten Steam-Erfolge auf den
+              Detailseiten und den vollständigen Besitz-Katalog (nicht installierte Steam-Spiele).
+              Cover und Preise laufen ohne diesen Key.
+            </p>
             <ol className="account-steps">
               <li>
                 Öffne{' '}
@@ -288,7 +293,7 @@ function SgdbKeyCard(): JSX.Element {
     const result = await window.api.setSgdbKey(key)
     setBusy(false)
     if (result.ok) {
-      setStatus({ connected: true })
+      setStatus({ connected: true, builtin: false })
       setKey('')
       setMessage({
         kind: 'ok',
@@ -314,12 +319,18 @@ function SgdbKeyCard(): JSX.Element {
         <div>
           <div className="account-title">SteamGridDB (bessere Cover)</div>
           <div className="account-state">
-            {status === null ? 'lade …' : status.connected ? '✓ Aktiv' : 'Kein Key hinterlegt'}
+            {status === null
+              ? 'lade …'
+              : status.builtin
+                ? '✓ Aktiv (eingebaut — kein eigener Key nötig)'
+                : status.connected
+                  ? '✓ Aktiv (eigener Key)'
+                  : 'Kein Key hinterlegt'}
           </div>
         </div>
       </div>
 
-      {status?.connected ? (
+      {status && status.connected && !status.builtin ? (
         <div className="account-actions">
           <button className="btn danger" onClick={remove} disabled={busy}>
             Key entfernen
@@ -328,6 +339,12 @@ function SgdbKeyCard(): JSX.Element {
       ) : (
         status !== null && (
           <div className="account-connect">
+            {status.builtin && (
+              <p className="account-note">
+                Cover funktionieren bereits über den eingebauten Schlüssel — du musst hier nichts
+                tun. Optional kannst du einen eigenen Key hinterlegen.
+              </p>
+            )}
             <ol className="account-steps">
               <li>
                 Öffne{' '}
@@ -386,7 +403,7 @@ function ItadKeyCard(): JSX.Element {
     const result = await window.api.setItadKey(key)
     setBusy(false)
     if (result.ok) {
-      setStatus({ connected: true })
+      setStatus({ connected: true, builtin: false })
       setKey('')
       setMessage({
         kind: 'ok',
@@ -409,12 +426,18 @@ function ItadKeyCard(): JSX.Element {
         <div>
           <div className="account-title">IsThereAnyDeal (Preisvergleich)</div>
           <div className="account-state">
-            {status === null ? 'lade …' : status.connected ? '✓ Aktiv' : 'Kein Key hinterlegt'}
+            {status === null
+              ? 'lade …'
+              : status.builtin
+                ? '✓ Aktiv (eingebaut — kein eigener Key nötig)'
+                : status.connected
+                  ? '✓ Aktiv (eigener Key)'
+                  : 'Kein Key hinterlegt (optional)'}
           </div>
         </div>
       </div>
 
-      {status?.connected ? (
+      {status && status.connected && !status.builtin ? (
         <div className="account-actions">
           <button className="btn danger" onClick={remove} disabled={busy}>
             Key entfernen
@@ -423,6 +446,12 @@ function ItadKeyCard(): JSX.Element {
       ) : (
         status !== null && (
           <div className="account-connect">
+            {status.builtin && (
+              <p className="account-note">
+                Preise sind bereits über den eingebauten Schlüssel aktiv — optional kannst du einen
+                eigenen Key hinterlegen.
+              </p>
+            )}
             <ol className="account-steps">
               <li>
                 Öffne{' '}

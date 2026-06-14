@@ -58,6 +58,10 @@ const api = {
   listNotInstalledGames: (): Promise<NotInstalledResult> =>
     ipcRenderer.invoke('games:not-installed'),
 
+  /** Steam-Community-Tags für installierte Spiele nachladen (gedrosselt, im
+   *  Hintergrund). Meldet sich per onGamesRefresh, wenn neue Tags da sind. */
+  ensureGameTags: (): Promise<number> => ipcRenderer.invoke('games:ensure-tags'),
+
   /** Spiel/Launcher starten (per Eintrags-ID). */
   launchGame: (id: number): Promise<{ ok: boolean }> => ipcRenderer.invoke('game:launch', id),
 

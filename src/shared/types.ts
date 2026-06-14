@@ -33,6 +33,7 @@ export interface GameCard {
   updatePending: boolean // Steam meldet ein ausstehendes Update (StateFlags Bit 2)
   manifestLastUpdated: number | null // letzter Update-Zeitpunkt laut Steam (Unix-Sek.)
   sizeBytes: number | null // Ordnergröße der Installation (null = noch nicht berechnet)
+  tags: string[] // Steam-Community-Tags (für den Tag-Filter); leer = noch nicht abgerufen
 }
 
 /**
@@ -289,6 +290,7 @@ export interface SteamKeyStatus {
 /** Zustand des hinterlegten SteamGridDB-Keys. */
 export interface SgdbStatus {
   connected: boolean
+  builtin?: boolean // true = nutzt den eingebauten Standard-Key (kein eigener nötig)
 }
 
 // --- Wunschliste & Preise ---
@@ -353,6 +355,7 @@ export interface GamePriceInfo {
 /** Zustand des hinterlegten IsThereAnyDeal-Keys. */
 export interface ItadStatus {
   connected: boolean
+  builtin?: boolean // true = nutzt den eingebauten Standard-Key (kein eigener nötig)
 }
 
 /** Ein Steam-Angebot (aktueller Sale). */

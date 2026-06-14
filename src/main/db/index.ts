@@ -144,6 +144,14 @@ const MIGRATIONS: ((db: Database.Database) => void)[] = [
       ALTER TABLE games ADD COLUMN installed INTEGER NOT NULL DEFAULT 1;
       ALTER TABLE games ADD COLUMN last_seen_at INTEGER;
     `)
+  },
+  // v11: Steam-Community-Tags pro Spiel (kommagetrennt) für den Tag-Filter.
+  //      tags_checked_at = wann zuletzt abgerufen (zum erneuten Versuch).
+  (database) => {
+    database.exec(`
+      ALTER TABLE games ADD COLUMN tags TEXT;
+      ALTER TABLE games ADD COLUMN tags_checked_at INTEGER;
+    `)
   }
 ]
 
@@ -245,6 +253,7 @@ interface GameRow {
   update_pending: number
   manifest_updated: number | null
   size_bytes: number | null
+  tags: string | null
 }
 
 /**
@@ -258,7 +267,7 @@ function queryGames(installed: 0 | 1): GameCard[] {
       `
       SELECT
         g.id, g.kind, g.platform, g.platform_id, g.name, g.install_dir, g.cover_url, g.last_played,
-        g.update_pending, g.manifest_updated, g.size_bytes,
+        g.update_pending, g.manifest_updated, g.size_bytes, g.tags,
         g.imported_playtime_sec
           + COALESCE((SELECT SUM(s.duration_sec) FROM play_sessions s
                       WHERE s.game_id = g.id AND s.duration_sec IS NOT NULL), 0) AS total_playtime_sec
@@ -281,7 +290,8 @@ function queryGames(installed: 0 | 1): GameCard[] {
     lastPlayed: r.last_played,
     updatePending: r.update_pending === 1,
     manifestLastUpdated: r.manifest_updated,
-    sizeBytes: r.size_bytes
+    sizeBytes: r.size_bytes,
+    tags: r.tags ? r.tags.split(',').filter(Boolean) : []
   }))
 }
 
@@ -372,6 +382,30 @@ export function setGameSize(gameId: number, sizeBytes: number): void {
       `UPDATE games SET size_bytes = ?, size_checked_at = strftime('%s','now') WHERE id = ?`
     )
     .run(sizeBytes, gameId)
+}
+
+/** Steam-Community-Tags eines Spiels speichern (kommagetrennt, mit Zeitstempel). */
+export function setGameTags(platform: string, platformId: string, tags: string): void {
+  getDatabase()
+    .prepare(
+      `UPDATE games SET tags = ?, tags_checked_at = strftime('%s','now')
+       WHERE platform = ? AND platform_id = ?`
+    )
+    .run(tags, platform, platformId)
+}
+
+/**
+ * Installierte Spiele, für die noch keine Tags abgerufen wurden — Grundlage
+ * für den (gedrosselten) Tag-Abruf über SteamSpy.
+ */
+export function listGamesNeedingTags(): { platform: Platform; platformId: string; name: string }[] {
+  return getDatabase()
+    .prepare(
+      `SELECT platform, platform_id AS platformId, name FROM games
+       WHERE kind = 'game' AND installed = 1 AND tags_checked_at IS NULL
+       ORDER BY name COLLATE NOCASE`
+    )
+    .all() as { platform: Platform; platformId: string; name: string }[]
 }
 
 /** Alle installierten Spiele für die Speicherplatz-Analyse (inkl. Cache-Stand). */

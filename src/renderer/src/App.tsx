@@ -321,6 +321,18 @@ function GamesView({
     const saved = localStorage.getItem('games-sort')
     return SORT_OPTIONS.some((o) => o.value === saved) ? (saved as GameSort) : 'playtime'
   })
+  // Tag-Filter (Steam-Community-Tags), mehrfach wählbar — wird gemerkt.
+  const [selectedTags, setSelectedTags] = useState<string[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('games-filter-tags') ?? '[]') as string[]
+    } catch {
+      return []
+    }
+  })
+  const [tagsOpen, setTagsOpen] = useState(false)
+  useEffect(() => {
+    localStorage.setItem('games-filter-tags', JSON.stringify(selectedTags))
+  }, [selectedTags])
   // Nicht installierte Spiele (Besitz-Katalog) — separat geladen, damit die
   // Seite sofort steht und der (teils langsame) Katalog-Abruf nachrückt.
   const [notInstalled, setNotInstalled] = useState<NotInstalledGame[] | null>(null)
@@ -390,6 +402,9 @@ function GamesView({
     } finally {
       setScanning(false)
       loadNotInstalled() // nach dem Scan stimmt die „installiert"-Liste -> Katalog auffrischen
+      // Steam-Community-Tags im Hintergrund nachladen (gedrosselt); meldet sich
+      // per onGamesRefresh, sobald neue Tags da sind.
+      window.api.ensureGameTags().catch(() => {})
     }
   }, [loadNotInstalled])
 
@@ -439,13 +454,27 @@ function GamesView({
     [playable]
   )
 
+  // Alle vorhandenen Tags (häufigste zuerst) für die Filterauswahl.
+  const availableTags = useMemo(() => {
+    const freq = new Map<string, number>()
+    for (const g of playable) for (const t of g.tags) freq.set(t, (freq.get(t) ?? 0) + 1)
+    return [...freq.entries()]
+      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'de'))
+      .map(([t]) => t)
+  }, [playable])
+
+  const toggleTag = useCallback((tag: string): void => {
+    setSelectedTags((prev) => (prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]))
+  }, [])
+
   // Suche + Filter + Sortierung anwenden.
   const visible = useMemo(() => {
     const term = search.trim().toLowerCase()
     const list = playable.filter(
       (g) =>
         (platformFilter === 'all' || g.platform === platformFilter) &&
-        (term === '' || g.name.toLowerCase().includes(term))
+        (term === '' || g.name.toLowerCase().includes(term)) &&
+        (selectedTags.length === 0 || selectedTags.every((t) => g.tags.includes(t)))
     )
     switch (sortBy) {
       case 'name':
@@ -461,7 +490,7 @@ function GamesView({
         list.sort((a, b) => liveTotal(b) - liveTotal(a))
     }
     return list
-  }, [playable, search, platformFilter, sortBy, liveTotal])
+  }, [playable, search, platformFilter, sortBy, selectedTags, liveTotal])
 
   // Plattformen, von denen es nicht installierte Spiele gibt.
   const niAvailablePlatforms = useMemo(
@@ -588,7 +617,34 @@ function GamesView({
                   </option>
                 ))}
               </select>
+              {availableTags.length > 0 && (
+                <button
+                  className={`toolbar-select tag-toggle ${selectedTags.length ? 'active' : ''}`}
+                  onClick={() => setTagsOpen((o) => !o)}
+                  title="Nach Steam-Tags filtern"
+                >
+                  🏷 Tags{selectedTags.length > 0 ? ` (${selectedTags.length})` : ''}
+                </button>
+              )}
             </div>
+          </div>
+        )}
+        {playable.length > 0 && tagsOpen && availableTags.length > 0 && (
+          <div className="tag-filter-panel">
+            {availableTags.map((t) => (
+              <button
+                key={t}
+                className={`tag-chip ${selectedTags.includes(t) ? 'on' : ''}`}
+                onClick={() => toggleTag(t)}
+              >
+                {t}
+              </button>
+            ))}
+            {selectedTags.length > 0 && (
+              <button className="tag-chip clear" onClick={() => setSelectedTags([])}>
+                ✕ zurücksetzen
+              </button>
+            )}
           </div>
         )}
         {playable.length > 0 && visible.length === 0 && (
@@ -1048,7 +1104,8 @@ function NotInstalledDetail({
     lastPlayed: game.lastPlayed,
     updatePending: false,
     manifestLastUpdated: null,
-    sizeBytes: null
+    sizeBytes: null,
+    tags: []
   }
 
   return (

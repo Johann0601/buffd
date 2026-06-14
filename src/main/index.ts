@@ -18,6 +18,7 @@ import {
 import type { GameRef } from '@shared/types'
 import { scanLibrary } from './services/library'
 import { listNotInstalledGames } from './services/notinstalled'
+import { ensureGameTags } from './services/tags'
 import { startTracker, closeGame } from './services/tracker'
 import { readDevices } from './services/system/drivers'
 import { checkNvidiaUpdate } from './services/system/nvidia'
@@ -173,6 +174,13 @@ app.whenReady().then(() => {
   ipcMain.handle('library:scan', () => scanLibrary())
   ipcMain.handle('games:list', () => listGames())
   ipcMain.handle('games:not-installed', () => listNotInstalledGames())
+  ipcMain.handle('games:ensure-tags', async () => {
+    const n = await ensureGameTags()
+    if (n > 0 && mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('games:refresh') // Tags nachgeladen -> Liste auffrischen
+    }
+    return n
+  })
 
   // Starten: je nach Eintrag eine URL (Steam/Epic) im jeweiligen Client öffnen
   // oder eine exe direkt starten (Launcher). Die Zeitmessung macht der Wächter.

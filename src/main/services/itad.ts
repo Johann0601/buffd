@@ -7,15 +7,18 @@
 
 import type { ItadStatus } from '@shared/types'
 import { getStoredKey, setStoredKey } from './keys'
+import { BUILTIN_ITAD_KEY } from './builtinKeys'
 
 const API = 'https://api.isthereanydeal.com'
 
+/** Eigener (hinterlegter) Key hat Vorrang, sonst der eingebaute Standard-Key. */
 function getItadKey(): string | null {
-  return getStoredKey('itadApiKey')
+  return getStoredKey('itadApiKey') ?? BUILTIN_ITAD_KEY
 }
 
 export function itadStatus(): ItadStatus {
-  return { connected: getItadKey() !== null }
+  const own = getStoredKey('itadApiKey') !== null
+  return { connected: own || BUILTIN_ITAD_KEY !== null, builtin: !own && BUILTIN_ITAD_KEY !== null }
 }
 
 /** Key prüfen (Probe-Anfrage) und bei Erfolg verschlüsselt speichern. */

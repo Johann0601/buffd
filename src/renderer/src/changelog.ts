@@ -11,6 +11,16 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.12.0',
+    date: '2026-06-14',
+    title: 'Tag-Filter & weniger Einrichtung',
+    changes: [
+      'Neuer Tag-Filter auf der Spiele-Seite: filtere nach Steam-Community-Tags (z. B. „Koop", „Roguelike", „Open World") — mehrere Tags kombinierbar, die Auswahl wird gemerkt. Die Tags werden im Hintergrund automatisch geladen.',
+      'Weniger Einrichtung unter „Konten": bessere Cover (SteamGridDB) und Preisvergleich (IsThereAnyDeal) sind jetzt direkt eingebaut — niemand muss dafür mehr einen eigenen Key eintragen.',
+      'Der Steam-Web-API-Key ist jetzt klar als optional gekennzeichnet (nur für persönliche Erfolge und den vollständigen Besitz-Katalog nötig).'
+    ]
+  },
+  {
     version: '0.11.0',
     date: '2026-06-14',
     title: 'Detailansicht für nicht installierte Spiele',

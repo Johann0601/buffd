@@ -5,15 +5,18 @@
 import type { SgdbStatus } from '@shared/types'
 import { listGamesWithWikiCover, setGameCover } from '../db'
 import { getStoredKey, setStoredKey } from './keys'
+import { BUILTIN_SGDB_KEY } from './builtinKeys'
 
 const API = 'https://www.steamgriddb.com/api/v2'
 
+/** Eigener (hinterlegter) Key hat Vorrang, sonst der eingebaute Standard-Key. */
 function getSgdbKey(): string | null {
-  return getStoredKey('sgdbApiKey')
+  return getStoredKey('sgdbApiKey') ?? BUILTIN_SGDB_KEY
 }
 
 export function sgdbStatus(): SgdbStatus {
-  return { connected: getSgdbKey() !== null }
+  const own = getStoredKey('sgdbApiKey') !== null
+  return { connected: own || BUILTIN_SGDB_KEY !== null, builtin: !own && BUILTIN_SGDB_KEY !== null }
 }
 
 async function sgdbFetch(key: string, path: string): Promise<unknown> {

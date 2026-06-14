@@ -2259,6 +2259,46 @@ img.logo-cover {
   border-color: var(--accent);
 }
 
+/* Tag-Filter: Umschalt-Knopf + Chip-Panel. */
+.tag-toggle.active {
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.tag-filter-panel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 2px 0 16px;
+}
+
+.tag-chip {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 5px 12px;
+  color: var(--text);
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+}
+
+.tag-chip:hover {
+  border-color: var(--accent);
+}
+
+.tag-chip.on {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  font-weight: 600;
+}
+
+.tag-chip.clear {
+  color: var(--muted);
+}
+
 /* ---- Wunschliste & Preise ---- */
 /* Stern auf den Angebots-Karten (oben rechts im Bild). */
 .wish-btn {
