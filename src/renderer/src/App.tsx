@@ -23,11 +23,13 @@ import Onboarding from './Onboarding'
 import NotificationsView from './NotificationsView'
 import SettingsView from './SettingsView'
 import ShopsView from './ShopsView'
+import StatsView from './StatsView'
 import UpdatesView from './UpdatesView'
 
 export type View =
   | 'home'
   | 'games'
+  | 'stats'
   | 'updates'
   | 'mods'
   | 'shops'
@@ -159,6 +161,9 @@ function App(): JSX.Element {
   useEffect(() => {
     window.api.getAppVersion().then(setAppVersion).catch(() => {})
     window.api.isExperimentalBuild().then(setExperimental).catch(() => {})
+    // Steam-Community-Tags beim Start im Hintergrund nachladen (gedrosselt) —
+    // unabhängig davon, welche Seite zuerst offen ist (z. B. direkt Statistik).
+    window.api.ensureGameTags().catch(() => {})
     return window.api.onAppUpdateReady(setUpdateVersion)
   }, [])
 
@@ -216,6 +221,14 @@ function App(): JSX.Element {
         >
           <span className="nav-icon">🎮</span>
           <span className="nav-label">Spiele</span>
+        </button>
+        <button
+          className={`nav-item ${view === 'stats' ? 'active' : ''}`}
+          onClick={() => setView('stats')}
+          title="Statistik"
+        >
+          <span className="nav-icon">📊</span>
+          <span className="nav-label">Statistik</span>
         </button>
         <button
           className={`nav-item ${view === 'updates' ? 'active' : ''}`}
@@ -289,6 +302,7 @@ function App(): JSX.Element {
           />
         )}
         {view === 'games' && <GamesView initialSelectedId={gameToShow} />}
+        {view === 'stats' && <StatsView />}
         {view === 'updates' && <UpdatesView />}
         {view === 'mods' && <ModsView />}
         {view === 'shops' && <ShopsView />}

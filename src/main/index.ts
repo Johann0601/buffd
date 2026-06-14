@@ -19,7 +19,7 @@ import type { GameRef } from '@shared/types'
 import { scanLibrary } from './services/library'
 import { listNotInstalledGames } from './services/notinstalled'
 import { ensureGameTags } from './services/tags'
-import { startTracker, closeGame } from './services/tracker'
+import { startTracker, stopTracker, flushActiveSessions, closeGame } from './services/tracker'
 import { readDevices } from './services/system/drivers'
 import { checkNvidiaUpdate } from './services/system/nvidia'
 import {
@@ -48,6 +48,7 @@ import { addWishlistItem, listWishlist, removeWishlistItem } from './db'
 import { getGameAchievements } from './services/steam/achievements'
 import { steamKeyStatus, setSteamApiKey, clearSteamApiKey } from './services/steam/webapi'
 import { getSteamFriends, getFriendGames, getFriendsForGame } from './services/steam/friends'
+import { getPlayStats } from './services/stats'
 import { sgdbStatus, setSgdbKey, clearSgdbKey, upgradeWikiCovers } from './services/sgdb'
 import { COVER_PLATFORMS } from './services/covers'
 import { analyzeGameStorage, computeGameSize, listGameStorage } from './services/storage'
@@ -309,6 +310,9 @@ app.whenReady().then(() => {
   ipcMain.handle('friends:games', (_e, steamId: string) => getFriendGames(steamId))
   ipcMain.handle('friends:for-game', (_e, appId: number) => getFriendsForGame(appId))
 
+  // Statistik / Dashboard (A1): Spielzeit-Auswertung aus den getrackten Sitzungen.
+  ipcMain.handle('stats:play', () => getPlayStats())
+
   // Installationsordner eines Spiels im Datei-Explorer öffnen.
   ipcMain.handle('game:open-folder', (_e, path: string) => {
     if (path && existsSync(path)) shell.openPath(path)
@@ -445,6 +449,13 @@ app.whenReady().then(() => {
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
+})
+
+// Beim Beenden laufende Sitzungen sauber abschließen, damit die gerade gespielte
+// Zeit nicht verloren geht (sonst bliebe die Sitzung ohne Ende -> Dauer 0).
+app.on('before-quit', () => {
+  stopTracker()
+  flushActiveSessions()
 })
 
 app.on('window-all-closed', () => {

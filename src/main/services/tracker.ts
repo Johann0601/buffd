@@ -12,6 +12,10 @@ const POLL_INTERVAL_MS = 5000
 // Wie viele aufeinanderfolgende "nicht gesehen"-Polls, bevor wir eine Sitzung beenden.
 // Puffer gegen kurzes Verschwinden (Ladebildschirme, Neustart von Unterprozessen).
 const MISS_GRACE = 2
+// Wie oft ein Spiel HINTEREINANDER gesehen werden muss, bevor wir eine Sitzung
+// eröffnen. Verhindert Geistersitzungen durch kurz aufblitzende Hintergrund-/
+// Launcher-Prozesse (die echte Startzeit wird auf das erste Sehen zurückdatiert).
+const START_CONFIRM = 2
 
 interface ActiveSession {
   sessionId: number
@@ -23,6 +27,8 @@ type SendFn = (channel: string, payload?: unknown) => void
 
 // gameId -> laufende Sitzung
 const active = new Map<number, ActiveSession>()
+// gameId -> noch nicht bestätigter Verdacht (erst gesehen, aber unter START_CONFIRM)
+const pending = new Map<number, { firstSeen: number; count: number }>()
 let timer: NodeJS.Timeout | null = null
 let send: SendFn = () => {}
 
@@ -61,6 +67,18 @@ export function stopTracker(): void {
   timer = null
 }
 
+/**
+ * Beendet alle gerade laufenden Sitzungen — beim Schließen der App aufzurufen,
+ * sonst bliebe die aktuelle Sitzung ohne Ende und ginge beim nächsten Start
+ * (closeOrphanSessions) als Dauer 0 verloren.
+ */
+export function flushActiveSessions(): void {
+  const now = Math.floor(Date.now() / 1000)
+  for (const s of active.values()) endSession(s.sessionId, now, s.startedAt)
+  active.clear()
+  pending.clear()
+}
+
 async function poll(): Promise<void> {
   const games = listTrackableGames()
   if (games.length === 0) return
@@ -74,21 +92,34 @@ async function poll(): Promise<void> {
     const current = active.get(game.id)
 
     if (isRunning) {
-      if (!current) {
-        // Neuer Spielstart erkannt -> Sitzung eröffnen.
-        const sessionId = startSession(game.id, now)
-        active.set(game.id, { sessionId, startedAt: now, missCount: 0 })
-        changed = true
-      } else {
+      if (current) {
         current.missCount = 0
+      } else {
+        // Noch keine Sitzung: erst nach START_CONFIRM aufeinanderfolgenden Treffern
+        // eröffnen (filtert kurz aufblitzende Hintergrund-/Launcher-Prozesse heraus).
+        const p = pending.get(game.id)
+        if (!p) {
+          pending.set(game.id, { firstSeen: now, count: 1 })
+        } else if (p.count + 1 >= START_CONFIRM) {
+          // Bestätigt -> Sitzung eröffnen, Start auf das erste Sehen zurückdatieren.
+          const sessionId = startSession(game.id, p.firstSeen)
+          active.set(game.id, { sessionId, startedAt: p.firstSeen, missCount: 0 })
+          pending.delete(game.id)
+          changed = true
+        } else {
+          p.count++
+        }
       }
-    } else if (current) {
-      current.missCount++
-      if (current.missCount >= MISS_GRACE) {
-        // Spiel ist beendet -> Sitzung abschließen.
-        endSession(current.sessionId, now, current.startedAt)
-        active.delete(game.id)
-        changed = true
+    } else {
+      pending.delete(game.id) // Verdacht verworfen, wenn nicht mehr gesehen
+      if (current) {
+        current.missCount++
+        if (current.missCount >= MISS_GRACE) {
+          // Spiel ist beendet -> Sitzung abschließen.
+          endSession(current.sessionId, now, current.startedAt)
+          active.delete(game.id)
+          changed = true
+        }
       }
     }
   }

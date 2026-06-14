@@ -28,7 +28,22 @@ const DENY_SUBSTRINGS = [
   'crashpad',
   'webhelper',
   'cefprocess',
-  'handler'
+  'handler',
+  // Launcher-/Hintergrund-/Helfer-Prozesse, die DAUERHAFT laufen (nicht nur beim
+  // Spielen) und sonst Geistersitzungen erzeugen — z. B. Wargaming Game Center,
+  // das WoT über Steam mitbringt (wgcs_api.exe, cef_browser_process.exe, …).
+  'cef', // Chromium Embedded (cef_browser_process, cef_subprocess) — immer Helfer
+  'wgc', // Wargaming Game Center
+  'gamecenter',
+  'errormonitor',
+  'updater',
+  'update.exe',
+  'bootstrap',
+  'helper',
+  'overlay',
+  'install', // *_install_*.exe, installhelper, …
+  '_api', // wgcs_api.exe u. ä. Hintergrund-APIs
+  'service'
 ]
 
 function isGeneric(nameLower: string): boolean {

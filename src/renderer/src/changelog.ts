@@ -11,6 +11,18 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.15.0',
+    date: '2026-06-14',
+    title: 'Statistik-Seite & Tracking-Fix',
+    changes: [
+      'Neuer Bereich „📊 Statistik": Gesamt-Spielzeit, letzte 7 und 30 Tage sowie Anzahl gespielter/ungespielter Spiele auf einen Blick.',
+      'Aktivitäts-Heatmap (letzte 16 Wochen) zeigt, wann und wie viel du gespielt hast — im GitHub-Stil.',
+      'Liste der meistgespielten Spiele mit Balken und eine Auswertung, an welchen Wochentagen du am meisten spielst.',
+      'Wichtiger Fix beim Spielzeit-Tracking: Hintergrund-/Launcher-Prozesse (z. B. das Wargaming Game Center bei World of Tanks) lösten fälschlich Mini-Sitzungen aus — das ist behoben. Zudem werden laufende Sitzungen jetzt beim Schließen der App sauber gespeichert, statt verloren zu gehen.',
+      'Bessere Tag-Erkennung für den Tag-Filter auf der Spiele-Seite: Marken-Symbole im Namen werden ignoriert und bekannte, von Steam abgemeldete Titel (z. B. Rocket League) bekommen ihre Tags trotzdem.'
+    ]
+  },
+  {
     version: '0.14.0',
     date: '2026-06-14',
     title: 'Freunde (Steam)',

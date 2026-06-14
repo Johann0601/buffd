@@ -152,6 +152,12 @@ const MIGRATIONS: ((db: Database.Database) => void)[] = [
       ALTER TABLE games ADD COLUMN tags TEXT;
       ALTER TABLE games ADD COLUMN tags_checked_at INTEGER;
     `)
+  },
+  // v12: Spiele, deren Tag-Abruf bisher LEER blieb, einmalig erneut freigeben —
+  //      die Tag-Suche wurde verbessert (Namensbereinigung + Aliase für von Steam
+  //      abgemeldete Titel wie Rocket League), daher lohnt ein zweiter Versuch.
+  (database) => {
+    database.exec(`UPDATE games SET tags_checked_at = NULL WHERE tags IS NULL OR tags = '';`)
   }
 ]
 
@@ -565,6 +571,74 @@ export function listPlatformPlaytimes(
     `
     )
     .all(platform) as { id: number; platformId: string; importedSec: number; sessionSec: number }[]
+}
+
+/** Zeitgrenzen (Unix-Sek.) für die Spielzeit-Statistik — in lokaler Zeit berechnet. */
+export interface PlayStatsBoundaries {
+  today: number // lokale Mitternacht heute
+  week: number // vor 7 Tagen
+  month: number // vor 30 Tagen
+  dailySince: number // Beginn des Heatmap-Fensters
+}
+
+/**
+ * Aggregierte Spielzeit-Statistik aus den getrackten Sitzungen (play_sessions).
+ * Achtung: Nur SELBST getrackte Zeit hat Zeitstempel — der von Steam übernommene
+ * Startwert (imported_playtime_sec) taucht hier NICHT auf (kein Zeitpunkt bekannt).
+ */
+export function getSessionStats(b: PlayStatsBoundaries): {
+  trackedTotalSec: number
+  sessionsCount: number
+  earliest: number | null
+  todaySec: number
+  weekSec: number
+  monthSec: number
+  daily: { day: string; sec: number }[]
+  weekday: { wd: number; sec: number }[]
+} {
+  const db = getDatabase()
+  const summary = db
+    .prepare(
+      `SELECT COALESCE(SUM(duration_sec),0) AS tracked, COUNT(*) AS cnt, MIN(started_at) AS earliest
+       FROM play_sessions WHERE duration_sec IS NOT NULL`
+    )
+    .get() as { tracked: number; cnt: number; earliest: number | null }
+
+  const sumSince = db.prepare(
+    `SELECT COALESCE(SUM(duration_sec),0) AS s FROM play_sessions
+     WHERE duration_sec IS NOT NULL AND started_at >= ?`
+  )
+  const sum = (since: number): number => (sumSince.get(since) as { s: number }).s
+
+  const daily = db
+    .prepare(
+      `SELECT strftime('%Y-%m-%d', started_at, 'unixepoch', 'localtime') AS day,
+              COALESCE(SUM(duration_sec),0) AS sec
+       FROM play_sessions
+       WHERE duration_sec IS NOT NULL AND started_at >= ?
+       GROUP BY day ORDER BY day`
+    )
+    .all(b.dailySince) as { day: string; sec: number }[]
+
+  const weekday = db
+    .prepare(
+      `SELECT CAST(strftime('%w', started_at, 'unixepoch', 'localtime') AS INTEGER) AS wd,
+              COALESCE(SUM(duration_sec),0) AS sec
+       FROM play_sessions WHERE duration_sec IS NOT NULL
+       GROUP BY wd`
+    )
+    .all() as { wd: number; sec: number }[]
+
+  return {
+    trackedTotalSec: summary.tracked,
+    sessionsCount: summary.cnt,
+    earliest: summary.earliest,
+    todaySec: sum(b.today),
+    weekSec: sum(b.week),
+    monthSec: sum(b.month),
+    daily,
+    weekday
+  }
 }
 
 // ---------------------------------------------------------------------------

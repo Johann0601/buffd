@@ -18,6 +18,7 @@ import type {
   GameStorageInfo,
   ItadStatus,
   NvidiaUpdate,
+  PlayStatsResult,
   RunningGame,
   McProfile,
   NotInstalledResult,
@@ -37,6 +38,9 @@ import type {
 const api = {
   getDbStatus: (): Promise<{ ok: boolean; gameCount: number; dbPath: string }> =>
     ipcRenderer.invoke('app:db-status'),
+
+  /** Statistik / Dashboard: aggregierte Spielzeit-Auswertung. */
+  getPlayStats: (): Promise<PlayStatsResult> => ipcRenderer.invoke('stats:play'),
 
   /** Aktuelle App-Version (aus package.json). */
   getAppVersion: (): Promise<string> => ipcRenderer.invoke('app:version'),

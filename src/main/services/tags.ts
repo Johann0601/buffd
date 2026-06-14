@@ -6,19 +6,28 @@
 // SteamSpy bittet um höfliche Drosselung -> ~1 Anfrage/Sekunde.
 
 import { listGamesNeedingTags, setGameTags } from '../db'
-import { steamSearchAppId } from './steam/storesearch'
+import { cleanGameName, steamSearchAppId } from './steam/storesearch'
 
 const TOP_N = 8 // so viele (beliebteste) Tags pro Spiel speichern
 const THROTTLE_MS = 1200
 
 let running = false // verhindert parallele Durchläufe (z. B. mehrfacher UI-Aufruf)
 
-/** AppID bestimmen: Steam-Spiele direkt, sonst per Namenssuche (gecacht). */
+// Bekannte Titel, die von der Steam-Store-Suche NICHT (mehr) gefunden werden —
+// z. B. von Steam abgemeldete Spiele, die es aber als Eintrag (mit Community-Tags)
+// noch gibt. Schlüssel = bereinigter, kleingeschriebener Name.
+const APPID_ALIASES: Record<string, number> = {
+  'rocket league': 252950
+}
+
+/** AppID bestimmen: Steam-Spiele direkt, sonst Alias oder Namenssuche. */
 async function resolveAppId(platform: string, platformId: string, name: string): Promise<number | null> {
   if (platform === 'steam') {
     const id = Number(platformId)
     return Number.isFinite(id) ? id : null
   }
+  const alias = APPID_ALIASES[cleanGameName(name).toLowerCase()]
+  if (alias) return alias
   return steamSearchAppId(name)
 }
 

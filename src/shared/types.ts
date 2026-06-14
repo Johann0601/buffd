@@ -324,6 +324,33 @@ export interface FriendGamesResult {
   error?: string
 }
 
+// --- Statistik / Dashboard (A1) ---
+
+/** Ein meistgespieltes Spiel für die Statistik-Seite. */
+export interface StatTopGame {
+  name: string
+  platform: Platform
+  coverUrl: string | null
+  playtimeSec: number
+}
+
+/** Aggregierte Spielzeit-Statistik (Dashboard). */
+export interface PlayStatsResult {
+  totalPlaytimeSec: number // gesamte bekannte Spielzeit (Steam-Startwert + getrackt)
+  trackedPlaytimeSec: number // nur von buffd selbst getrackte Zeit
+  trackingSince: number | null // erster getrackter Spielstart (Unix-Sek.)
+  sessionsCount: number // Anzahl getrackter Sitzungen
+  gamesTotal: number // installierte Spiele (ohne Launcher)
+  gamesPlayed: number // davon mit Spielzeit > 0
+  gamesNeverPlayed: number // installiert, aber nie gespielt
+  todaySec: number // heute (ab lokaler Mitternacht)
+  weekSec: number // letzte 7 Tage
+  monthSec: number // letzte 30 Tage
+  topGames: StatTopGame[] // meistgespielt (max 8)
+  daily: { day: string; sec: number }[] // lückenloses Tagesraster für die Heatmap
+  weekday: number[] // 7 Werte (Mo..So), Sekunden — nur getrackte Sitzungen
+}
+
 /** Ein Freund, der ein bestimmtes Spiel besitzt (für die Detailseite). */
 export interface FriendOnGame {
   steamId: string
