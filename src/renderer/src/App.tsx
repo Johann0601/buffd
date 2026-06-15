@@ -212,6 +212,12 @@ function App(): JSX.Element {
   useEffect(() => {
     window.api.getAppVersion().then(setAppVersion).catch(() => {})
     window.api.isExperimentalBuild().then(setExperimental).catch(() => {})
+    // Falls der Update-Download schon fertig war, bevor dieser Listener stand:
+    // den aktuellen Stand direkt abfragen.
+    window.api
+      .getAppUpdateStatus()
+      .then((v) => v && setUpdateVersion(v))
+      .catch(() => {})
     // Steam-Community-Tags beim Start im Hintergrund nachladen (gedrosselt) —
     // unabhängig davon, welche Seite zuerst offen ist (z. B. direkt Statistik).
     window.api.ensureGameTags().catch(() => {})
@@ -621,11 +627,8 @@ function GamesView({
     steamLoaded: boolean
     epicConnected: boolean
   } | null>(null)
-  // Eigene Suche/Filter/Sortierung für die Sektion „Nicht installiert".
-  const [niSearch, setNiSearch] = useState('')
-  const [niPlatformFilter, setNiPlatformFilter] = useState<string>(
-    () => localStorage.getItem('ni-filter-platform') ?? 'all'
-  )
+  // Eigene Sortierung für die Sektion „Nicht installiert" (Suche + Plattform-Filter
+  // teilen sich die Sektionen mit den installierten Spielen).
   const [niSort, setNiSort] = useState<NiSort>(() => {
     const saved = localStorage.getItem('ni-sort')
     return NI_SORT_OPTIONS.some((o) => o.value === saved) ? (saved as NiSort) : 'lastPlayed'
@@ -637,9 +640,6 @@ function GamesView({
   useEffect(() => {
     localStorage.setItem('games-sort', sortBy)
   }, [sortBy])
-  useEffect(() => {
-    localStorage.setItem('ni-filter-platform', niPlatformFilter)
-  }, [niPlatformFilter])
   useEffect(() => {
     localStorage.setItem('ni-sort', niSort)
   }, [niSort])
@@ -727,10 +727,17 @@ function GamesView({
   const launchers = useMemo(() => games.filter((g) => g.kind === 'launcher'), [games])
   const playable = useMemo(() => games.filter((g) => g.kind === 'game'), [games])
 
-  // Nur Plattformen anbieten, von denen es auch Spiele gibt.
+  // Nur Plattformen anbieten, von denen es auch Spiele gibt — installiert ODER
+  // nicht installiert, da der Filter jetzt für beide Listen gilt.
   const availablePlatforms = useMemo(
-    () => [...new Set(playable.map((g) => g.platform))] as Platform[],
-    [playable]
+    () =>
+      [
+        ...new Set([
+          ...playable.map((g) => g.platform),
+          ...(notInstalled ?? []).map((g) => g.source)
+        ])
+      ] as Platform[],
+    [playable, notInstalled]
   )
 
   // Alle vorhandenen Tags (häufigste zuerst) für die Filterauswahl.
@@ -784,19 +791,16 @@ function GamesView({
     return list
   }, [playable, search, platformFilter, sortBy, selectedTags, collectionFilter, liveTotal])
 
-  // Plattformen, von denen es nicht installierte Spiele gibt.
-  const niAvailablePlatforms = useMemo(
-    () => [...new Set((notInstalled ?? []).map((g) => g.source))] as Platform[],
-    [notInstalled]
-  )
-
-  // Nicht installierte Spiele: eigene Suche + Plattform-Filter + Sortierung.
+  // Nicht installierte Spiele: dieselbe Suche + derselbe Plattform-Filter wie bei
+  // den installierten. Tag-/Sammlungs-Filter gibt es nur für installierte Spiele —
+  // sind sie aktiv, werden keine nicht installierten gezeigt (sie können nicht passen).
   const visibleNotInstalled = useMemo(() => {
     if (!notInstalled) return []
-    const term = niSearch.trim().toLowerCase()
+    if (selectedTags.length > 0 || collectionFilter !== 'all') return []
+    const term = search.trim().toLowerCase()
     const list = notInstalled.filter(
       (g) =>
-        (niPlatformFilter === 'all' || g.source === niPlatformFilter) &&
+        (platformFilter === 'all' || g.source === platformFilter) &&
         (term === '' || g.name.toLowerCase().includes(term))
     )
     switch (niSort) {
@@ -815,7 +819,7 @@ function GamesView({
         )
     }
     return list
-  }, [notInstalled, niSearch, niPlatformFilter, niSort])
+  }, [notInstalled, search, platformFilter, selectedTags, collectionFilter, niSort])
 
   if (selected) {
     return (
@@ -872,7 +876,14 @@ function GamesView({
             <h2 className="section-title">Launcher</h2>
             <div className="launcher-bar">
               {launchers.map((l) => (
-                <LauncherChip key={l.id} launcher={l} onLaunch={() => window.api.launchGame(l.id)} />
+                <LauncherChip
+                  key={l.id}
+                  launcher={l}
+                  active={platformFilter === l.platform}
+                  onClick={() =>
+                    setPlatformFilter((prev) => (prev === l.platform ? 'all' : l.platform))
+                  }
+                />
               ))}
             </div>
           </section>
@@ -1049,26 +1060,6 @@ function GamesView({
                 </h2>
                 {notInstalled.length > 0 && (
                   <div className="games-toolbar">
-                    <input
-                      type="text"
-                      className="toolbar-input"
-                      placeholder="Spiel suchen …"
-                      value={niSearch}
-                      onChange={(e) => setNiSearch(e.target.value)}
-                    />
-                    <select
-                      className="toolbar-select"
-                      value={niPlatformFilter}
-                      onChange={(e) => setNiPlatformFilter(e.target.value)}
-                      title="Nach Plattform filtern"
-                    >
-                      <option value="all">Alle Plattformen</option>
-                      {niAvailablePlatforms.map((p) => (
-                        <option key={p} value={p}>
-                          {platformLabel(p)}
-                        </option>
-                      ))}
-                    </select>
                     <select
                       className="toolbar-select"
                       value={niSort}
@@ -1357,13 +1348,23 @@ function Cover({ game }: { game: GameCard }): JSX.Element {
 
 function LauncherChip({
   launcher,
-  onLaunch
+  active,
+  onClick
 }: {
   launcher: GameCard
-  onLaunch: () => void
+  active: boolean
+  onClick: () => void
 }): JSX.Element {
   return (
-    <button className="launcher-chip" onClick={onLaunch} title={`${launcher.name} öffnen`}>
+    <button
+      className={`launcher-chip ${active ? 'active' : ''}`}
+      onClick={onClick}
+      title={
+        active
+          ? `Filter „${launcher.name}" aufheben`
+          : `Nur ${launcher.name}-Spiele anzeigen`
+      }
+    >
       {launcher.coverUrl ? (
         <img className="launcher-icon" src={launcher.coverUrl} alt={launcher.name} />
       ) : (

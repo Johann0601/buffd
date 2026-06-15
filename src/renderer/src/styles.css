@@ -512,6 +512,13 @@ body {
   background: var(--panel-2);
 }
 
+/* Aktiver Launcher-Filter in der Bibliothek: hervorgehoben. */
+.launcher-chip.active {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 16%, var(--panel));
+  box-shadow: 0 0 0 1px var(--accent) inset;
+}
+
 .launcher-icon {
   width: 32px;
   height: 32px;

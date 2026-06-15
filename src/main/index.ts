@@ -78,6 +78,10 @@ import { analyzeGameStorage, computeGameSize, listGameStorage } from './services
 
 // Referenz aufs Hauptfenster, damit der Wächter Live-Updates schicken kann.
 let mainWindow: BrowserWindow | null = null
+// Merkt sich eine fertig heruntergeladene Update-Version. Falls der Download
+// abgeschlossen ist, BEVOR das Fenster/der Renderer bereit ist, kann der
+// Renderer den Stand beim Start trotzdem über „app:update-status" abfragen.
+let pendingUpdateVersion: string | null = null
 
 // Datenordner fest auf %APPDATA%\spiele-hub legen. Ohne das würde die
 // installierte App (productName "Spiele Hub") einen ANDEREN Ordner nutzen
@@ -161,6 +165,7 @@ function setupAutoUpdater(): void {
   if (!app.isPackaged) return
   autoUpdater.autoDownload = true
   autoUpdater.on('update-downloaded', (info) => {
+    pendingUpdateVersion = info.version
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('app:update-ready', info.version)
     }
@@ -175,6 +180,11 @@ function setupAutoUpdater(): void {
 
 app.whenReady().then(() => {
   electronApp.setAppUserModelId('com.spielehub.app')
+
+  // GANZ ZUERST den Update-Check anstoßen (Netzwerk läuft dann parallel zum
+  // restlichen Start), damit ein gefundenes Update so früh wie möglich bereit
+  // steht. Hängt weder von der Datenbank noch vom Fenster ab.
+  setupAutoUpdater()
 
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
@@ -220,6 +230,9 @@ app.whenReady().then(() => {
   // App-Version anzeigen + heruntergeladenes Update auf Klick installieren.
   ipcMain.handle('app:version', () => app.getVersion())
   ipcMain.handle('app:install-update', () => autoUpdater.quitAndInstall())
+  // Beim Start abfragen, ob schon ein Update fertig heruntergeladen ist (falls
+  // der Download schneller war als der Renderer-Listener).
+  ipcMain.handle('app:update-status', () => pendingUpdateVersion)
 
   // buffd selbst deinstallieren: den von NSIS angelegten Uninstaller starten und
   // die App beenden (er entfernt den Rest). Im Experimentier-/Dev-Build (kein
@@ -545,7 +558,6 @@ app.whenReady().then(() => {
   })
 
   createWindow()
-  setupAutoUpdater()
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()

@@ -11,6 +11,16 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.21.4',
+    date: '2026-06-16',
+    title: 'Launcher-Filter, gemeinsame Suche & schnellerer Update-Check',
+    changes: [
+      'In der Bibliothek kannst du auf einen Launcher klicken: Er wird hervorgehoben und die Liste zeigt nur noch Spiele dieser Plattform. Erneut klicken hebt den Filter wieder auf.',
+      'Suche und Filter gelten jetzt für installierte UND nicht installierte Spiele gemeinsam — die separate Such-/Plattform-Leiste der „Nicht installiert"-Sektion entfällt.',
+      'Die Suche nach App-Updates beim Start läuft jetzt von Anfang an im Hintergrund, sodass ein verfügbares Update früher bereitsteht.'
+    ]
+  },
+  {
     version: '0.21.3',
     date: '2026-06-16',
     title: 'Startseite: „Zuletzt gespielt"-Karussell',
