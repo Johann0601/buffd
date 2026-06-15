@@ -64,6 +64,10 @@ const api = {
   /** Heruntergeladenes App-Update jetzt installieren (App startet neu). */
   installAppUpdate: (): Promise<void> => ipcRenderer.invoke('app:install-update'),
 
+  /** buffd deinstallieren (startet den Uninstaller; nur in der installierten Version). */
+  uninstallApp: (): Promise<{ ok: boolean; reason?: 'experimental' }> =>
+    ipcRenderer.invoke('app:uninstall'),
+
   /** Meldet sich, wenn ein App-Update fertig heruntergeladen ist (mit Versionsnummer). */
   onAppUpdateReady: (cb: (version: string) => void): (() => void) => {
     const handler = (_e: unknown, version: string): void => cb(version)

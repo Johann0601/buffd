@@ -11,6 +11,14 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.20.0',
+    date: '2026-06-15',
+    title: 'buffd deinstallieren',
+    changes: [
+      'Neuer Bereich „App" in den Einstellungen mit einem Knopf zum Deinstallieren von buffd (mit Sicherheits-Rückfrage). Deine Spiele und Launcher bleiben dabei unberührt.'
+    ]
+  },
+  {
     version: '0.19.0',
     date: '2026-06-15',
     title: 'Eigene Sammlungen & gebündelter Filter',

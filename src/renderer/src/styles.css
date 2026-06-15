@@ -1847,6 +1847,12 @@ img.logo-cover {
   min-width: 0;
 }
 
+.settings-row-actions {
+  display: flex;
+  gap: 8px;
+  flex: none;
+}
+
 .settings-row-title {
   font-size: 14.5px;
   font-weight: 700;

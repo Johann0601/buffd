@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import AccountsView from './AccountsView'
 import ChangelogView from './ChangelogView'
 import StorageView from './StorageView'
@@ -18,6 +19,22 @@ function SettingsView({
   onThemeChange: (t: Theme) => void
 }): JSX.Element {
   const back = (): void => onNavigate('settings')
+
+  // Deinstallieren: Rückfrage-Zustand + Hinweis (z. B. im Experimentier-Build).
+  const [confirmUninstall, setConfirmUninstall] = useState(false)
+  const [uninstallNote, setUninstallNote] = useState<string | null>(null)
+  const doUninstall = async (): Promise<void> => {
+    const res = await window.api.uninstallApp()
+    if (!res.ok) {
+      setConfirmUninstall(false)
+      setUninstallNote(
+        res.reason === 'experimental'
+          ? 'Deinstallieren geht nur in der installierten Version — dies ist ein experimenteller Build.'
+          : 'Deinstallieren nicht möglich.'
+      )
+    }
+    // bei Erfolg startet der Uninstaller und die App beendet sich von selbst.
+  }
 
   if (view === 'settings-accounts') return <AccountsView onBack={back} />
   if (view === 'settings-storage') return <StorageView onBack={back} />
@@ -98,6 +115,40 @@ function SettingsView({
             </div>
             <span className="settings-row-arrow">→</span>
           </button>
+        </div>
+
+        {/* App-Verwaltung */}
+        <h2 className="section-title" style={{ marginTop: 26 }}>
+          App
+        </h2>
+        <div className="settings-row">
+          <div className="settings-row-main">
+            <div className="settings-row-title">buffd deinstallieren</div>
+            <div className="settings-row-desc">
+              Entfernt buffd von diesem PC. Deine Spiele und Launcher sind davon nicht betroffen.
+            </div>
+            {uninstallNote && <div className="manage-warn">{uninstallNote}</div>}
+          </div>
+          {confirmUninstall ? (
+            <div className="settings-row-actions">
+              <button className="btn danger" onClick={doUninstall}>
+                Ja, deinstallieren
+              </button>
+              <button className="btn" onClick={() => setConfirmUninstall(false)}>
+                Abbrechen
+              </button>
+            </div>
+          ) : (
+            <button
+              className="btn danger"
+              onClick={() => {
+                setUninstallNote(null)
+                setConfirmUninstall(true)
+              }}
+            >
+              🗑 Deinstallieren
+            </button>
+          )}
         </div>
       </main>
     </div>

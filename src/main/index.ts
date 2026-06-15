@@ -1,5 +1,5 @@
 import { app, shell, BrowserWindow, ipcMain, protocol, net } from 'electron'
-import { join } from 'path'
+import { dirname, join } from 'path'
 import { existsSync } from 'fs'
 import { spawn } from 'child_process'
 import { pathToFileURL } from 'url'
@@ -213,6 +213,19 @@ app.whenReady().then(() => {
   // App-Version anzeigen + heruntergeladenes Update auf Klick installieren.
   ipcMain.handle('app:version', () => app.getVersion())
   ipcMain.handle('app:install-update', () => autoUpdater.quitAndInstall())
+
+  // buffd selbst deinstallieren: den von NSIS angelegten Uninstaller starten und
+  // die App beenden (er entfernt den Rest). Im Experimentier-/Dev-Build (kein
+  // Installer) gibt es keinen Uninstaller -> dem Renderer Bescheid geben.
+  ipcMain.handle('app:uninstall', () => {
+    const uninstaller = join(dirname(app.getPath('exe')), 'Uninstall buffd.exe')
+    if (!app.isPackaged || !existsSync(uninstaller)) {
+      return { ok: false, reason: 'experimental' as const }
+    }
+    spawn(uninstaller, [], { detached: true, stdio: 'ignore' }).unref()
+    setTimeout(() => app.quit(), 1000) // Dateien freigeben, damit der Uninstaller löschen kann
+    return { ok: true as const }
+  })
 
   // Experimenteller (Test-)Build? Die veröffentlichte/installierte Version liegt
   // unter „…\Programs\spiele-hub\". Läuft die App woanders (z. B. direkt aus dem
