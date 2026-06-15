@@ -11,6 +11,16 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.19.0',
+    date: '2026-06-15',
+    title: 'Eigene Sammlungen & gebündelter Filter',
+    changes: [
+      'Du kannst jetzt eigene Sammlungen/Kategorien anlegen (z. B. „Mit Freunden", „Zum Entspannen") und Spiele frei zuordnen. Verwalten (anlegen/umbenennen/löschen) über den Knopf „📁 Sammlungen".',
+      'In der Detailansicht eines Spiels lassen sich Sammlungen per Klick an-/abwählen — und mit „+ Neu" direkt eine neue Sammlung mit diesem Spiel erstellen.',
+      'Neuer gebündelter „⚙ Filter"-Knopf in der Bibliothek: Plattform, Steam-Tags und Sammlungen sind jetzt in einem aufklappbaren Panel zusammengefasst (statt mehrerer einzelner Auswahlfelder). Der Knopf zeigt die Anzahl aktiver Filter und bietet „Alle Filter zurücksetzen".'
+    ]
+  },
+  {
     version: '0.18.0',
     date: '2026-06-15',
     title: 'Speicher verwalten & eigene Screenshots',

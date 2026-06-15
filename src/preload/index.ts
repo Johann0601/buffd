@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
 import type {
   AchievementsResult,
+  Collection,
   DeviceInfo,
   EpicAccountStatus,
   EpicFreeGame,
@@ -79,6 +80,20 @@ const api = {
   /** Besessene/bekannte, aber nicht installierte Spiele (Steam + Epic + DB-Reste). */
   listNotInstalledGames: (): Promise<NotInstalledResult> =>
     ipcRenderer.invoke('games:not-installed'),
+
+  /** Eigene Sammlungen/Kategorien (B3). */
+  listCollections: (): Promise<Collection[]> => ipcRenderer.invoke('collections:list'),
+  createCollection: (name: string): Promise<Collection> =>
+    ipcRenderer.invoke('collections:create', name),
+  renameCollection: (id: number, name: string): Promise<Collection[]> =>
+    ipcRenderer.invoke('collections:rename', { id, name }),
+  deleteCollection: (id: number): Promise<Collection[]> =>
+    ipcRenderer.invoke('collections:delete', id),
+  setGameCollections: (
+    gameId: number,
+    collectionIds: number[]
+  ): Promise<{ games: GameCard[]; collections: Collection[] }> =>
+    ipcRenderer.invoke('collections:set-for-game', { gameId, collectionIds }),
 
   /** Steam-Community-Tags für installierte Spiele nachladen (gedrosselt, im
    *  Hintergrund). Meldet sich per onGamesRefresh, wenn neue Tags da sind. */

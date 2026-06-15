@@ -2480,6 +2480,70 @@ img.logo-cover {
   margin: 2px 0 16px;
 }
 
+/* Zusammengefasstes Filter-Panel (Plattform + Sammlungen + Tags). */
+.filter-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin: 2px 0 16px;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.filter-group-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.filter-empty {
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.filter-toggle.active {
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* Schnell-Zurücksetzen-✕ direkt im Filter-Knopf. */
+.filter-clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 8px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  font-size: 11px;
+  color: var(--muted);
+  background: var(--panel-2);
+  transition: background 0.12s, color 0.12s;
+}
+
+.filter-clear:hover {
+  background: var(--accent);
+  color: #fff;
+}
+
 .tag-chip {
   background: var(--panel-2);
   border: 1px solid var(--border);
@@ -2504,6 +2568,84 @@ img.logo-cover {
 
 .tag-chip.clear {
   color: var(--muted);
+}
+
+.tag-chip.add {
+  color: var(--muted);
+  border-style: dashed;
+}
+
+/* ---- Eigene Sammlungen (B3) ---- */
+/* Sammlungs-Picker auf der Detailseite. */
+.collection-picker {
+  margin-top: 18px;
+}
+
+.collection-picker-label {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+.collection-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.collection-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.collection-add input {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 5px 12px;
+  color: var(--text);
+  font-size: 12px;
+  width: 130px;
+}
+
+/* Sammlungen-Verwalten-Popup. */
+.coll-create {
+  display: flex;
+  gap: 8px;
+}
+
+.coll-create input {
+  flex: 1;
+}
+
+.coll-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.coll-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.coll-row input {
+  flex: 1;
+}
+
+.coll-name {
+  flex: 1;
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.coll-count {
+  color: var(--muted);
+  font-weight: 400;
 }
 
 /* ---- Wunschliste & Preise ---- */

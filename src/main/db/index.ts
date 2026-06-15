@@ -2,6 +2,7 @@ import { app } from 'electron'
 import { join } from 'path'
 import Database from 'better-sqlite3'
 import type {
+  Collection,
   GameCard,
   GameKind,
   GameStorageInfo,
@@ -158,6 +159,28 @@ const MIGRATIONS: ((db: Database.Database) => void)[] = [
   //      abgemeldete Titel wie Rocket League), daher lohnt ein zweiter Versuch.
   (database) => {
     database.exec(`UPDATE games SET tags_checked_at = NULL WHERE tags IS NULL OR tags = '';`)
+  },
+  // v13 (B3): benutzerdefinierte Sammlungen/Kategorien + Zuordnung zu Spielen.
+  (database) => {
+    database.exec(`
+      CREATE TABLE IF NOT EXISTS collections (
+        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        name        TEXT    NOT NULL,
+        sort        INTEGER NOT NULL DEFAULT 0,
+        created_at  INTEGER NOT NULL DEFAULT (strftime('%s','now'))
+      );
+
+      CREATE TABLE IF NOT EXISTS collection_games (
+        collection_id INTEGER NOT NULL,
+        game_id       INTEGER NOT NULL,
+        added_at      INTEGER NOT NULL DEFAULT (strftime('%s','now')),
+        PRIMARY KEY (collection_id, game_id),
+        FOREIGN KEY (collection_id) REFERENCES collections(id) ON DELETE CASCADE,
+        FOREIGN KEY (game_id)       REFERENCES games(id)       ON DELETE CASCADE
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_collection_games_game ON collection_games(game_id);
+    `)
   }
 ]
 
@@ -260,6 +283,7 @@ interface GameRow {
   manifest_updated: number | null
   size_bytes: number | null
   tags: string | null
+  collection_ids: string | null // kommagetrennte Sammlungs-IDs (per GROUP_CONCAT)
 }
 
 /**
@@ -274,6 +298,8 @@ function queryGames(installed: 0 | 1): GameCard[] {
       SELECT
         g.id, g.kind, g.platform, g.platform_id, g.name, g.install_dir, g.cover_url, g.last_played,
         g.update_pending, g.manifest_updated, g.size_bytes, g.tags,
+        (SELECT GROUP_CONCAT(cg.collection_id) FROM collection_games cg
+         WHERE cg.game_id = g.id) AS collection_ids,
         g.imported_playtime_sec
           + COALESCE((SELECT SUM(s.duration_sec) FROM play_sessions s
                       WHERE s.game_id = g.id AND s.duration_sec IS NOT NULL), 0) AS total_playtime_sec
@@ -297,7 +323,10 @@ function queryGames(installed: 0 | 1): GameCard[] {
     updatePending: r.update_pending === 1,
     manifestLastUpdated: r.manifest_updated,
     sizeBytes: r.size_bytes,
-    tags: r.tags ? r.tags.split(',').filter(Boolean) : []
+    tags: r.tags ? r.tags.split(',').filter(Boolean) : [],
+    collectionIds: r.collection_ids
+      ? r.collection_ids.split(',').filter(Boolean).map(Number)
+      : []
   }))
 }
 
@@ -313,6 +342,57 @@ export function listGames(): GameCard[] {
  */
 export function listUninstalledGames(): GameCard[] {
   return queryGames(0).filter((g) => g.kind === 'game')
+}
+
+// ---------------------------------------------------------------------------
+//  Eigene Sammlungen/Kategorien (B3)
+// ---------------------------------------------------------------------------
+
+/** Alle Sammlungen inkl. Anzahl zugeordneter Spiele (eigene Reihenfolge zuerst). */
+export function listCollections(): Collection[] {
+  return getDatabase()
+    .prepare(
+      `SELECT c.id, c.name,
+              (SELECT COUNT(*) FROM collection_games cg WHERE cg.collection_id = c.id) AS gameCount
+       FROM collections c
+       ORDER BY c.sort ASC, c.created_at ASC, c.id ASC`
+    )
+    .all() as Collection[]
+}
+
+/** Neue Sammlung anlegen (ans Ende einsortiert) und zurückgeben. */
+export function createCollection(name: string): Collection {
+  const trimmed = name.trim()
+  const db = getDatabase()
+  const maxSort =
+    (db.prepare('SELECT COALESCE(MAX(sort), 0) AS m FROM collections').get() as { m: number }).m + 1
+  const info = db
+    .prepare('INSERT INTO collections (name, sort) VALUES (?, ?)')
+    .run(trimmed, maxSort)
+  return { id: Number(info.lastInsertRowid), name: trimmed, gameCount: 0 }
+}
+
+/** Sammlung umbenennen. */
+export function renameCollection(id: number, name: string): void {
+  getDatabase().prepare('UPDATE collections SET name = ? WHERE id = ?').run(name.trim(), id)
+}
+
+/** Sammlung löschen (Zuordnungen verschwinden per ON DELETE CASCADE mit). */
+export function deleteCollection(id: number): void {
+  getDatabase().prepare('DELETE FROM collections WHERE id = ?').run(id)
+}
+
+/** Die Sammlungs-Zugehörigkeit EINES Spiels komplett neu setzen. */
+export function setGameCollections(gameId: number, collectionIds: number[]): void {
+  const db = getDatabase()
+  const tx = db.transaction((ids: number[]) => {
+    db.prepare('DELETE FROM collection_games WHERE game_id = ?').run(gameId)
+    const ins = db.prepare(
+      'INSERT OR IGNORE INTO collection_games (collection_id, game_id) VALUES (?, ?)'
+    )
+    for (const cid of ids) ins.run(cid, gameId)
+  })
+  tx(collectionIds)
 }
 
 /**

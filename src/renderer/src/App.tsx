@@ -1,6 +1,7 @@
 import type React from 'react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type {
+  Collection,
   EpicFreeGame,
   GameCard,
   NotInstalledGame,
@@ -494,10 +495,35 @@ function GamesView({
       return []
     }
   })
-  const [tagsOpen, setTagsOpen] = useState(false)
+  const [filterOpen, setFilterOpen] = useState(false)
   useEffect(() => {
     localStorage.setItem('games-filter-tags', JSON.stringify(selectedTags))
   }, [selectedTags])
+  // Eigene Sammlungen (B3): Liste + Filter (gemerkt) + Verwalten-Popup.
+  const [collections, setCollections] = useState<Collection[]>([])
+  const [collectionFilter, setCollectionFilter] = useState<string>(
+    () => localStorage.getItem('games-filter-collection') ?? 'all'
+  )
+  const [manageCollections, setManageCollections] = useState(false)
+  const reloadCollections = useCallback(async () => {
+    try {
+      setCollections(await window.api.listCollections())
+    } catch {
+      /* ignorieren */
+    }
+  }, [])
+  useEffect(() => {
+    reloadCollections()
+  }, [reloadCollections])
+  useEffect(() => {
+    localStorage.setItem('games-filter-collection', collectionFilter)
+  }, [collectionFilter])
+  // Verweist der Filter auf eine inzwischen gelöschte Sammlung -> zurück auf „Alle".
+  useEffect(() => {
+    if (collectionFilter !== 'all' && !collections.some((c) => String(c.id) === collectionFilter)) {
+      setCollectionFilter('all')
+    }
+  }, [collections, collectionFilter])
   // Nicht installierte Spiele (Besitz-Katalog) — separat geladen, damit die
   // Seite sofort steht und der (teils langsame) Katalog-Abruf nachrückt.
   const [notInstalled, setNotInstalled] = useState<NotInstalledGame[] | null>(null)
@@ -632,14 +658,27 @@ function GamesView({
     setSelectedTags((prev) => (prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]))
   }, [])
 
+  // Anzahl aktiver Filter (für die Anzeige am Filter-Knopf) + Zurücksetzen.
+  const activeFilterCount =
+    (platformFilter !== 'all' ? 1 : 0) +
+    (collectionFilter !== 'all' ? 1 : 0) +
+    selectedTags.length
+  const resetFilters = useCallback((): void => {
+    setPlatformFilter('all')
+    setCollectionFilter('all')
+    setSelectedTags([])
+  }, [])
+
   // Suche + Filter + Sortierung anwenden.
   const visible = useMemo(() => {
     const term = search.trim().toLowerCase()
+    const collId = collectionFilter === 'all' ? null : Number(collectionFilter)
     const list = playable.filter(
       (g) =>
         (platformFilter === 'all' || g.platform === platformFilter) &&
         (term === '' || g.name.toLowerCase().includes(term)) &&
-        (selectedTags.length === 0 || selectedTags.every((t) => g.tags.includes(t)))
+        (selectedTags.length === 0 || selectedTags.every((t) => g.tags.includes(t))) &&
+        (collId === null || g.collectionIds.includes(collId))
     )
     switch (sortBy) {
       case 'name':
@@ -655,7 +694,7 @@ function GamesView({
         list.sort((a, b) => liveTotal(b) - liveTotal(a))
     }
     return list
-  }, [playable, search, platformFilter, sortBy, selectedTags, liveTotal])
+  }, [playable, search, platformFilter, sortBy, selectedTags, collectionFilter, liveTotal])
 
   // Plattformen, von denen es nicht installierte Spiele gibt.
   const niAvailablePlatforms = useMemo(
@@ -698,6 +737,11 @@ function GamesView({
         liveTotalSec={liveTotal(selected)}
         onBack={() => setSelectedId(null)}
         onGamesUpdated={setGames}
+        collections={collections}
+        onCollectionsChanged={(g, c) => {
+          setGames(g)
+          setCollections(c)
+        }}
       />
     )
   }
@@ -760,19 +804,6 @@ function GamesView({
               />
               <select
                 className="toolbar-select"
-                value={platformFilter}
-                onChange={(e) => setPlatformFilter(e.target.value)}
-                title="Nach Plattform filtern"
-              >
-                <option value="all">Alle Plattformen</option>
-                {availablePlatforms.map((p) => (
-                  <option key={p} value={p}>
-                    {platformLabel(p)}
-                  </option>
-                ))}
-              </select>
-              <select
-                className="toolbar-select"
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as GameSort)}
                 title="Sortierung"
@@ -783,32 +814,104 @@ function GamesView({
                   </option>
                 ))}
               </select>
-              {availableTags.length > 0 && (
-                <button
-                  className={`toolbar-select tag-toggle ${selectedTags.length ? 'active' : ''}`}
-                  onClick={() => setTagsOpen((o) => !o)}
-                  title="Nach Steam-Tags filtern"
-                >
-                  🏷 Tags{selectedTags.length > 0 ? ` (${selectedTags.length})` : ''}
-                </button>
-              )}
+              <button
+                className={`toolbar-select filter-toggle ${activeFilterCount ? 'active' : ''}`}
+                onClick={() => setFilterOpen((o) => !o)}
+                title="Nach Plattform, Tags und Sammlungen filtern"
+              >
+                ⚙ Filter{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
+                {activeFilterCount > 0 && (
+                  <span
+                    className="filter-clear"
+                    role="button"
+                    title="Alle Filter zurücksetzen"
+                    onClick={(e) => {
+                      e.stopPropagation() // nicht das Panel auf-/zuklappen
+                      resetFilters()
+                    }}
+                  >
+                    ✕
+                  </span>
+                )}
+              </button>
+              <button
+                className="toolbar-select"
+                onClick={() => setManageCollections(true)}
+                title="Sammlungen anlegen, umbenennen oder löschen"
+              >
+                📁 Sammlungen
+              </button>
             </div>
           </div>
         )}
-        {playable.length > 0 && tagsOpen && availableTags.length > 0 && (
-          <div className="tag-filter-panel">
-            {availableTags.map((t) => (
-              <button
-                key={t}
-                className={`tag-chip ${selectedTags.includes(t) ? 'on' : ''}`}
-                onClick={() => toggleTag(t)}
-              >
-                {t}
-              </button>
-            ))}
-            {selectedTags.length > 0 && (
-              <button className="tag-chip clear" onClick={() => setSelectedTags([])}>
-                ✕ zurücksetzen
+        {playable.length > 0 && filterOpen && (
+          <div className="filter-panel">
+            <div className="filter-group">
+              <span className="filter-group-label">Plattform</span>
+              <div className="filter-chips">
+                <button
+                  className={`tag-chip ${platformFilter === 'all' ? 'on' : ''}`}
+                  onClick={() => setPlatformFilter('all')}
+                >
+                  Alle
+                </button>
+                {availablePlatforms.map((p) => (
+                  <button
+                    key={p}
+                    className={`tag-chip ${platformFilter === p ? 'on' : ''}`}
+                    onClick={() => setPlatformFilter(p)}
+                  >
+                    {platformLabel(p)}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="filter-group">
+              <span className="filter-group-label">Sammlungen</span>
+              <div className="filter-chips">
+                <button
+                  className={`tag-chip ${collectionFilter === 'all' ? 'on' : ''}`}
+                  onClick={() => setCollectionFilter('all')}
+                >
+                  Alle
+                </button>
+                {collections.length === 0 ? (
+                  <span className="filter-empty">Noch keine Sammlungen angelegt.</span>
+                ) : (
+                  collections.map((c) => (
+                    <button
+                      key={c.id}
+                      className={`tag-chip ${collectionFilter === String(c.id) ? 'on' : ''}`}
+                      onClick={() => setCollectionFilter(String(c.id))}
+                    >
+                      📁 {c.name} ({c.gameCount})
+                    </button>
+                  ))
+                )}
+              </div>
+            </div>
+
+            {availableTags.length > 0 && (
+              <div className="filter-group">
+                <span className="filter-group-label">Tags (Steam)</span>
+                <div className="filter-chips">
+                  {availableTags.map((t) => (
+                    <button
+                      key={t}
+                      className={`tag-chip ${selectedTags.includes(t) ? 'on' : ''}`}
+                      onClick={() => toggleTag(t)}
+                    >
+                      {t}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {activeFilterCount > 0 && (
+              <button className="tag-chip clear" onClick={resetFilters}>
+                ✕ Alle Filter zurücksetzen
               </button>
             )}
           </div>
@@ -921,6 +1024,150 @@ function GamesView({
           )
         )}
       </main>
+
+      {manageCollections && (
+        <CollectionsModal
+          collections={collections}
+          onClose={() => setManageCollections(false)}
+          onChanged={(cols) => {
+            setCollections(cols)
+            reloadGames() // Löschen entfernt Zuordnungen -> Spielkacheln/Filter auffrischen
+          }}
+        />
+      )}
+    </div>
+  )
+}
+
+/** Popup zum Anlegen, Umbenennen und Löschen eigener Sammlungen. */
+function CollectionsModal({
+  collections,
+  onClose,
+  onChanged
+}: {
+  collections: Collection[]
+  onClose: () => void
+  onChanged: (collections: Collection[]) => void
+}): JSX.Element {
+  const [newName, setNewName] = useState('')
+  const [editId, setEditId] = useState<number | null>(null)
+  const [editName, setEditName] = useState('')
+  const [confirmDel, setConfirmDel] = useState<number | null>(null)
+
+  const create = async (): Promise<void> => {
+    const name = newName.trim()
+    if (!name) return
+    await window.api.createCollection(name)
+    setNewName('')
+    onChanged(await window.api.listCollections())
+  }
+  const saveRename = async (): Promise<void> => {
+    if (editId === null || !editName.trim()) {
+      setEditId(null)
+      return
+    }
+    const cols = await window.api.renameCollection(editId, editName.trim())
+    setEditId(null)
+    onChanged(cols)
+  }
+  const remove = async (id: number): Promise<void> => {
+    const cols = await window.api.deleteCollection(id)
+    setConfirmDel(null)
+    onChanged(cols)
+  }
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal manage-modal" onClick={(e) => e.stopPropagation()}>
+        <h2>📁 Sammlungen verwalten</h2>
+
+        <div className="manage-section">
+          <div className="manage-label">Neue Sammlung</div>
+          <div className="coll-create">
+            <input
+              type="text"
+              className="toolbar-input"
+              placeholder="z. B. Mit Freunden, Zum Entspannen …"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && create()}
+            />
+            <button className="btn" onClick={create} disabled={!newName.trim()}>
+              + Anlegen
+            </button>
+          </div>
+        </div>
+
+        <div className="manage-section">
+          <div className="manage-label">Vorhandene Sammlungen</div>
+          {collections.length === 0 ? (
+            <div className="manage-hint">Noch keine Sammlungen. Lege oben eine an.</div>
+          ) : (
+            <div className="coll-list">
+              {collections.map((c) => (
+                <div key={c.id} className="coll-row">
+                  {editId === c.id ? (
+                    <>
+                      <input
+                        autoFocus
+                        type="text"
+                        className="toolbar-input"
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') saveRename()
+                          if (e.key === 'Escape') setEditId(null)
+                        }}
+                      />
+                      <button className="btn small" onClick={saveRename}>
+                        ✓
+                      </button>
+                      <button className="btn small" onClick={() => setEditId(null)}>
+                        ✕
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <span className="coll-name">
+                        {c.name} <span className="coll-count">({c.gameCount})</span>
+                      </span>
+                      <button
+                        className="btn small"
+                        onClick={() => {
+                          setEditId(c.id)
+                          setEditName(c.name)
+                        }}
+                      >
+                        ✎
+                      </button>
+                      {confirmDel === c.id ? (
+                        <>
+                          <button className="btn small danger" onClick={() => remove(c.id)}>
+                            Wirklich löschen?
+                          </button>
+                          <button className="btn small" onClick={() => setConfirmDel(null)}>
+                            Abbrechen
+                          </button>
+                        </>
+                      ) : (
+                        <button className="btn small danger" onClick={() => setConfirmDel(c.id)}>
+                          🗑
+                        </button>
+                      )}
+                    </>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="onboard-actions">
+          <button className="btn" onClick={onClose}>
+            Schließen
+          </button>
+        </div>
+      </div>
     </div>
   )
 }
@@ -1037,18 +1284,99 @@ function GameTile({
   )
 }
 
+/**
+ * Sammlungs-Zuordnung eines Spiels: Chips zum An-/Abwählen je Sammlung,
+ * plus ein Inline-Feld zum Anlegen einer neuen Sammlung (mit dem Spiel direkt drin).
+ */
+function CollectionPicker({
+  game,
+  collections,
+  onChanged
+}: {
+  game: GameCard
+  collections: Collection[]
+  onChanged: (games: GameCard[], collections: Collection[]) => void
+}): JSX.Element {
+  const [adding, setAdding] = useState(false)
+  const [newName, setNewName] = useState('')
+
+  const toggle = async (id: number): Promise<void> => {
+    const next = game.collectionIds.includes(id)
+      ? game.collectionIds.filter((c) => c !== id)
+      : [...game.collectionIds, id]
+    const res = await window.api.setGameCollections(game.id, next)
+    onChanged(res.games, res.collections)
+  }
+
+  const createWithGame = async (): Promise<void> => {
+    const name = newName.trim()
+    if (!name) return
+    const created = await window.api.createCollection(name)
+    const res = await window.api.setGameCollections(game.id, [...game.collectionIds, created.id])
+    setNewName('')
+    setAdding(false)
+    onChanged(res.games, res.collections)
+  }
+
+  return (
+    <div className="collection-picker">
+      <span className="collection-picker-label">📁 Sammlungen</span>
+      <div className="collection-chips">
+        {collections.map((c) => (
+          <button
+            key={c.id}
+            className={`tag-chip ${game.collectionIds.includes(c.id) ? 'on' : ''}`}
+            onClick={() => toggle(c.id)}
+          >
+            {c.name}
+          </button>
+        ))}
+        {adding ? (
+          <span className="collection-add">
+            <input
+              autoFocus
+              type="text"
+              placeholder="Name …"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') createWithGame()
+                if (e.key === 'Escape') {
+                  setAdding(false)
+                  setNewName('')
+                }
+              }}
+            />
+            <button className="btn small" onClick={createWithGame} disabled={!newName.trim()}>
+              ✓
+            </button>
+          </span>
+        ) : (
+          <button className="tag-chip add" onClick={() => setAdding(true)}>
+            + Neu
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
+
 function GameDetail({
   game,
   isRunning,
   liveTotalSec,
   onBack,
-  onGamesUpdated
+  onGamesUpdated,
+  collections,
+  onCollectionsChanged
 }: {
   game: GameCard
   isRunning: boolean
   liveTotalSec: number
   onBack: () => void
   onGamesUpdated: (games: GameCard[]) => void
+  collections: Collection[]
+  onCollectionsChanged: (games: GameCard[], collections: Collection[]) => void
 }): JSX.Element {
   const [busy, setBusy] = useState<null | 'launch' | 'close'>(null)
   const [notice, setNotice] = useState<string | null>(null)
@@ -1214,6 +1542,12 @@ function GameDetail({
 
             {notice && <div className="notice">{notice}</div>}
 
+            <CollectionPicker
+              game={game}
+              collections={collections}
+              onChanged={onCollectionsChanged}
+            />
+
             <FriendsForGame
               gameRef={{ platform: game.platform, platformId: game.platformId, name: game.name }}
             />
@@ -1346,7 +1680,8 @@ function NotInstalledDetail({
     updatePending: false,
     manifestLastUpdated: null,
     sizeBytes: null,
-    tags: []
+    tags: [],
+    collectionIds: []
   }
 
   return (

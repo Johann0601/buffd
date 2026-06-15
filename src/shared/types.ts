@@ -34,6 +34,14 @@ export interface GameCard {
   manifestLastUpdated: number | null // letzter Update-Zeitpunkt laut Steam (Unix-Sek.)
   sizeBytes: number | null // Ordnergröße der Installation (null = noch nicht berechnet)
   tags: string[] // Steam-Community-Tags (für den Tag-Filter); leer = noch nicht abgerufen
+  collectionIds: number[] // IDs der eigenen Sammlungen, in denen das Spiel liegt
+}
+
+/** Eine benutzerdefinierte Sammlung/Kategorie (z. B. „Mit Freunden", „Zum Entspannen"). */
+export interface Collection {
+  id: number
+  name: string
+  gameCount: number // Anzahl zugeordneter Spiele
 }
 
 /**

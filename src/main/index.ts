@@ -13,7 +13,12 @@ import {
   getCoverPath,
   getLaunchInfo,
   listUpdateEvents,
-  setImportedPlaytime
+  setImportedPlaytime,
+  listCollections,
+  createCollection,
+  renameCollection,
+  deleteCollection,
+  setGameCollections
 } from './db'
 import type { GameRef } from '@shared/types'
 import { scanLibrary } from './services/library'
@@ -221,6 +226,26 @@ app.whenReady().then(() => {
   ipcMain.handle('library:scan', () => scanLibrary())
   ipcMain.handle('games:list', () => listGames())
   ipcMain.handle('games:not-installed', () => listNotInstalledGames())
+
+  // Eigene Sammlungen/Kategorien (B3).
+  ipcMain.handle('collections:list', () => listCollections())
+  ipcMain.handle('collections:create', (_e, name: string) => createCollection(name))
+  ipcMain.handle('collections:rename', (_e, args: { id: number; name: string }) => {
+    renameCollection(args.id, args.name)
+    return listCollections()
+  })
+  ipcMain.handle('collections:delete', (_e, id: number) => {
+    deleteCollection(id)
+    return listCollections()
+  })
+  // Sammlungs-Zuordnung eines Spiels setzen -> frische Spiel- und Sammlungslisten zurück.
+  ipcMain.handle(
+    'collections:set-for-game',
+    (_e, args: { gameId: number; collectionIds: number[] }) => {
+      setGameCollections(args.gameId, args.collectionIds)
+      return { games: listGames(), collections: listCollections() }
+    }
+  )
   ipcMain.handle('games:ensure-tags', async () => {
     const n = await ensureGameTags()
     if (n > 0 && mainWindow && !mainWindow.isDestroyed()) {
