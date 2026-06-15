@@ -15,6 +15,7 @@ import type {
   GameNewsItem,
   GamePriceInfo,
   GameRef,
+  GameScreenshot,
   LibraryNewsResult,
   GameStorageInfo,
   ItadStatus,
@@ -159,6 +160,15 @@ const api = {
   getGameNews: (ref: GameRef): Promise<GameNewsItem[]> => ipcRenderer.invoke('game:news', ref),
   getGameAchievements: (ref: GameRef): Promise<AchievementsResult> =>
     ipcRenderer.invoke('game:achievements', ref),
+  /** Lokal gespeicherte, selbst aufgenommene Screenshots (nur Steam-Spiele). */
+  getGameScreenshots: (ref: GameRef): Promise<GameScreenshot[]> =>
+    ipcRenderer.invoke('game:screenshots', ref),
+  /** Screenshot verwalten (Eingabe ist die shot://-URL des Vollbilds). */
+  copyScreenshot: (url: string): Promise<boolean> => ipcRenderer.invoke('screenshot:copy', url),
+  revealScreenshot: (url: string): Promise<boolean> =>
+    ipcRenderer.invoke('screenshot:reveal', url),
+  deleteScreenshot: (url: string): Promise<boolean> =>
+    ipcRenderer.invoke('screenshot:delete', url),
 
   /** Freunde (Stufe A): Steam-Freundesliste + Bibliothek eines Freundes. */
   getSteamFriends: (): Promise<SteamFriendsResult> => ipcRenderer.invoke('friends:list'),

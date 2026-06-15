@@ -249,6 +249,13 @@ export interface GameDetails {
   error?: string
 }
 
+/** Ein lokal gespeicherter, selbst aufgenommener Steam-Screenshot. */
+export interface GameScreenshot {
+  full: string // shot://-URL des Vollbilds
+  thumb: string // shot://-URL der Vorschau
+  takenAt: number // Aufnahmezeit (Unix-Sekunden, aus der Datei)
+}
+
 /** Eine News-/Patchnotes-Meldung zu einem Spiel. */
 export interface GameNewsItem {
   title: string

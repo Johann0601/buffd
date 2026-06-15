@@ -48,6 +48,14 @@ import { addWishlistItem, listWishlist, removeWishlistItem } from './db'
 import { getGameAchievements } from './services/steam/achievements'
 import { steamKeyStatus, setSteamApiKey, clearSteamApiKey } from './services/steam/webapi'
 import { getSteamFriends, getFriendGames, getFriendsForGame } from './services/steam/friends'
+import {
+  listSteamScreenshots,
+  isAllowedShot,
+  decodeShotPath,
+  copyScreenshot,
+  revealScreenshot,
+  deleteScreenshot
+} from './services/steam/screenshots'
 import { getPlayStats, getPlaytimePeriods } from './services/stats'
 import { getLibraryNews } from './services/news'
 import {
@@ -89,6 +97,11 @@ if (!app.requestSingleInstanceLock()) {
 protocol.registerSchemesAsPrivileged([
   {
     scheme: 'cover',
+    privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true }
+  },
+  {
+    // Liefert lokale, selbst aufgenommene Steam-Screenshots aus (siehe screenshots.ts).
+    scheme: 'shot',
     privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true }
   }
 ])
@@ -170,6 +183,19 @@ app.whenReady().then(() => {
       return net.fetch(pathToFileURL(filePath).toString())
     }
     return new Response('Cover nicht gefunden', { status: 404 })
+  })
+
+  // 2b) shot://file/<base64url-pfad> -> liefert einen lokalen Screenshot aus.
+  //     Es werden NUR Pfade ausgeliefert, die zuvor über screenshots:list als
+  //     gültige Steam-Screenshots aufgelistet wurden (kein freier Dateizugriff).
+  protocol.handle('shot', async (request) => {
+    const url = new URL(request.url)
+    const encoded = decodeURIComponent(url.pathname.replace(/^\//, ''))
+    const filePath = decodeShotPath(encoded)
+    if (filePath && isAllowedShot(filePath) && existsSync(filePath)) {
+      return net.fetch(pathToFileURL(filePath).toString())
+    }
+    return new Response('Screenshot nicht gefunden', { status: 404 })
   })
 
   // 3) IPC-Endpunkte für den Renderer.
@@ -314,6 +340,14 @@ app.whenReady().then(() => {
   ipcMain.handle('game:details', (_e, ref: GameRef) => getGameDetails(ref))
   ipcMain.handle('game:news', (_e, ref: GameRef) => getGameNews(ref))
   ipcMain.handle('game:achievements', (_e, ref: GameRef) => getGameAchievements(ref))
+  // Lokale, selbst aufgenommene Screenshots — nur für Steam-Spiele (platformId = AppID).
+  ipcMain.handle('game:screenshots', (_e, ref: GameRef) =>
+    ref.platform === 'steam' ? listSteamScreenshots(ref.platformId) : []
+  )
+  // Screenshot verwalten: in die Zwischenablage kopieren, im Explorer zeigen, löschen.
+  ipcMain.handle('screenshot:copy', (_e, url: string) => copyScreenshot(url))
+  ipcMain.handle('screenshot:reveal', (_e, url: string) => revealScreenshot(url))
+  ipcMain.handle('screenshot:delete', (_e, url: string) => deleteScreenshot(url))
 
   // Freunde (Stufe A): Steam-Freundesliste + Bibliothek eines Freundes (read-only).
   ipcMain.handle('friends:list', () => getSteamFriends())

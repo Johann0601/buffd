@@ -1,5 +1,6 @@
 import AccountsView from './AccountsView'
 import ChangelogView from './ChangelogView'
+import StorageView from './StorageView'
 import SystemView from './SystemView'
 import type { Theme, View } from './App'
 
@@ -19,6 +20,7 @@ function SettingsView({
   const back = (): void => onNavigate('settings')
 
   if (view === 'settings-accounts') return <AccountsView onBack={back} />
+  if (view === 'settings-storage') return <StorageView onBack={back} />
   if (view === 'settings-system') return <SystemView onBack={back} />
   if (view === 'settings-changelog') return <ChangelogView onBack={back} />
 
@@ -65,12 +67,22 @@ function SettingsView({
             </div>
             <span className="settings-row-arrow">→</span>
           </button>
+          <button className="settings-row clickable" onClick={() => onNavigate('settings-storage')}>
+            <span className="settings-row-icon">💾</span>
+            <div className="settings-row-main">
+              <div className="settings-row-title">Speicher verwalten</div>
+              <div className="settings-row-desc">
+                Größe aller Spiele und Aufräum-Vorschläge: groß &amp; lange nicht gespielt
+              </div>
+            </div>
+            <span className="settings-row-arrow">→</span>
+          </button>
           <button className="settings-row clickable" onClick={() => onNavigate('settings-system')}>
             <span className="settings-row-icon">🖥️</span>
             <div className="settings-row-main">
               <div className="settings-row-title">System / Treiber</div>
               <div className="settings-row-desc">
-                Hardware mit Treiberversionen, Nvidia-Update-Prüfung, Speicherplatz der Spiele
+                Hardware mit Treiberversionen und Nvidia-Update-Prüfung
               </div>
             </div>
             <span className="settings-row-arrow">→</span>

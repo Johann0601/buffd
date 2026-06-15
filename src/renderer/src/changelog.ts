@@ -11,6 +11,18 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.18.0',
+    date: '2026-06-15',
+    title: 'Speicher verwalten & eigene Screenshots',
+    changes: [
+      'Neuer Bereich „💾 Speicher verwalten" unter Einstellungen: zeigt alle installierten Spiele nach Größe sortiert mit der gesamten belegten Speichermenge.',
+      'Ganz oben gibt es jetzt hervorgehobene Aufräum-Vorschläge — große Spiele (über 10 GB), die du seit über 3 Monaten nicht mehr gespielt hast, lassen sich dort direkt deinstallieren. Angezeigt wird auch, wie viel Speicher das insgesamt freigeben würde.',
+      'Die Speicherplatz-Analyse wurde aus „System / Treiber" herausgelöst; diese Seite konzentriert sich nun auf Hardware und Treiber.',
+      'In der Detailansicht eines Steam-Spiels werden jetzt deine eigenen, selbst aufgenommenen Screenshots angezeigt (aus Steam) — als Galerie, mit Klick für die Großansicht.',
+      'In der Großansicht eines eigenen Screenshots kannst du ihn jetzt verwalten: 📋 in die Zwischenablage kopieren (z. B. zum Einfügen in Discord/Chat), 📂 im Datei-Explorer anzeigen oder 🗑 löschen (landet im Papierkorb, ist also umkehrbar).'
+    ]
+  },
+  {
     version: '0.17.0',
     date: '2026-06-15',
     title: 'Anpassbares Startseiten-Dashboard',

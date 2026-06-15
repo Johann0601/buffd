@@ -4,7 +4,8 @@ import type {
   GameDetails,
   GameNewsItem,
   GamePriceInfo,
-  GameRef
+  GameRef,
+  GameScreenshot
 } from '@shared/types'
 import { formatEuro } from './format'
 
@@ -25,7 +26,10 @@ function GameDetailExtras({ gameRef }: { gameRef: GameRef }): JSX.Element | null
   const [news, setNews] = useState<GameNewsItem[] | null>(null)
   const [achievements, setAchievements] = useState<AchievementsResult | null>(null)
   const [prices, setPrices] = useState<GamePriceInfo | null>(null)
+  const [shots, setShots] = useState<GameScreenshot[]>([]) // eigene, lokale Screenshots
   const [lightbox, setLightbox] = useState<string | null>(null) // Screenshot in groß
+  const [copied, setCopied] = useState(false) // kurzes "Kopiert!"-Feedback
+  const [confirmDel, setConfirmDel] = useState(false) // Lösch-Rückfrage offen?
 
   useEffect(() => {
     // Bei Spielwechsel alles zurücksetzen und neu laden.
@@ -33,6 +37,7 @@ function GameDetailExtras({ gameRef }: { gameRef: GameRef }): JSX.Element | null
     setNews(null)
     setAchievements(null)
     setPrices(null)
+    setShots([])
     setLightbox(null)
     let cancelled = false
     window.api.getGameDetails(gameRef).then((d) => !cancelled && setDetails(d)).catch(() => {})
@@ -42,10 +47,42 @@ function GameDetailExtras({ gameRef }: { gameRef: GameRef }): JSX.Element | null
       .then((a) => !cancelled && setAchievements(a))
       .catch(() => {})
     window.api.getGamePrices(gameRef).then((p) => !cancelled && setPrices(p)).catch(() => {})
+    window.api
+      .getGameScreenshots(gameRef)
+      .then((s) => !cancelled && setShots(s))
+      .catch(() => {})
     return () => {
       cancelled = true
     }
   }, [gameRef.platform, gameRef.platformId, gameRef.name])
+
+  // Beim Öffnen/Wechseln/Schließen der Großansicht die Hilfs-Zustände zurücksetzen.
+  useEffect(() => {
+    setCopied(false)
+    setConfirmDel(false)
+  }, [lightbox])
+
+  // Nur lokale (shot://) Screenshots lassen sich verwalten — Store-Bilder nicht.
+  const lightboxIsLocal = lightbox?.startsWith('shot:') ?? false
+
+  const copyShot = async (): Promise<void> => {
+    if (!lightbox) return
+    if (await window.api.copyScreenshot(lightbox)) {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    }
+  }
+  const revealShot = (): void => {
+    if (lightbox) window.api.revealScreenshot(lightbox)
+  }
+  const deleteShot = async (): Promise<void> => {
+    if (!lightbox) return
+    if (await window.api.deleteScreenshot(lightbox)) {
+      setShots((prev) => prev.filter((s) => s.full !== lightbox))
+      setLightbox(null)
+    }
+    setConfirmDel(false)
+  }
 
   const hasStoreInfo =
     details?.ok &&
@@ -105,6 +142,25 @@ function GameDetailExtras({ gameRef }: { gameRef: GameRef }): JSX.Element | null
               ))}
             </div>
           )}
+        </section>
+      )}
+
+      {shots.length > 0 && (
+        <section className="detail-section">
+          <h3 className="section-title">Meine Screenshots ({shots.length})</h3>
+          <div className="offer-row shot-row">
+            {shots.map((s) => (
+              <img
+                key={s.full}
+                src={s.thumb}
+                alt=""
+                className="shot-thumb"
+                loading="lazy"
+                title={new Date(s.takenAt * 1000).toLocaleString('de-DE')}
+                onClick={() => setLightbox(s.full)}
+              />
+            ))}
+          </div>
         </section>
       )}
 
@@ -179,7 +235,34 @@ function GameDetailExtras({ gameRef }: { gameRef: GameRef }): JSX.Element | null
 
       {lightbox && (
         <div className="lightbox" onClick={() => setLightbox(null)}>
-          <img src={lightbox} alt="" />
+          <div className="lightbox-inner" onClick={(e) => e.stopPropagation()}>
+            <img src={lightbox} alt="" onClick={() => setLightbox(null)} />
+            {lightboxIsLocal && (
+              <div className="lightbox-actions">
+                <button className="btn small" onClick={copyShot}>
+                  {copied ? '✓ Kopiert!' : '📋 Kopieren'}
+                </button>
+                <button className="btn small" onClick={revealShot}>
+                  📂 Im Ordner zeigen
+                </button>
+                {confirmDel ? (
+                  <>
+                    <span className="lightbox-confirm">Wirklich löschen?</span>
+                    <button className="btn small danger" onClick={deleteShot}>
+                      Ja, in den Papierkorb
+                    </button>
+                    <button className="btn small" onClick={() => setConfirmDel(false)}>
+                      Abbrechen
+                    </button>
+                  </>
+                ) : (
+                  <button className="btn small danger" onClick={() => setConfirmDel(true)}>
+                    🗑 Löschen
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       )}
     </>

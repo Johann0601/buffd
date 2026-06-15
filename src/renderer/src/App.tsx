@@ -39,6 +39,7 @@ export type View =
   | 'settings'
   | 'settings-accounts'
   | 'settings-system'
+  | 'settings-storage'
   | 'settings-changelog'
 
 /** Unter-Tabs innerhalb der „Bibliothek". */
