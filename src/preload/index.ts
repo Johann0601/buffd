@@ -15,15 +15,19 @@ import type {
   GameNewsItem,
   GamePriceInfo,
   GameRef,
+  LibraryNewsResult,
   GameStorageInfo,
   ItadStatus,
   NvidiaUpdate,
+  PlaytimePeriods,
   PlayStatsResult,
   RunningGame,
   McProfile,
   NotInstalledResult,
   ScanResult,
   SgdbStatus,
+  SpotifyState,
+  SpotifyStatus,
   SteamFriendsResult,
   SteamKeyStatus,
   SteamOffer,
@@ -41,6 +45,13 @@ const api = {
 
   /** Statistik / Dashboard: aggregierte Spielzeit-Auswertung. */
   getPlayStats: (): Promise<PlayStatsResult> => ipcRenderer.invoke('stats:play'),
+
+  /** Getrackte Spielzeit über 14/30/365 Tage (Startseiten-Widget). */
+  getPlaytimePeriods: (): Promise<PlaytimePeriods> => ipcRenderer.invoke('stats:periods'),
+
+  /** News-Feed: neueste News/Patchnotes aller Steam-Spiele gebündelt. */
+  getLibraryNews: (force?: boolean): Promise<LibraryNewsResult> =>
+    ipcRenderer.invoke('news:library', force),
 
   /** Aktuelle App-Version (aus package.json). */
   getAppVersion: (): Promise<string> => ipcRenderer.invoke('app:version'),
@@ -228,6 +239,19 @@ const api = {
   /** Preis-Infos zu einem Spiel (Steam + IsThereAnyDeal). */
   getGamePrices: (ref: GameRef): Promise<GamePriceInfo> =>
     ipcRenderer.invoke('game:prices', ref),
+
+  /** Spotify: Verbindung, Wiedergabe-Status und Steuerung (Musik-Widget). */
+  getSpotifyStatus: (): Promise<SpotifyStatus> => ipcRenderer.invoke('spotify:status'),
+  setSpotifyClientId: (id: string | null): Promise<SpotifyStatus> =>
+    ipcRenderer.invoke('spotify:set-client', id),
+  spotifyLogin: (): Promise<{ ok: true; status: SpotifyStatus } | { ok: false; error: string }> =>
+    ipcRenderer.invoke('spotify:login'),
+  spotifyLogout: (): Promise<SpotifyStatus> => ipcRenderer.invoke('spotify:logout'),
+  getSpotifyState: (): Promise<SpotifyState> => ipcRenderer.invoke('spotify:state'),
+  spotifyControl: (
+    action: 'play' | 'pause' | 'next' | 'previous'
+  ): Promise<{ ok: boolean; needsPremium?: boolean; error?: string }> =>
+    ipcRenderer.invoke('spotify:control', action),
 
   /** IsThereAnyDeal-Key verwalten. */
   getItadStatus: (): Promise<ItadStatus> => ipcRenderer.invoke('itad:status'),

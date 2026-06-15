@@ -1,5 +1,11 @@
 import { useEffect, useState } from 'react'
-import type { EpicAccountStatus, ItadStatus, SgdbStatus, SteamKeyStatus } from '@shared/types'
+import type {
+  EpicAccountStatus,
+  ItadStatus,
+  SgdbStatus,
+  SpotifyStatus,
+  SteamKeyStatus
+} from '@shared/types'
 
 // Konten-Bereich: externe Konten mit der App VERBINDEN (kein eigenes
 // App-Login). Aktuell: Epic Games — lesend für Spielzeiten & Bibliothek.
@@ -20,6 +26,7 @@ function AccountsView({ onBack }: { onBack?: () => void }): JSX.Element {
 
       <main className="content">
         <EpicAccountCard />
+        <SpotifyAccountCard />
         <SteamKeyCard />
         <SgdbKeyCard />
         <ItadKeyCard />
@@ -163,6 +170,137 @@ function EpicAccountCard(): JSX.Element {
           Spielen zählt wie gewohnt obendrauf — nichts wird doppelt gezählt.
         </p>
       )}
+    </section>
+  )
+}
+
+// Spotify: persönliche Anbindung fürs Musik-Widget. Jeder hinterlegt seine
+// EIGENE Client-ID (aus einer selbst angelegten Spotify-App) und meldet sich
+// mit dem eigenen Konto an — nichts hängt an einem fremden Konto.
+function SpotifyAccountCard(): JSX.Element {
+  const [status, setStatus] = useState<SpotifyStatus | null>(null)
+  const [clientId, setClientId] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [message, setMessage] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null)
+
+  useEffect(() => {
+    window.api.getSpotifyStatus().then(setStatus).catch(() => {})
+  }, [])
+
+  const saveId = async (): Promise<void> => {
+    if (!clientId.trim()) return
+    setBusy(true)
+    setMessage(null)
+    const s = await window.api.setSpotifyClientId(clientId.trim())
+    setBusy(false)
+    setStatus(s)
+    setClientId('')
+    setMessage({ kind: 'ok', text: 'Client-ID gespeichert — jetzt unten „Mit Spotify verbinden".' })
+  }
+
+  const connect = async (): Promise<void> => {
+    setBusy(true)
+    setMessage({ kind: 'ok', text: 'Anmeldung im Browser läuft …' })
+    const res = await window.api.spotifyLogin()
+    setBusy(false)
+    if (res.ok) {
+      setStatus(res.status)
+      setMessage({ kind: 'ok', text: 'Verbunden! Das Spotify-Widget steuert jetzt deine Musik.' })
+    } else {
+      setMessage({ kind: 'error', text: res.error })
+    }
+  }
+
+  const disconnect = async (): Promise<void> => {
+    setStatus(await window.api.spotifyLogout())
+    setMessage({ kind: 'ok', text: 'Spotify getrennt.' })
+  }
+
+  const removeId = async (): Promise<void> => {
+    setStatus(await window.api.setSpotifyClientId(null))
+    setMessage({ kind: 'ok', text: 'Client-ID entfernt.' })
+  }
+
+  return (
+    <section className="account-card">
+      <div className="account-head">
+        <span className="account-icon">🎵</span>
+        <div>
+          <div className="account-title">Spotify (Musik-Widget)</div>
+          <div className="account-state">
+            {status === null
+              ? 'lade …'
+              : status.connected
+                ? `✓ Verbunden als ${status.displayName}`
+                : status.configured
+                  ? 'Client-ID hinterlegt — noch nicht verbunden'
+                  : 'Nicht eingerichtet'}
+          </div>
+        </div>
+      </div>
+
+      {status?.connected ? (
+        <div className="account-actions">
+          <button className="btn danger" onClick={disconnect} disabled={busy}>
+            Trennen
+          </button>
+          <button className="btn" onClick={removeId} disabled={busy}>
+            Client-ID entfernen
+          </button>
+        </div>
+      ) : (
+        status !== null && (
+          <div className="account-connect">
+            <p className="account-note">
+              Fürs Spotify-Widget brauchst du eine eigene (kostenlose) Spotify-App. Steuern erfordert
+              Spotify <b>Premium</b>. Es wird ausschließlich <b>dein</b> Konto verbunden.
+            </p>
+            <ol className="account-steps">
+              <li>
+                Öffne{' '}
+                <a href="https://developer.spotify.com/dashboard" target="_blank" rel="noreferrer">
+                  developer.spotify.com/dashboard
+                </a>{' '}
+                und klicke auf „Create app".
+              </li>
+              <li>
+                Trage als <b>Redirect URI</b> exakt <code>http://127.0.0.1:8888/callback</code> ein,
+                wähle „Web API" und speichere.
+              </li>
+              <li>
+                Unter „Settings" findest du die <b>Client ID</b> — kopiere sie und füge sie hier ein.
+              </li>
+            </ol>
+            <div className="account-actions">
+              <input
+                type="text"
+                className="account-code-input"
+                placeholder="Spotify Client ID einfügen"
+                value={clientId}
+                onChange={(e) => setClientId(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') saveId()
+                }}
+              />
+              <button className="btn primary" onClick={saveId} disabled={busy || !clientId.trim()}>
+                {busy ? '…' : 'Client-ID speichern'}
+              </button>
+            </div>
+            {status.configured && (
+              <div className="account-actions" style={{ marginTop: 8 }}>
+                <button className="btn primary" onClick={connect} disabled={busy}>
+                  🎵 Mit Spotify verbinden
+                </button>
+                <button className="btn" onClick={removeId} disabled={busy}>
+                  Client-ID entfernen
+                </button>
+              </div>
+            )}
+          </div>
+        )
+      )}
+
+      {message && <div className={`account-message ${message.kind}`}>{message.text}</div>}
     </section>
   )
 }

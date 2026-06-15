@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import type { GameCard, UpdateEvent } from '@shared/types'
 import { formatLastPlayed } from './format'
 import { updateActionFor } from './updateAction'
 
-function UpdatesView(): JSX.Element {
+function UpdatesView({ tabs }: { tabs?: ReactNode }): JSX.Element {
   const [games, setGames] = useState<GameCard[]>([])
   const [history, setHistory] = useState<UpdateEvent[]>([])
   const [loading, setLoading] = useState(true)
@@ -35,6 +35,7 @@ function UpdatesView(): JSX.Element {
             {pending.length === 0 ? 'alles aktuell' : `${pending.length} ausstehend`}
           </span>
         </div>
+        {tabs}
         <button className="btn" onClick={load} disabled={loading}>
           {loading ? 'Prüfe …' : '↻ Jetzt prüfen'}
         </button>

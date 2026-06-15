@@ -1,5 +1,5 @@
 import type React from 'react'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type {
   EpicFreeGame,
   GameCard,
@@ -19,20 +19,21 @@ import FriendsView from './FriendsView'
 import GameDetailExtras from './GameDetailExtras'
 import HomeView from './HomeView'
 import ModsView from './ModsView'
+import NewsView from './NewsView'
 import Onboarding from './Onboarding'
 import NotificationsView from './NotificationsView'
 import SettingsView from './SettingsView'
 import ShopsView from './ShopsView'
+import SpotifyWidget from './SpotifyWidget'
 import StatsView from './StatsView'
 import UpdatesView from './UpdatesView'
 
 export type View =
   | 'home'
-  | 'games'
+  | 'games' // Tab „Bibliothek" (enthält Unter-Tabs Spiele/Updates/Mods)
   | 'stats'
-  | 'updates'
-  | 'mods'
   | 'shops'
+  | 'news'
   | 'friends'
   | 'notifications'
   | 'settings'
@@ -40,12 +41,19 @@ export type View =
   | 'settings-system'
   | 'settings-changelog'
 
+/** Unter-Tabs innerhalb der „Bibliothek". */
+export type LibrarySub = 'spiele' | 'updates' | 'mods'
+
 export type Theme = 'dark' | 'light'
 
 // Die App-Hülle: schmale Seitenleiste links (klappt beim Drüberfahren aus),
 // daneben die aktive Ansicht.
 function App(): JSX.Element {
   const [view, setView] = useState<View>('home') // Startseite ist die erste Ansicht
+  const [librarySub, setLibrarySub] = useState<LibrarySub>('spiele') // Unter-Tab der Bibliothek
+  const [spotifyOpen, setSpotifyOpen] = useState(false) // Mini-Player-Popup an der Seitenleiste
+  const spotifyPopupRef = useRef<HTMLDivElement>(null)
+  const spotifyBtnRef = useRef<HTMLButtonElement>(null)
   // Von der Startseite aus kann ein Spiel direkt in der Detailansicht geöffnet werden.
   const [gameToShow, setGameToShow] = useState<number | null>(null)
   const [appVersion, setAppVersion] = useState('')
@@ -196,6 +204,19 @@ function App(): JSX.Element {
     localStorage.setItem('theme', theme)
   }, [theme])
 
+  // Spotify-Popup per Klick außerhalb schließen — OHNE blockierenden Backdrop,
+  // damit die Seitenleiste (Hover zum Ausklappen) voll bedienbar bleibt.
+  useEffect(() => {
+    if (!spotifyOpen) return
+    const onDown = (e: MouseEvent): void => {
+      const t = e.target as Node
+      if (spotifyPopupRef.current?.contains(t) || spotifyBtnRef.current?.contains(t)) return
+      setSpotifyOpen(false)
+    }
+    document.addEventListener('mousedown', onDown)
+    return () => document.removeEventListener('mousedown', onDown)
+  }, [spotifyOpen])
+
   const inSettings = view.startsWith('settings')
 
   return (
@@ -215,12 +236,13 @@ function App(): JSX.Element {
           className={`nav-item ${view === 'games' ? 'active' : ''}`}
           onClick={() => {
             setGameToShow(null) // normaler Einstieg: Übersicht, keine Detailansicht
+            setLibrarySub('spiele')
             setView('games')
           }}
-          title="Spiele"
+          title="Bibliothek"
         >
-          <span className="nav-icon">🎮</span>
-          <span className="nav-label">Spiele</span>
+          <span className="nav-icon">📚</span>
+          <span className="nav-label">Bibliothek</span>
         </button>
         <button
           className={`nav-item ${view === 'stats' ? 'active' : ''}`}
@@ -231,28 +253,20 @@ function App(): JSX.Element {
           <span className="nav-label">Statistik</span>
         </button>
         <button
-          className={`nav-item ${view === 'updates' ? 'active' : ''}`}
-          onClick={() => setView('updates')}
-          title="Updates"
-        >
-          <span className="nav-icon">⬆️</span>
-          <span className="nav-label">Updates</span>
-        </button>
-        <button
-          className={`nav-item ${view === 'mods' ? 'active' : ''}`}
-          onClick={() => setView('mods')}
-          title="Mods"
-        >
-          <span className="nav-icon">🧩</span>
-          <span className="nav-label">Mods</span>
-        </button>
-        <button
           className={`nav-item ${view === 'shops' ? 'active' : ''}`}
           onClick={() => setView('shops')}
           title="Shops"
         >
           <span className="nav-icon">🛒</span>
           <span className="nav-label">Shops</span>
+        </button>
+        <button
+          className={`nav-item ${view === 'news' ? 'active' : ''}`}
+          onClick={() => setView('news')}
+          title="News"
+        >
+          <span className="nav-icon">📰</span>
+          <span className="nav-label">News</span>
         </button>
         <button
           className={`nav-item ${view === 'friends' ? 'active' : ''}`}
@@ -275,6 +289,15 @@ function App(): JSX.Element {
           <span className="nav-label">Benachrichtigungen</span>
         </button>
         <button
+          ref={spotifyBtnRef}
+          className={`nav-item ${spotifyOpen ? 'active' : ''}`}
+          onClick={() => setSpotifyOpen((o) => !o)}
+          title="Spotify-Player"
+        >
+          <span className="nav-icon">🎵</span>
+          <span className="nav-label">Spotify</span>
+        </button>
+        <button
           className={`nav-item ${inSettings ? 'active' : ''}`}
           onClick={() => setView('settings')}
           title="Einstellungen"
@@ -295,17 +318,28 @@ function App(): JSX.Element {
         {view === 'home' && (
           <HomeView
             onNavigate={setView}
+            onOpenLibrary={(sub) => {
+              setGameToShow(null)
+              setLibrarySub(sub)
+              setView('games')
+            }}
             onOpenGame={(id) => {
               setGameToShow(id)
+              setLibrarySub('spiele')
               setView('games')
             }}
           />
         )}
-        {view === 'games' && <GamesView initialSelectedId={gameToShow} />}
+        {view === 'games' && (
+          <LibraryView
+            initialSelectedId={gameToShow}
+            sub={librarySub}
+            onSubChange={setLibrarySub}
+          />
+        )}
         {view === 'stats' && <StatsView />}
-        {view === 'updates' && <UpdatesView />}
-        {view === 'mods' && <ModsView />}
         {view === 'shops' && <ShopsView />}
+        {view === 'news' && <NewsView />}
         {view === 'friends' && (
           <FriendsView onOpenAccounts={() => setView('settings-accounts')} />
         )}
@@ -325,6 +359,14 @@ function App(): JSX.Element {
           <SettingsView view={view} onNavigate={setView} theme={theme} onThemeChange={setTheme} />
         )}
       </div>
+
+      {/* Spotify-Mini-Player: kleines Popup an der Seitenleiste (ohne Backdrop,
+          damit die Seitenleiste bedienbar bleibt; schließt per Klick außerhalb). */}
+      {spotifyOpen && (
+        <div className="spotify-popup" ref={spotifyPopupRef}>
+          <SpotifyWidget />
+        </div>
+      )}
 
       {showOnboarding && (
         <Onboarding
@@ -375,10 +417,58 @@ const NI_SORT_OPTIONS: { value: NiSort; label: string }[] = [
   { value: 'name', label: 'Name (A–Z)' }
 ]
 
+// Unter-Tab-Leiste der „Bibliothek" (Spiele · Updates · Mods). Wird in die
+// Kopfzeile der jeweiligen Unteransicht eingesetzt.
+function LibraryTabs({
+  active,
+  onChange
+}: {
+  active: LibrarySub
+  onChange: (sub: LibrarySub) => void
+}): JSX.Element {
+  const items: { id: LibrarySub; label: string }[] = [
+    { id: 'spiele', label: '🎮 Spiele' },
+    { id: 'updates', label: '⬆️ Updates' },
+    { id: 'mods', label: '🧩 Mods' }
+  ]
+  return (
+    <div className="subtabs">
+      {items.map((it) => (
+        <button
+          key={it.id}
+          className={`subtab ${active === it.id ? 'active' : ''}`}
+          onClick={() => onChange(it.id)}
+        >
+          {it.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+// „Bibliothek": fasst Spiele, Updates und Mods unter einem Tab mit Unter-Tabs
+// zusammen. Die Tab-Leiste wird der aktiven Unteransicht in die Kopfzeile gegeben.
+function LibraryView({
+  initialSelectedId,
+  sub,
+  onSubChange
+}: {
+  initialSelectedId: number | null
+  sub: LibrarySub
+  onSubChange: (sub: LibrarySub) => void
+}): JSX.Element {
+  const tabs = <LibraryTabs active={sub} onChange={onSubChange} />
+  if (sub === 'updates') return <UpdatesView tabs={tabs} />
+  if (sub === 'mods') return <ModsView tabs={tabs} />
+  return <GamesView initialSelectedId={initialSelectedId} tabs={tabs} />
+}
+
 function GamesView({
-  initialSelectedId = null
+  initialSelectedId = null,
+  tabs
 }: {
   initialSelectedId?: number | null
+  tabs?: React.ReactNode
 }): JSX.Element {
   const [games, setGames] = useState<GameCard[]>([])
   const [running, setRunning] = useState<Map<number, number>>(new Map()) // gameId -> startedAt
@@ -625,6 +715,7 @@ function GamesView({
           </h1>
           <span className="subtitle">{playable.length} Spiele</span>
         </div>
+        {tabs}
         <button className="btn" onClick={scan} disabled={scanning}>
           {scanning ? 'Scanne …' : '↻ Aktualisieren'}
         </button>

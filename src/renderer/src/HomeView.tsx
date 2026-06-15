@@ -1,13 +1,23 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import type { EpicFreeGame, GameCard, SteamOffer, WotStatus } from '@shared/types'
-import type { View } from './App'
-import { formatLastPlayed, formatPlaytime } from './format'
+import type {
+  EpicFreeGame,
+  GameCard,
+  LibraryNewsItem,
+  PlaytimePeriods,
+  SteamFriend,
+  SteamOffer,
+  WotStatus
+} from '@shared/types'
+import type { LibrarySub, View } from './App'
+import Dashboard from './Dashboard'
 
 function HomeView({
   onNavigate,
+  onOpenLibrary,
   onOpenGame
 }: {
   onNavigate: (v: View) => void
+  onOpenLibrary: (sub: LibrarySub) => void
   onOpenGame: (gameId: number) => void
 }): JSX.Element {
   const [games, setGames] = useState<GameCard[]>([])
@@ -15,6 +25,10 @@ function HomeView({
   const [mcCount, setMcCount] = useState<number | null>(null)
   const [freeGames, setFreeGames] = useState<EpicFreeGame[]>([])
   const [steamOffers, setSteamOffers] = useState<SteamOffer[]>([])
+  const [news, setNews] = useState<LibraryNewsItem[]>([])
+  const [friends, setFriends] = useState<SteamFriend[]>([])
+  const [friendsKeyMissing, setFriendsKeyMissing] = useState(false)
+  const [periods, setPeriods] = useState<PlaytimePeriods | null>(null)
 
   useEffect(() => {
     // Sofort den letzten Stand zeigen, parallel im Hintergrund frisch scannen.
@@ -39,6 +53,20 @@ function HomeView({
       .getSteamOffers()
       .then((o) => setSteamOffers(o.slice(0, 12)))
       .catch(() => {})
+    // Ein paar aktuelle News aus der Bibliothek (gecacht, daher günstig).
+    window.api
+      .getLibraryNews()
+      .then((r) => setNews(r.items.slice(0, 5)))
+      .catch(() => {})
+    // Fürs Dashboard: Online-Freunde und Spielzeit-Zeiträume.
+    window.api
+      .getSteamFriends()
+      .then((r) => {
+        setFriends(r.friends)
+        setFriendsKeyMissing(r.keyMissing)
+      })
+      .catch(() => {})
+    window.api.getPlaytimePeriods().then(setPeriods).catch(() => {})
   }, [])
 
   const playable = games.filter((g) => g.kind === 'game')
@@ -62,47 +90,22 @@ function HomeView({
       </header>
 
       <main className="content">
-        {/* Highlights als klickbare Status-Karten */}
-        <div className="stat-cards">
-          <button className="stat-card" onClick={() => onNavigate('games')}>
-            <span className="stat-card-icon">🎮</span>
-            <span className="stat-card-title">Spiele</span>
-            <span className="stat-card-info">
-              {playable.length} installiert · {formatPlaytime(totalSec)} gesamt
-            </span>
-          </button>
-
-          <button
-            className={`stat-card ${wotRestore > 0 ? 'attention' : ''}`}
-            onClick={() => onNavigate('mods')}
-          >
-            <span className="stat-card-icon">🧩</span>
-            <span className="stat-card-title">Mods</span>
-            <span className="stat-card-info">
-              {wotRestore > 0
-                ? `${wotRestore} WoT-Mods wiederherstellen!`
-                : [
-                    wotActive !== null ? `WoT: ${wotActive} aktiv` : null,
-                    mcCount !== null ? `Minecraft: ${mcCount} Profile` : null
-                  ]
-                    .filter(Boolean)
-                    .join(' · ') || '–'}
-            </span>
-          </button>
-
-        </div>
-
-        {/* Schnellauswahl: zuletzt gespielt, Klick = direkt starten */}
-        {recent.length > 0 && (
-          <>
-            <h2 className="section-title">Weiter spielen</h2>
-            <OfferRow>
-              {recent.map((g) => (
-                <HomeTile key={g.id} game={g} onOpen={() => onOpenGame(g.id)} />
-              ))}
-            </OfferRow>
-          </>
-        )}
+        {/* Anpassbares Dashboard (Widgets per Drag & Drop) */}
+        <Dashboard
+          playable={playable}
+          totalSec={totalSec}
+          recent={recent}
+          wotRestore={wotRestore}
+          wotActive={wotActive}
+          mcCount={mcCount}
+          friends={friends}
+          friendsKeyMissing={friendsKeyMissing}
+          periods={periods}
+          news={news}
+          onOpenLibrary={onOpenLibrary}
+          onOpenGame={onOpenGame}
+          onNavigate={onNavigate}
+        />
 
         {/* Gratis bei Epic — eigene Reihe, hochkant, seitlich scrollbar */}
         {freeGames.length > 0 && (
@@ -217,48 +220,6 @@ function HomeView({
  *  immer die Seite hoch/runter, die Reihe bewegt man am Scrollbalken. */
 function OfferRow({ children }: { children: ReactNode }): JSX.Element {
   return <div className="offer-row">{children}</div>
-}
-
-// Kachel der Schnellauswahl: Klick aufs Bild = Detailansicht öffnen,
-// nur der quadratische ▶-Knopf in der Mitte startet das Spiel direkt.
-function HomeTile({ game, onOpen }: { game: GameCard; onOpen: () => void }): JSX.Element {
-  const [imgFailed, setImgFailed] = useState(false)
-  return (
-    <div className="tile home-tile" title={game.name} onClick={onOpen}>
-      <div className="cover">
-        {game.coverUrl && !imgFailed ? (
-          <img
-            src={game.coverUrl}
-            alt={game.name}
-            className={
-              game.coverUrl.includes('upload.wikimedia.org') ||
-              game.coverUrl.startsWith('cover://xbox/')
-                ? 'logo-cover'
-                : undefined
-            }
-            onError={() => setImgFailed(true)}
-          />
-        ) : (
-          <div className="cover-fallback">{game.name.charAt(0).toUpperCase()}</div>
-        )}
-        <button
-          className="play-btn"
-          title={`${game.name} starten`}
-          onClick={(e) => {
-            e.stopPropagation() // nicht zusätzlich die Detailansicht öffnen
-            window.api.launchGame(game.id)
-          }}
-        >
-          ▶
-        </button>
-        <span className="badge">{formatPlaytime(game.totalPlaytimeSec)}</span>
-      </div>
-      <div className="tile-info">
-        <div className="tile-name">{game.name}</div>
-        <div className="tile-meta">Zuletzt: {formatLastPlayed(game.lastPlayed)}</div>
-      </div>
-    </div>
-  )
 }
 
 export default HomeView

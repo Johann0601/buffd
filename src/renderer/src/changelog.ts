@@ -11,6 +11,28 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.17.0',
+    date: '2026-06-15',
+    title: 'Anpassbares Startseiten-Dashboard',
+    changes: [
+      'Die Startseite hat jetzt ein anpassbares Dashboard: Mit „✏️ Anpassen" kannst du Widgets per Drag & Drop umsortieren sowie hinzufügen oder entfernen. Deine Anordnung wird gespeichert; „↺ Zurücksetzen" stellt die Standard-Belegung wieder her.',
+      'Verfügbare Widgets: Spiele, Mods, Spielzeit (Zeitraum 14/30/365 Tage umschaltbar), Online-Freunde, Zuletzt gespielt, News und 🎵 Spotify.',
+      'Neues 🎵 Spotify-Widget: zeigt den laufenden Song mit Cover und erlaubt Zurück/Play-Pause/Weiter (Steuern erfordert Spotify Premium).',
+      'Die Widgets füllen jede Reihe gleichmäßig aus (keine halben Reihen mehr); das News-Widget ist doppelt so breit für bessere Lesbarkeit.',
+      'Kleinerer Fix: Die Unter-Tabs der Bibliothek (Spiele · Updates · Mods) sitzen jetzt immer mittig statt zu verrutschen.'
+    ]
+  },
+  {
+    version: '0.16.0',
+    date: '2026-06-15',
+    title: 'News-Feed & aufgeräumte Seitenleiste',
+    changes: [
+      'Neuer Bereich „📰 News": die neuesten News und Patchnotes all deiner installierten Steam-Spiele gebündelt in einem Feed, nach Datum sortiert. Klick öffnet den vollständigen Beitrag im Browser.',
+      'Eine Vorschau der neuesten Neuigkeiten erscheint jetzt auch direkt auf der Startseite.',
+      'Aufgeräumte Seitenleiste: „Spiele" heißt nun „📚 Bibliothek" und enthält die früheren Tabs Updates und Mods als Unter-Tabs (Spiele · Updates · Mods) — weniger Einträge, alles an einem Ort.'
+    ]
+  },
+  {
     version: '0.15.0',
     date: '2026-06-14',
     title: 'Statistik-Seite & Tracking-Fix',

@@ -10,6 +10,7 @@ interface StoredKeys {
   steamApiKey?: string
   sgdbApiKey?: string
   itadApiKey?: string // IsThereAnyDeal (Preisvergleich/Tiefstpreise)
+  spotifyClientId?: string // optionale eigene Spotify-App-ID (sonst eingebaute)
 }
 
 let cached: StoredKeys | undefined // undefined = noch nicht geladen

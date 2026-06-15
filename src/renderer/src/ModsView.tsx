@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import MinecraftView from './MinecraftView'
 import WotModsView from './WotModsView'
 
@@ -32,7 +32,7 @@ const MOD_SECTIONS: ModSection[] = [
   }
 ]
 
-function ModsView(): JSX.Element {
+function ModsView({ tabs }: { tabs?: ReactNode }): JSX.Element {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const selected = MOD_SECTIONS.find((s) => s.id === selectedId)
 
@@ -49,6 +49,7 @@ function ModsView(): JSX.Element {
           <h1>🧩 Mods</h1>
           <span className="subtitle">Spiel auswählen</span>
         </div>
+        {tabs}
       </header>
 
       <main className="content">

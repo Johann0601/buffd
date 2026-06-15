@@ -194,7 +194,7 @@ export async function getGamePrices(game: GameRef): Promise<GamePriceInfo> {
 // --- News & Patchnotes -------------------------------------------------------
 
 /** BBCode/HTML aus Steam-News grob entfernen -> lesbarer Fließtext. */
-function cleanNewsText(raw: string): string {
+export function cleanNewsText(raw: string): string {
   return raw
     .replace(/\[img\][^[]*\[\/img\]/gi, ' ') // Bilder samt URL raus
     .replace(/\[[^\]]{1,60}\]/g, ' ') // übrige BBCode-Tags

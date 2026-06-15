@@ -4,6 +4,7 @@
 interface ImportMetaEnv {
   readonly MAIN_VITE_SGDB_KEY?: string
   readonly MAIN_VITE_ITAD_KEY?: string
+  readonly MAIN_VITE_SPOTIFY_CLIENT_ID?: string
 }
 
 interface ImportMeta {

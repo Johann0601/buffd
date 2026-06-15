@@ -48,7 +48,17 @@ import { addWishlistItem, listWishlist, removeWishlistItem } from './db'
 import { getGameAchievements } from './services/steam/achievements'
 import { steamKeyStatus, setSteamApiKey, clearSteamApiKey } from './services/steam/webapi'
 import { getSteamFriends, getFriendGames, getFriendsForGame } from './services/steam/friends'
-import { getPlayStats } from './services/stats'
+import { getPlayStats, getPlaytimePeriods } from './services/stats'
+import { getLibraryNews } from './services/news'
+import {
+  spotifyStatus,
+  setSpotifyClientId,
+  spotifyLogin,
+  spotifyLogout,
+  spotifyGetState,
+  spotifyControl,
+  type SpotifyAction
+} from './services/spotify'
 import { sgdbStatus, setSgdbKey, clearSgdbKey, upgradeWikiCovers } from './services/sgdb'
 import { COVER_PLATFORMS } from './services/covers'
 import { analyzeGameStorage, computeGameSize, listGameStorage } from './services/storage'
@@ -312,6 +322,18 @@ app.whenReady().then(() => {
 
   // Statistik / Dashboard (A1): Spielzeit-Auswertung aus den getrackten Sitzungen.
   ipcMain.handle('stats:play', () => getPlayStats())
+  ipcMain.handle('stats:periods', () => getPlaytimePeriods())
+
+  // News-Feed (A7): neueste News/Patchnotes aller Steam-Spiele gebündelt.
+  ipcMain.handle('news:library', (_e, force?: boolean) => getLibraryNews(force === true))
+
+  // Spotify-Musik-Widget: Verbindung, Wiedergabe-Status und Steuerung.
+  ipcMain.handle('spotify:status', () => spotifyStatus())
+  ipcMain.handle('spotify:set-client', (_e, id: string | null) => setSpotifyClientId(id))
+  ipcMain.handle('spotify:login', () => spotifyLogin())
+  ipcMain.handle('spotify:logout', () => spotifyLogout())
+  ipcMain.handle('spotify:state', () => spotifyGetState())
+  ipcMain.handle('spotify:control', (_e, action: SpotifyAction) => spotifyControl(action))
 
   // Installationsordner eines Spiels im Datei-Explorer öffnen.
   ipcMain.handle('game:open-folder', (_e, path: string) => {

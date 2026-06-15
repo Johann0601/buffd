@@ -641,6 +641,17 @@ export function getSessionStats(b: PlayStatsBoundaries): {
   }
 }
 
+/** Summe der getrackten Spielzeit (Sek.) seit einem Zeitpunkt (Unix-Sek.). */
+export function sumPlaytimeSince(since: number): number {
+  const r = getDatabase()
+    .prepare(
+      `SELECT COALESCE(SUM(duration_sec),0) AS s FROM play_sessions
+       WHERE duration_sec IS NOT NULL AND started_at >= ?`
+    )
+    .get(since) as { s: number }
+  return r.s
+}
+
 // ---------------------------------------------------------------------------
 //  Phase 4: World-of-Tanks-Mods
 // ---------------------------------------------------------------------------

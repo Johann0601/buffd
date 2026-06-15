@@ -2,8 +2,8 @@
 // Spiel-Sitzungen (mit Zeitstempeln) und die Spielzeiten pro Spiel. Es werden
 // KEINE neuen Daten erhoben, nur zusammengefasst.
 
-import type { PlayStatsResult, StatTopGame } from '@shared/types'
-import { getSessionStats, listGames, type PlayStatsBoundaries } from '../db'
+import type { PlaytimePeriods, PlayStatsResult, StatTopGame } from '@shared/types'
+import { getSessionStats, listGames, sumPlaytimeSince, type PlayStatsBoundaries } from '../db'
 
 const DAY = 86400
 const HEATMAP_DAYS = 112 // 16 Wochen (7×16-Raster für die Heatmap)
@@ -13,6 +13,16 @@ function pad(n: number): string {
 }
 function dayKey(d: Date): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+}
+
+/** Getrackte Spielzeit über 14/30/365 Tage — fürs Dashboard-Widget. */
+export function getPlaytimePeriods(): PlaytimePeriods {
+  const now = Math.floor(Date.now() / 1000)
+  return {
+    d14: sumPlaytimeSince(now - 14 * DAY),
+    d30: sumPlaytimeSince(now - 30 * DAY),
+    d365: sumPlaytimeSince(now - 365 * DAY)
+  }
 }
 
 export function getPlayStats(): PlayStatsResult {

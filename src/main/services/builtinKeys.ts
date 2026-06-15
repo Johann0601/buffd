@@ -11,3 +11,7 @@ export const BUILTIN_SGDB_KEY: string | null =
 
 export const BUILTIN_ITAD_KEY: string | null =
   import.meta.env.MAIN_VITE_ITAD_KEY?.trim() || null
+
+// Spotify-Client-ID (PKCE-Flow — KEIN Secret nötig, daher unkritisch einbettbar).
+export const BUILTIN_SPOTIFY_CLIENT_ID: string | null =
+  import.meta.env.MAIN_VITE_SPOTIFY_CLIENT_ID?.trim() || null

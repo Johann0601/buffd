@@ -258,6 +258,25 @@ export interface GameNewsItem {
   excerpt: string // bereinigter Textanfang
 }
 
+/** Eine News-Meldung im gebündelten Bibliotheks-Feed (A7) — News + Spielbezug. */
+export interface LibraryNewsItem {
+  gameName: string
+  appId: number
+  coverUrl: string | null
+  title: string
+  url: string
+  date: number // Unix-Sekunden
+  feedLabel: string
+  excerpt: string
+}
+
+/** Ergebnis des gebündelten News-Feeds über die ganze Bibliothek. */
+export interface LibraryNewsResult {
+  ok: boolean
+  items: LibraryNewsItem[]
+  scannedGames: number // wie viele Spiele für News abgefragt wurden
+}
+
 /** Ein einzelner Steam-Erfolg mit Freischalt-Zustand des Nutzers. */
 export interface GameAchievement {
   name: string
@@ -332,6 +351,36 @@ export interface StatTopGame {
   platform: Platform
   coverUrl: string | null
   playtimeSec: number
+}
+
+// --- Spotify (Musik-Widget) ---
+
+/** Verbindungszustand des Spotify-Kontos. */
+export interface SpotifyStatus {
+  connected: boolean
+  displayName: string | null
+  configured: boolean // false = keine Client-ID hinterlegt (App nicht eingerichtet)
+}
+
+/** Aktueller Wiedergabe-Zustand von Spotify. */
+export interface SpotifyState {
+  ok: boolean
+  connected: boolean // Konto verbunden?
+  active: boolean // läuft gerade ein Gerät/Track?
+  isPlaying: boolean
+  track: string | null
+  artists: string | null
+  albumArt: string | null // Cover-URL
+  trackUrl: string | null // Link zum Song (Spotify)
+  isPremiumError?: boolean // Steuern erfordert Premium / aktives Gerät
+  error?: string
+}
+
+/** Getrackte Spielzeit (Sek.) über verschiedene Zeiträume — fürs Startseiten-Widget. */
+export interface PlaytimePeriods {
+  d14: number
+  d30: number
+  d365: number
 }
 
 /** Aggregierte Spielzeit-Statistik (Dashboard). */
