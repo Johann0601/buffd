@@ -12,7 +12,7 @@ productName: buffd
 publish:
   provider: github
   owner: Johann0601
-  repo: spiele-hub
+  repo: buffd
   releaseType: release # sofort veröffentlichen (kein Entwurf — Entwürfe sieht der Updater nicht)
 
 directories:
