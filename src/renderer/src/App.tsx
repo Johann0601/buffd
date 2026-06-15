@@ -38,8 +38,8 @@ import {
   Puzzle,
   ArrowLeft,
   TriangleAlert,
-  PanelLeftClose,
-  PanelLeftOpen
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react'
 import { formatGameSize, formatLastPlayed, formatPlaytime } from './format'
 import { platformLabel } from './platforms'
@@ -261,14 +261,14 @@ function App(): JSX.Element {
 
   return (
     <div className="shell">
+      <button
+        className="sidebar-toggle"
+        onClick={() => setSidebarPinned((p) => !p)}
+        title={sidebarPinned ? 'Seitenleiste einklappen' : 'Seitenleiste ausgeklappt halten'}
+      >
+        {sidebarPinned ? <ChevronLeft size={22} /> : <ChevronRight size={22} />}
+      </button>
       <nav className={`sidebar ${sidebarPinned ? 'pinned' : ''}`}>
-        <button
-          className="sidebar-toggle"
-          onClick={() => setSidebarPinned((p) => !p)}
-          title={sidebarPinned ? 'Seitenleiste einklappen' : 'Seitenleiste ausgeklappt halten'}
-        >
-          {sidebarPinned ? <PanelLeftClose size={20} /> : <PanelLeftOpen size={20} />}
-        </button>
         <button
           className={`sidebar-brand ${view === 'home' ? 'active' : ''}`}
           onClick={() => setView('home')}

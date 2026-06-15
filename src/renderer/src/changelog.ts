@@ -11,6 +11,15 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.21.2',
+    date: '2026-06-15',
+    title: 'Ein-/Ausklapp-Knopf der Seitenleiste verbessert',
+    changes: [
+      'Der Knopf zum Ein- und Ausklappen der Seitenleiste sitzt jetzt als kleiner Griff mittig am rechten Rand der Leiste (auf der Trennlinie) statt oben — er liegt nicht mehr über den Navigations-Punkten.',
+      'Neue, klarere Pfeil-Symbole (Chevron) und ein etwas größerer Griff.'
+    ]
+  },
+  {
     version: '0.21.1',
     date: '2026-06-15',
     title: 'Größeres Fenster & einklappbare Seitenleiste',

@@ -312,25 +312,34 @@ body {
   margin-left: 216px;
 }
 
-/* Ein-/Ausklapp-Knopf ganz oben in der Seitenleiste. */
+/* Ein-/Ausklapp-Knopf: kleiner Griff am rechten Rand der Seitenleiste,
+   senkrecht mittig — sitzt auf der Trennlinie, nicht über den Nav-Punkten.
+   Liegt als Geschwister der Leiste in .shell, damit ihn deren overflow:hidden
+   nicht abschneidet; folgt der Leistenbreite (62px / 216px) per :has(). */
 .sidebar-toggle {
+  position: fixed;
+  top: 50%;
+  left: 62px;
+  transform: translate(-50%, -50%);
+  z-index: 120;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 34px;
-  flex: none;
-  align-self: flex-start;
-  margin-bottom: 2px;
-  background: transparent;
-  border: none;
-  border-radius: 9px;
+  width: 28px;
+  height: 60px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
   color: var(--muted);
   cursor: pointer;
-  transition: background 0.12s, color 0.12s;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
+  transition: left 0.16s ease, background 0.12s, color 0.12s;
+}
+.shell:has(.sidebar.pinned) .sidebar-toggle {
+  left: 216px;
 }
 .sidebar-toggle:hover {
-  background: var(--panel);
+  background: var(--panel-2);
   color: var(--text);
 }
 
