@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, ipcMain, protocol, net } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, protocol, net, screen } from 'electron'
 import { dirname, join } from 'path'
 import { existsSync } from 'fs'
 import { spawn } from 'child_process'
@@ -112,11 +112,18 @@ protocol.registerSchemesAsPrivileged([
 ])
 
 function createWindow(): void {
+  // Beim Start ein großzügiges Fenster — 90 % der nutzbaren Bildschirmfläche,
+  // aber gedeckelt, damit es auf großen Monitoren nicht riesig wird.
+  const { width: screenW, height: screenH } = screen.getPrimaryDisplay().workAreaSize
+  const startWidth = Math.min(1700, Math.round(screenW * 0.9))
+  const startHeight = Math.min(1040, Math.round(screenH * 0.9))
+
   const win = new BrowserWindow({
-    width: 1280,
-    height: 800,
+    width: startWidth,
+    height: startHeight,
     minWidth: 940,
     minHeight: 600,
+    center: true,
     show: false,
     autoHideMenuBar: true,
     backgroundColor: '#0f1117',

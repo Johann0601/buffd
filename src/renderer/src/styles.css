@@ -131,9 +131,8 @@ body {
   overflow: hidden;
 }
 
-/* Schmaler Balken am Rand; beim Drüberfahren klappt er auf und SCHIEBT den
-   Inhalt zur Seite (statt ihn zu überdecken). Die kleine Verzögerung beim
-   Aufklappen verhindert, dass die Leiste bei jedem Vorbeifahren aufschnappt. */
+/* Seitenleiste: per Knopf ein-/ausklappbar (kein Auto-Aufklappen mehr beim
+   Hover). Eingeklappt = nur Icons (62px), ausgeklappt = mit Beschriftung. */
 .sidebar {
   /* Die Seitenleiste bleibt in BEIDEN Themes dunkel (wie Discord/VS Code) —
      dadurch sind die farbigen Emojis immer gut lesbar. Wir überschreiben die
@@ -163,10 +162,6 @@ body {
   transition: width 0.16s ease; /* Zuklappen: sofort */
 }
 
-.sidebar:hover {
-  width: 216px; /* klappt sofort auf — ohne Verzögerung */
-}
-
 /* Beschriftungen erscheinen erst im ausgeklappten Zustand — und nehmen
    eingeklappt auch wirklich KEINEN Platz ein (max-width 0). */
 .nav-label {
@@ -177,11 +172,6 @@ body {
   white-space: nowrap;
   vertical-align: bottom;
   transition: opacity 0.14s ease, max-width 0.16s ease;
-}
-
-.sidebar:hover .nav-label {
-  max-width: 170px;
-  opacity: 1;
 }
 
 .sidebar-brand {
@@ -222,11 +212,6 @@ body {
 
 .brand-text-accent {
   color: var(--accent);
-}
-
-.sidebar:hover .brand-text {
-  max-width: 170px;
-  opacity: 1;
 }
 
 /* Marke in der Kopfzeile der Spiele-Seite. */
@@ -311,9 +296,42 @@ body {
   transition: margin-left 0.16s ease;
 }
 
-/* Leiste ausgeklappt -> Inhalt rückt mit, nichts wird verdeckt. */
-.sidebar:hover + .shell-content {
+/* Ausgeklappt -> Inhalt rückt mit, nichts wird verdeckt. */
+.sidebar.pinned {
+  width: 216px;
+}
+.sidebar.pinned .nav-label,
+.sidebar.pinned .brand-text {
+  max-width: 170px;
+  opacity: 1;
+}
+.sidebar.pinned .sidebar-footer {
+  padding: 10px 10px 4px;
+}
+.sidebar.pinned + .shell-content {
   margin-left: 216px;
+}
+
+/* Ein-/Ausklapp-Knopf ganz oben in der Seitenleiste. */
+.sidebar-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 34px;
+  flex: none;
+  align-self: flex-start;
+  margin-bottom: 2px;
+  background: transparent;
+  border: none;
+  border-radius: 9px;
+  color: var(--muted);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+.sidebar-toggle:hover {
+  background: var(--panel);
+  color: var(--text);
 }
 
 .app {
@@ -1423,7 +1441,7 @@ body {
   min-height: 26px;
 }
 
-.sidebar:hover .sidebar-footer {
+.sidebar.pinned .sidebar-footer {
   padding: 10px 10px 4px;
 }
 

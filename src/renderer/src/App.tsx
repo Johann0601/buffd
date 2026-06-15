@@ -37,7 +37,9 @@ import {
   Gamepad2,
   Puzzle,
   ArrowLeft,
-  TriangleAlert
+  TriangleAlert,
+  PanelLeftClose,
+  PanelLeftOpen
 } from 'lucide-react'
 import { formatGameSize, formatLastPlayed, formatPlaytime } from './format'
 import { platformLabel } from './platforms'
@@ -93,6 +95,13 @@ function App(): JSX.Element {
   const [theme, setTheme] = useState<Theme>(() =>
     localStorage.getItem('theme') === 'light' ? 'light' : 'dark'
   )
+  // Seitenleiste ausgeklappt? Per Knopf umschaltbar; Standard: offen.
+  const [sidebarPinned, setSidebarPinned] = useState(
+    () => localStorage.getItem('sidebar-pinned') !== '0'
+  )
+  useEffect(() => {
+    localStorage.setItem('sidebar-pinned', sidebarPinned ? '1' : '0')
+  }, [sidebarPinned])
   // Erste-Schritte-Pop-up nur beim allerersten Start zeigen.
   const [showOnboarding, setShowOnboarding] = useState(
     () => localStorage.getItem('onboarding-done') !== '1'
@@ -252,7 +261,14 @@ function App(): JSX.Element {
 
   return (
     <div className="shell">
-      <nav className="sidebar">
+      <nav className={`sidebar ${sidebarPinned ? 'pinned' : ''}`}>
+        <button
+          className="sidebar-toggle"
+          onClick={() => setSidebarPinned((p) => !p)}
+          title={sidebarPinned ? 'Seitenleiste einklappen' : 'Seitenleiste ausgeklappt halten'}
+        >
+          {sidebarPinned ? <PanelLeftClose size={20} /> : <PanelLeftOpen size={20} />}
+        </button>
         <button
           className={`sidebar-brand ${view === 'home' ? 'active' : ''}`}
           onClick={() => setView('home')}

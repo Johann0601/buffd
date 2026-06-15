@@ -11,6 +11,15 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.21.1',
+    date: '2026-06-15',
+    title: 'Größeres Fenster & einklappbare Seitenleiste',
+    changes: [
+      'Das Fenster startet jetzt größer (passt sich an deinen Bildschirm an).',
+      'Die Seitenleiste lässt sich mit dem Knopf oben links fest ein- und ausklappen. Sie klappt nicht mehr von selbst beim Drüberfahren auf — nur noch der Knopf steuert das. Der Zustand wird gemerkt.'
+    ]
+  },
+  {
     version: '0.21.0',
     date: '2026-06-15',
     title: 'Neue Icons in der ganzen App',
