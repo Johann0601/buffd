@@ -1,9 +1,9 @@
 {
   "name": "spiele-hub",
   "version": "0.20.0",
-  "description": "Zentraler Hub für PC-Spiele und Launcher",
+  "description": "buffd – zentraler Hub für deine PC-Spiele über alle Launcher hinweg: Bibliothek, Spielzeit-Tracking, News, Statistiken, Sammlungen und mehr.",
   "main": "./out/main/index.js",
-  "author": "johan",
+  "author": "Johann",
   "license": "MIT",
   "type": "commonjs",
   "scripts": {
