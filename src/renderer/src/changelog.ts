@@ -11,6 +11,16 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.21.3',
+    date: '2026-06-16',
+    title: 'Startseite: „Zuletzt gespielt"-Karussell',
+    changes: [
+      'Das „Zuletzt gespielt"-Widget wurde durch ein seitlich scrollbares Karussell auf der Startseite ersetzt (wie die Angebote darunter) — mit Cover, Spielname und Spielzeit.',
+      'Auf jedem Cover erscheint beim Drüberfahren ein Play-Knopf, mit dem du das Spiel direkt starten kannst.',
+      'Zurück-Knopf merkt sich die Herkunft: Von der Startseite ins Detail gewechselt → „Zurück" führt zur Startseite; aus der Bibliothek → zurück in die Bibliothek.'
+    ]
+  },
+  {
     version: '0.21.2',
     date: '2026-06-15',
     title: 'Ein-/Ausklapp-Knopf der Seitenleiste verbessert',

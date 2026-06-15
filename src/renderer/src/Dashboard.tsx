@@ -4,7 +4,6 @@ import {
   Clock,
   Users,
   Puzzle,
-  Play,
   Newspaper,
   Music,
   Check,
@@ -22,20 +21,19 @@ import SpotifyWidget from './SpotifyWidget'
 // Modus per Drag & Drop umsortieren sowie hinzufügen/entfernen. Auswahl +
 // Reihenfolge werden lokal gespeichert (localStorage).
 
-export type WidgetId = 'spiele' | 'playtime' | 'friends' | 'mods' | 'recent' | 'news' | 'spotify'
+export type WidgetId = 'spiele' | 'playtime' | 'friends' | 'mods' | 'news' | 'spotify'
 
 const ALL_WIDGETS: { id: WidgetId; Icon: typeof Gamepad2; title: string }[] = [
   { id: 'spiele', Icon: Gamepad2, title: 'Spiele' },
   { id: 'playtime', Icon: Clock, title: 'Spielzeit' },
   { id: 'friends', Icon: Users, title: 'Freunde online' },
   { id: 'mods', Icon: Puzzle, title: 'Mods' },
-  { id: 'recent', Icon: Play, title: 'Zuletzt gespielt' },
   { id: 'news', Icon: Newspaper, title: 'News' },
   { id: 'spotify', Icon: Music, title: 'Spotify' }
 ]
 // Standard-Belegung beim ersten Start (Reihenfolge zählt). Mods & News sind
 // nicht dabei, lassen sich aber jederzeit über „Anpassen" hinzufügen.
-const DEFAULT_LAYOUT: WidgetId[] = ['spiele', 'recent', 'playtime', 'friends']
+const DEFAULT_LAYOUT: WidgetId[] = ['spiele', 'playtime', 'friends']
 const KNOWN = new Set(ALL_WIDGETS.map((w) => w.id))
 
 function loadLayout(): WidgetId[] {
@@ -52,7 +50,6 @@ function loadLayout(): WidgetId[] {
 interface DashboardProps {
   playable: GameCard[]
   totalSec: number
-  recent: GameCard[]
   wotRestore: number
   wotActive: number | null
   mcCount: number | null
@@ -61,7 +58,6 @@ interface DashboardProps {
   periods: PlaytimePeriods | null
   news: LibraryNewsItem[]
   onOpenLibrary: (sub: LibrarySub) => void
-  onOpenGame: (id: number) => void
   onNavigate: (v: View) => void
 }
 
@@ -202,36 +198,6 @@ function Dashboard(props: DashboardProps): JSX.Element {
           )
         }
       }
-      case 'recent':
-        return {
-          node: (
-            <>
-              <span className="stat-card-title icon-line">
-                <Play size={16} /> Zuletzt gespielt
-              </span>
-              {props.recent.length === 0 ? (
-                <span className="stat-card-info">Noch nichts gespielt</span>
-              ) : (
-                <div className="widget-list">
-                  {props.recent.slice(0, 4).map((g) => (
-                    <button
-                      key={g.id}
-                      className="widget-list-row"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        props.onOpenGame(g.id)
-                      }}
-                      title={g.name}
-                    >
-                      <span className="widget-list-name">{g.name}</span>
-                      <span className="widget-list-meta">{formatPlaytime(g.totalPlaytimeSec)}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </>
-          )
-        }
       case 'news':
         return {
           node: (

@@ -89,6 +89,9 @@ function App(): JSX.Element {
   const spotifyBtnRef = useRef<HTMLButtonElement>(null)
   // Von der Startseite aus kann ein Spiel direkt in der Detailansicht geöffnet werden.
   const [gameToShow, setGameToShow] = useState<number | null>(null)
+  // Merkt, ob die Detailansicht von der Startseite aus geöffnet wurde -> dann führt
+  // „Zurück" wieder zur Startseite (statt zur Bibliotheks-Übersicht).
+  const [gameFromHome, setGameFromHome] = useState(false)
   const [appVersion, setAppVersion] = useState('')
   const [experimental, setExperimental] = useState(false) // Test-/Vorab-Build?
   const [updateVersion, setUpdateVersion] = useState<string | null>(null) // fertig geladenes App-Update
@@ -283,6 +286,7 @@ function App(): JSX.Element {
           className={`nav-item ${view === 'games' ? 'active' : ''}`}
           onClick={() => {
             setGameToShow(null) // normaler Einstieg: Übersicht, keine Detailansicht
+            setGameFromHome(false)
             setLibrarySub('spiele')
             setView('games')
           }}
@@ -381,11 +385,13 @@ function App(): JSX.Element {
             onNavigate={setView}
             onOpenLibrary={(sub) => {
               setGameToShow(null)
+              setGameFromHome(false)
               setLibrarySub(sub)
               setView('games')
             }}
             onOpenGame={(id) => {
               setGameToShow(id)
+              setGameFromHome(true)
               setLibrarySub('spiele')
               setView('games')
             }}
@@ -394,6 +400,8 @@ function App(): JSX.Element {
         {view === 'games' && (
           <LibraryView
             initialSelectedId={gameToShow}
+            openedFromHome={gameFromHome}
+            onExitToHome={() => setView('home')}
             sub={librarySub}
             onSubChange={setLibrarySub}
           />
@@ -513,29 +521,48 @@ function LibraryTabs({
 // zusammen. Die Tab-Leiste wird der aktiven Unteransicht in die Kopfzeile gegeben.
 function LibraryView({
   initialSelectedId,
+  openedFromHome,
+  onExitToHome,
   sub,
   onSubChange
 }: {
   initialSelectedId: number | null
+  openedFromHome?: boolean
+  onExitToHome?: () => void
   sub: LibrarySub
   onSubChange: (sub: LibrarySub) => void
 }): JSX.Element {
   const tabs = <LibraryTabs active={sub} onChange={onSubChange} />
   if (sub === 'updates') return <UpdatesView tabs={tabs} />
   if (sub === 'mods') return <ModsView tabs={tabs} />
-  return <GamesView initialSelectedId={initialSelectedId} tabs={tabs} />
+  return (
+    <GamesView
+      initialSelectedId={initialSelectedId}
+      openedFromHome={openedFromHome}
+      onExitToHome={onExitToHome}
+      tabs={tabs}
+    />
+  )
 }
 
 function GamesView({
   initialSelectedId = null,
+  openedFromHome = false,
+  onExitToHome,
   tabs
 }: {
   initialSelectedId?: number | null
+  openedFromHome?: boolean
+  onExitToHome?: () => void
   tabs?: React.ReactNode
 }): JSX.Element {
   const [games, setGames] = useState<GameCard[]>([])
   const [running, setRunning] = useState<Map<number, number>>(new Map()) // gameId -> startedAt
   const [selectedId, setSelectedId] = useState<number | null>(initialSelectedId)
+  // Wurde die gerade gezeigte Detailansicht direkt von der Startseite geöffnet?
+  // Dann führt „Zurück" zur Startseite. Sobald man in der Liste ein Spiel
+  // anklickt, gilt das nicht mehr (dann zurück = Übersicht).
+  const [fromHome, setFromHome] = useState(openedFromHome && initialSelectedId != null)
   const [scanning, setScanning] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [now, setNow] = useState(() => Math.floor(Date.now() / 1000))
@@ -796,7 +823,13 @@ function GamesView({
         game={selected}
         isRunning={running.has(selected.id)}
         liveTotalSec={liveTotal(selected)}
-        onBack={() => setSelectedId(null)}
+        onBack={() => {
+          if (fromHome && onExitToHome) {
+            onExitToHome()
+          } else {
+            setSelectedId(null)
+          }
+        }}
         onGamesUpdated={setGames}
         collections={collections}
         onCollectionsChanged={(g, c) => {
@@ -988,7 +1021,10 @@ function GamesView({
               game={game}
               isRunning={running.has(game.id)}
               liveTotalSec={liveTotal(game)}
-              onClick={() => setSelectedId(game.id)}
+              onClick={() => {
+                setFromHome(false)
+                setSelectedId(game.id)
+              }}
             />
           ))}
         </div>

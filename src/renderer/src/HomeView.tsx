@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { House, ArrowRight } from 'lucide-react'
+import { House, ArrowRight, Play } from 'lucide-react'
+import { formatPlaytime } from './format'
 import type {
   EpicFreeGame,
   GameCard,
@@ -97,7 +98,6 @@ function HomeView({
         <Dashboard
           playable={playable}
           totalSec={totalSec}
-          recent={recent}
           wotRestore={wotRestore}
           wotActive={wotActive}
           mcCount={mcCount}
@@ -106,9 +106,48 @@ function HomeView({
           periods={periods}
           news={news}
           onOpenLibrary={onOpenLibrary}
-          onOpenGame={onOpenGame}
           onNavigate={onNavigate}
         />
+
+        {/* Zuletzt gespielt — Karussell wie die Angebote unten */}
+        {recent.length > 0 && (
+          <>
+            <div className="home-offers-head">
+              <h2 className="section-title icon-line" style={{ marginTop: 26 }}>
+                <Play size={18} /> Zuletzt gespielt
+              </h2>
+              <button className="btn small" onClick={() => onOpenLibrary('spiele')}>
+                Alle ansehen <ArrowRight size={14} />
+              </button>
+            </div>
+            <OfferRow>
+              {recent.map((g) => (
+                <div key={g.id} className="offer-card recent-card" title={g.name}>
+                  <div
+                    className="offer-cover tall recent-cover"
+                    onClick={() => onOpenGame(g.id)}
+                  >
+                    {g.coverUrl ? <img src={g.coverUrl} alt={g.name} loading="lazy" /> : <span />}
+                    <button
+                      className="recent-play"
+                      title={`${g.name} starten`}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        window.api.launchGame(g.id)
+                      }}
+                    >
+                      <Play size={24} fill="currentColor" />
+                    </button>
+                  </div>
+                  <div className="offer-info recent-info" onClick={() => onOpenGame(g.id)}>
+                    <div className="offer-name">{g.name}</div>
+                    <div className="offer-meta">{formatPlaytime(g.totalPlaytimeSec)}</div>
+                  </div>
+                </div>
+              ))}
+            </OfferRow>
+          </>
+        )}
 
         {/* Gratis bei Epic — eigene Reihe, hochkant, seitlich scrollbar */}
         {freeGames.length > 0 && (
