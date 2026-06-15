@@ -11,6 +11,14 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.20.1',
+    date: '2026-06-15',
+    title: 'Update-Quelle umgestellt',
+    changes: [
+      'Intern: Das Projekt-Repository heißt jetzt „buffd". Ab dieser Version sucht die App ihre Updates direkt dort — keine Umleitung mehr nötig.'
+    ]
+  },
+  {
     version: '0.20.0',
     date: '2026-06-15',
     title: 'buffd deinstallieren',
