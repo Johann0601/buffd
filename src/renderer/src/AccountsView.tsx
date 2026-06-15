@@ -1,4 +1,16 @@
 import { useEffect, useState } from 'react'
+import {
+  ArrowLeft,
+  User,
+  ShoppingCart,
+  Music,
+  Trophy,
+  Image,
+  Wallet,
+  RefreshCw,
+  Globe,
+  Check
+} from 'lucide-react'
 import type {
   EpicAccountStatus,
   ItadStatus,
@@ -15,11 +27,13 @@ function AccountsView({ onBack }: { onBack?: () => void }): JSX.Element {
       <header className="topbar">
         {onBack && (
           <button className="btn" onClick={onBack}>
-            ← Zurück
+            <ArrowLeft size={16} /> Zurück
           </button>
         )}
         <div className="brand">
-          <h1>👤 Konten</h1>
+          <h1 className="h2-icon">
+            <User size={22} /> Konten
+          </h1>
           <span className="subtitle">Externe Konten & API-Keys für Zusatzfunktionen</span>
         </div>
       </header>
@@ -104,15 +118,21 @@ function EpicAccountCard(): JSX.Element {
   return (
     <section className="account-card">
       <div className="account-head">
-        <span className="account-icon">🛒</span>
+        <span className="account-icon">
+          <ShoppingCart size={24} />
+        </span>
         <div>
           <div className="account-title">Epic Games</div>
           <div className="account-state">
-            {status === null
-              ? 'lade …'
-              : status.connected
-                ? `✓ Verbunden als ${status.displayName}`
-                : 'Nicht verbunden'}
+            {status === null ? (
+              'lade …'
+            ) : status.connected ? (
+              <span className="icon-line">
+                <Check size={13} /> Verbunden als {status.displayName}
+              </span>
+            ) : (
+              'Nicht verbunden'
+            )}
           </div>
         </div>
       </div>
@@ -120,7 +140,13 @@ function EpicAccountCard(): JSX.Element {
       {status?.connected ? (
         <div className="account-actions">
           <button className="btn" onClick={syncNow} disabled={busy}>
-            {busy ? 'Gleiche ab …' : '↻ Spielzeit jetzt abgleichen'}
+            {busy ? (
+              'Gleiche ab …'
+            ) : (
+              <>
+                <RefreshCw size={15} /> Spielzeit jetzt abgleichen
+              </>
+            )}
           </button>
           <button className="btn danger" onClick={disconnect} disabled={busy}>
             Trennen
@@ -142,7 +168,7 @@ function EpicAccountCard(): JSX.Element {
             </ol>
             <div className="account-actions">
               <button className="btn" onClick={() => window.api.openEpicLogin()}>
-                🌐 Epic-Login öffnen
+                <Globe size={15} /> Epic-Login öffnen
               </button>
               <input
                 type="text"
@@ -224,17 +250,23 @@ function SpotifyAccountCard(): JSX.Element {
   return (
     <section className="account-card">
       <div className="account-head">
-        <span className="account-icon">🎵</span>
+        <span className="account-icon">
+          <Music size={24} />
+        </span>
         <div>
           <div className="account-title">Spotify (Musik-Widget)</div>
           <div className="account-state">
-            {status === null
-              ? 'lade …'
-              : status.connected
-                ? `✓ Verbunden als ${status.displayName}`
-                : status.configured
-                  ? 'Client-ID hinterlegt — noch nicht verbunden'
-                  : 'Nicht eingerichtet'}
+            {status === null ? (
+              'lade …'
+            ) : status.connected ? (
+              <span className="icon-line">
+                <Check size={13} /> Verbunden als {status.displayName}
+              </span>
+            ) : status.configured ? (
+              'Client-ID hinterlegt — noch nicht verbunden'
+            ) : (
+              'Nicht eingerichtet'
+            )}
           </div>
         </div>
       </div>
@@ -289,7 +321,7 @@ function SpotifyAccountCard(): JSX.Element {
             {status.configured && (
               <div className="account-actions" style={{ marginTop: 8 }}>
                 <button className="btn primary" onClick={connect} disabled={busy}>
-                  🎵 Mit Spotify verbinden
+                  <Music size={15} /> Mit Spotify verbinden
                 </button>
                 <button className="btn" onClick={removeId} disabled={busy}>
                   Client-ID entfernen
@@ -340,15 +372,21 @@ function SteamKeyCard(): JSX.Element {
   return (
     <section className="account-card">
       <div className="account-head">
-        <span className="account-icon">🏆</span>
+        <span className="account-icon">
+          <Trophy size={24} />
+        </span>
         <div>
           <div className="account-title">Steam-Web-API-Key (optional)</div>
           <div className="account-state">
             {status === null
               ? 'lade …'
-              : status.connected
-                ? `✓ Aktiv${status.personaName ? ` für ${status.personaName}` : ''}`
-                : 'Kein Key hinterlegt (optional)'}
+              : status.connected ? (
+                <span className="icon-line">
+                  <Check size={13} /> Aktiv{status.personaName ? ` für ${status.personaName}` : ''}
+                </span>
+              ) : (
+                'Kein Key hinterlegt (optional)'
+              )}
           </div>
         </div>
       </div>
@@ -453,16 +491,26 @@ function SgdbKeyCard(): JSX.Element {
   return (
     <section className="account-card">
       <div className="account-head">
-        <span className="account-icon">🖼️</span>
+        <span className="account-icon">
+          <Image size={24} />
+        </span>
         <div>
           <div className="account-title">SteamGridDB (bessere Cover)</div>
           <div className="account-state">
             {status === null
               ? 'lade …'
               : status.builtin
-                ? '✓ Aktiv (eingebaut — kein eigener Key nötig)'
+                ? (
+                  <span className="icon-line">
+                    <Check size={13} /> Aktiv (eingebaut — kein eigener Key nötig)
+                  </span>
+                )
                 : status.connected
-                  ? '✓ Aktiv (eigener Key)'
+                  ? (
+                    <span className="icon-line">
+                      <Check size={13} /> Aktiv (eigener Key)
+                    </span>
+                  )
                   : 'Kein Key hinterlegt'}
           </div>
         </div>
@@ -560,16 +608,26 @@ function ItadKeyCard(): JSX.Element {
   return (
     <section className="account-card">
       <div className="account-head">
-        <span className="account-icon">💶</span>
+        <span className="account-icon">
+          <Wallet size={24} />
+        </span>
         <div>
           <div className="account-title">IsThereAnyDeal (Preisvergleich)</div>
           <div className="account-state">
             {status === null
               ? 'lade …'
               : status.builtin
-                ? '✓ Aktiv (eingebaut — kein eigener Key nötig)'
+                ? (
+                  <span className="icon-line">
+                    <Check size={13} /> Aktiv (eingebaut — kein eigener Key nötig)
+                  </span>
+                )
                 : status.connected
-                  ? '✓ Aktiv (eigener Key)'
+                  ? (
+                    <span className="icon-line">
+                      <Check size={13} /> Aktiv (eigener Key)
+                    </span>
+                  )
                   : 'Kein Key hinterlegt (optional)'}
           </div>
         </div>

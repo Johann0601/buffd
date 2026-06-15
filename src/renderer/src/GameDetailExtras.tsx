@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { ExternalLink, Check, Clipboard, FolderOpen, Trash2, TriangleAlert } from 'lucide-react'
 import type {
   AchievementsResult,
   GameDetails,
@@ -123,8 +124,8 @@ function GameDetailExtras({ gameRef }: { gameRef: GameRef }): JSX.Element | null
               </span>
             )}
             {details.storeUrl && (
-              <a href={details.storeUrl} target="_blank" rel="noreferrer">
-                Im Steam-Store ansehen ↗
+              <a className="icon-line" href={details.storeUrl} target="_blank" rel="noreferrer">
+                Im Steam-Store ansehen <ExternalLink size={13} />
               </a>
             )}
           </div>
@@ -185,7 +186,9 @@ function GameDetailExtras({ gameRef }: { gameRef: GameRef }): JSX.Element | null
             )}
             {prices.best && (
               <a className="price-card clickable" href={prices.best.url} target="_blank" rel="noreferrer">
-                <span className="price-label">Bester Preis ({prices.best.shop}) ↗</span>
+                <span className="price-label icon-line">
+                  Bester Preis ({prices.best.shop}) <ExternalLink size={12} />
+                </span>
                 <span className="price-value">
                   {formatEuro(prices.best.priceCents)}
                   {prices.best.cut > 0 && (
@@ -240,10 +243,18 @@ function GameDetailExtras({ gameRef }: { gameRef: GameRef }): JSX.Element | null
             {lightboxIsLocal && (
               <div className="lightbox-actions">
                 <button className="btn small" onClick={copyShot}>
-                  {copied ? '✓ Kopiert!' : '📋 Kopieren'}
+                  {copied ? (
+                    <>
+                      <Check size={14} /> Kopiert!
+                    </>
+                  ) : (
+                    <>
+                      <Clipboard size={14} /> Kopieren
+                    </>
+                  )}
                 </button>
                 <button className="btn small" onClick={revealShot}>
-                  📂 Im Ordner zeigen
+                  <FolderOpen size={14} /> Im Ordner zeigen
                 </button>
                 {confirmDel ? (
                   <>
@@ -257,7 +268,7 @@ function GameDetailExtras({ gameRef }: { gameRef: GameRef }): JSX.Element | null
                   </>
                 ) : (
                   <button className="btn small danger" onClick={() => setConfirmDel(true)}>
-                    🗑 Löschen
+                    <Trash2 size={14} /> Löschen
                   </button>
                 )}
               </div>
@@ -284,7 +295,9 @@ function AchievementsSection({ result }: { result: AchievementsResult }): JSX.El
           (kostenlosen) Steam-Web-API-Key, dann siehst du hier deinen Fortschritt.
         </p>
       ) : !result.ok ? (
-        <p className="hint">⚠ {result.error}</p>
+        <p className="hint icon-line">
+          <TriangleAlert size={14} /> {result.error}
+        </p>
       ) : (
         <>
           <div className="ach-progress">

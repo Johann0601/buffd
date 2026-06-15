@@ -8,13 +8,13 @@ import type { GameCard } from '@shared/types'
 export function updateActionFor(game: GameCard): { label: string; run: () => void } | null {
   if (game.platform === 'steam') {
     return {
-      label: 'In Steam aktualisieren ↗',
+      label: 'In Steam aktualisieren',
       run: () => window.open(`steam://nav/games/details/${game.platformId}`, '_blank')
     }
   }
   if (game.platform === 'battlenet') {
     return {
-      label: 'Battle.net öffnen ↗',
+      label: 'Battle.net öffnen',
       run: () => window.api.openPlatformLauncher('battlenet')
     }
   }

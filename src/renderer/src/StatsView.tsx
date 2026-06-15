@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { BarChart3, RefreshCw, Clock, CalendarDays, Calendar, Gamepad2 } from 'lucide-react'
 import type { PlayStatsResult } from '@shared/types'
 import { formatPlaytime } from './format'
 
@@ -49,11 +50,19 @@ function StatsView(): JSX.Element {
     <div className="app">
       <header className="topbar">
         <div className="brand">
-          <h1>📊 Statistik</h1>
+          <h1 className="h2-icon">
+            <BarChart3 size={22} /> Statistik
+          </h1>
           <span className="subtitle">{loading ? 'lädt …' : 'deine Spielzeit auf einen Blick'}</span>
         </div>
         <button className="btn" onClick={load} disabled={loading}>
-          {loading ? 'Lädt …' : '↻ Aktualisieren'}
+          {loading ? (
+            'Lädt …'
+          ) : (
+            <>
+              <RefreshCw size={15} /> Aktualisieren
+            </>
+          )}
         </button>
       </header>
 
@@ -63,22 +72,30 @@ function StatsView(): JSX.Element {
             {/* Eckdaten */}
             <div className="stat-cards">
               <div className="stat-card static">
-                <span className="stat-card-icon">⏱️</span>
+                <span className="stat-card-icon">
+                  <Clock size={26} />
+                </span>
                 <span className="stat-card-title">Gesamte Spielzeit</span>
                 <span className="stat-card-info">{formatPlaytime(stats.totalPlaytimeSec)}</span>
               </div>
               <div className="stat-card static">
-                <span className="stat-card-icon">📅</span>
+                <span className="stat-card-icon">
+                  <CalendarDays size={26} />
+                </span>
                 <span className="stat-card-title">Letzte 7 Tage</span>
                 <span className="stat-card-info">{formatPlaytime(stats.weekSec)}</span>
               </div>
               <div className="stat-card static">
-                <span className="stat-card-icon">🗓️</span>
+                <span className="stat-card-icon">
+                  <Calendar size={26} />
+                </span>
                 <span className="stat-card-title">Letzte 30 Tage</span>
                 <span className="stat-card-info">{formatPlaytime(stats.monthSec)}</span>
               </div>
               <div className="stat-card static">
-                <span className="stat-card-icon">🎮</span>
+                <span className="stat-card-icon">
+                  <Gamepad2 size={26} />
+                </span>
                 <span className="stat-card-title">Spiele</span>
                 <span className="stat-card-info">
                   {stats.gamesPlayed} gespielt · {stats.gamesNeverPlayed} ungespielt

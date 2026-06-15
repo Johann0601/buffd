@@ -274,7 +274,11 @@ body {
 }
 
 .nav-icon {
-  font-size: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
   flex: none;
   position: relative;
 }
@@ -355,6 +359,10 @@ body {
 }
 
 .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   background: var(--panel-2);
   color: var(--text);
   border: 1px solid var(--border);
@@ -363,6 +371,32 @@ body {
   font-size: 14px;
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s;
+}
+
+/* Icons in Buttons/Überschriften/Chips sauber an den Text ausrichten. */
+.icon-btn,
+.icon-chip,
+.h2-icon,
+.icon-line {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.h2-icon {
+  gap: 8px;
+}
+
+.btn.icon-only {
+  padding: 7px 9px;
+}
+
+.btn svg,
+.tag-chip svg,
+.subtab svg,
+.icon-line svg,
+.h2-icon svg {
+  flex: none;
 }
 
 .btn:hover:not(:disabled) {
@@ -1053,6 +1087,9 @@ body {
   position: absolute;
   top: 8px;
   left: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   background: rgba(15, 17, 23, 0.85);
   color: #ffd27a;
   font-size: 11px;
@@ -1397,7 +1434,9 @@ body {
 
 /* Kennzeichnung eines Test-/Vorab-Builds (nur außerhalb der Release-Installation). */
 .exp-badge {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 5px;
   font-size: 11px;
   font-weight: 600;
   color: #e0a23a;
@@ -1838,7 +1877,10 @@ img.logo-cover {
 }
 
 .settings-row-icon {
-  font-size: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent);
   flex: none;
 }
 
@@ -1865,6 +1907,8 @@ img.logo-cover {
 }
 
 .settings-row-arrow {
+  display: inline-flex;
+  align-items: center;
   color: var(--muted);
   font-size: 16px;
   flex: none;
@@ -2551,6 +2595,9 @@ img.logo-cover {
 }
 
 .tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   background: var(--panel-2);
   border: 1px solid var(--border);
   border-radius: 999px;
@@ -3175,6 +3222,9 @@ img.logo-cover {
   border: 1px solid var(--border);
 }
 .subtab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   border: none;
   background: none;
   color: var(--muted);
@@ -3588,4 +3638,51 @@ img.logo-cover {
 .weekday-label {
   font-size: 12px;
   color: var(--muted);
+}
+
+/* ===== Lucide-Icons: einheitliche Ausrichtung der Icon-Container ===== */
+/* Wrapper, die früher ein Emoji enthielten, zentrieren jetzt ihr SVG. */
+.stat-card-icon,
+.account-icon,
+.mod-section-icon,
+.mc-icon.fallback,
+.friend-avatar-fallback,
+.fog-avatar-fallback,
+.spotify-cover-empty,
+.spotify-btn,
+.friend-caret,
+.friend-private,
+.caret,
+.widget-grip,
+.widget-remove,
+.edit-btn,
+.uninstall-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Karten-Icons in der Akzentfarbe (vorher farbige Emojis). */
+.stat-card-icon,
+.account-icon,
+.mod-section-icon {
+  color: var(--accent);
+}
+
+/* Caret dreht sich beim Zuklappen (SVG statt ▾). */
+.caret {
+  transition: transform 0.15s ease;
+}
+.caret.closed {
+  transform: rotate(-90deg);
+}
+
+/* Mehrzeilige Hinweis-Zeilen mit Icon: Icon oben ausrichten statt mittig. */
+.storage-cleanup-tip.icon-line,
+.banner.icon-line {
+  align-items: flex-start;
+}
+.storage-cleanup-tip.icon-line svg,
+.banner.icon-line svg {
+  margin-top: 2px;
 }

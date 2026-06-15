@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
+import { House, ArrowRight } from 'lucide-react'
 import type {
   EpicFreeGame,
   GameCard,
@@ -84,7 +85,9 @@ function HomeView({
     <div className="app">
       <header className="topbar">
         <div className="brand">
-          <h1>🏠 Startseite</h1>
+          <h1 className="h2-icon">
+            <House size={22} /> Startseite
+          </h1>
           <span className="subtitle">Willkommen zurück!</span>
         </div>
       </header>
@@ -115,7 +118,7 @@ function HomeView({
                 Gratis bei Epic
               </h2>
               <button className="btn small" onClick={() => onNavigate('shops')}>
-                Alle ansehen →
+                Alle ansehen <ArrowRight size={14} />
               </button>
             </div>
             <OfferRow>
@@ -150,7 +153,7 @@ function HomeView({
                 Steam-Angebote
               </h2>
               <button className="btn small" onClick={() => onNavigate('shops')}>
-                Alle ansehen →
+                Alle ansehen <ArrowRight size={14} />
               </button>
             </div>
             <OfferRow>

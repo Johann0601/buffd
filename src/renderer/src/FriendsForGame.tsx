@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { User } from 'lucide-react'
 import type { FriendsForGameResult, GameRef } from '@shared/types'
 import { formatPlaytime } from './format'
 
@@ -47,7 +48,9 @@ function FriendsForGame({ gameRef }: { gameRef: GameRef }): JSX.Element | null {
             {f.avatarUrl ? (
               <img className="fog-avatar" src={f.avatarUrl} alt="" loading="lazy" />
             ) : (
-              <span className="fog-avatar fog-avatar-fallback">👤</span>
+              <span className="fog-avatar fog-avatar-fallback">
+                <User size={18} />
+              </span>
             )}
             <span className="fog-name">{f.personaName}</span>
             <span className="fog-time">

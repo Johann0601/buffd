@@ -1,11 +1,12 @@
 import { useState, type ReactNode } from 'react'
+import { Puzzle, Wrench, Box, ArrowRight } from 'lucide-react'
 import MinecraftView from './MinecraftView'
 import WotModsView from './WotModsView'
 
 interface ModSection {
   id: string
   title: string
-  icon: string
+  Icon: typeof Wrench
   description: string
   render: (onBack: () => void) => JSX.Element
 }
@@ -19,14 +20,14 @@ const MOD_SECTIONS: ModSection[] = [
   {
     id: 'wot',
     title: 'World of Tanks',
-    icon: '🛠️',
+    Icon: Wrench,
     description: 'Mods an-/ausschalten, neue hinzufügen und nach Spiel-Updates wiederherstellen.',
     render: (onBack) => <WotModsView onBack={onBack} />
   },
   {
     id: 'minecraft',
     title: 'Minecraft',
-    icon: '🧱',
+    Icon: Box,
     description: 'Modpacks & Profile aus Modrinth, CurseForge und FTB App.',
     render: (onBack) => <MinecraftView onBack={onBack} />
   }
@@ -46,7 +47,9 @@ function ModsView({ tabs }: { tabs?: ReactNode }): JSX.Element {
     <div className="app">
       <header className="topbar">
         <div className="brand">
-          <h1>🧩 Mods</h1>
+          <h1 className="h2-icon">
+            <Puzzle size={22} /> Mods
+          </h1>
           <span className="subtitle">Spiel auswählen</span>
         </div>
         {tabs}
@@ -56,10 +59,14 @@ function ModsView({ tabs }: { tabs?: ReactNode }): JSX.Element {
         <div className="mod-section-grid">
           {MOD_SECTIONS.map((s) => (
             <button key={s.id} className="mod-section-card" onClick={() => setSelectedId(s.id)}>
-              <span className="mod-section-icon">{s.icon}</span>
+              <span className="mod-section-icon">
+                <s.Icon size={26} />
+              </span>
               <span className="mod-section-title">{s.title}</span>
               <span className="mod-section-desc">{s.description}</span>
-              <span className="mod-section-cta">Öffnen →</span>
+              <span className="mod-section-cta icon-line">
+                Öffnen <ArrowRight size={14} />
+              </span>
             </button>
           ))}
         </div>

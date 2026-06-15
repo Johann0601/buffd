@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { Music, SkipBack, SkipForward, Play, Pause } from 'lucide-react'
 import type { SpotifyState, SpotifyStatus } from '@shared/types'
 
 // Spotify-Musik-Widget: zeigt den laufenden Song (Cover, Titel, Interpret) und
@@ -61,7 +62,9 @@ function SpotifyWidget(): JSX.Element {
   if (status && !status.connected) {
     return (
       <>
-        <span className="stat-card-icon">🎵</span>
+        <span className="stat-card-icon">
+          <Music size={26} />
+        </span>
         <span className="stat-card-title">Spotify</span>
         {status.configured ? (
           <>
@@ -97,7 +100,9 @@ function SpotifyWidget(): JSX.Element {
           {state?.albumArt ? (
             <img src={state.albumArt} alt="" />
           ) : (
-            <span className="spotify-cover-empty">🎵</span>
+            <span className="spotify-cover-empty">
+              <Music size={22} />
+            </span>
           )}
         </div>
         <div className="spotify-meta">
@@ -126,7 +131,7 @@ function SpotifyWidget(): JSX.Element {
             control('previous')
           }}
         >
-          ⏮
+          <SkipBack size={18} />
         </button>
         <button
           className="spotify-btn big"
@@ -136,7 +141,7 @@ function SpotifyWidget(): JSX.Element {
             control(playing ? 'pause' : 'play')
           }}
         >
-          {playing ? '⏸' : '▶'}
+          {playing ? <Pause size={20} /> : <Play size={20} />}
         </button>
         <button
           className="spotify-btn"
@@ -146,7 +151,7 @@ function SpotifyWidget(): JSX.Element {
             control('next')
           }}
         >
-          ⏭
+          <SkipForward size={18} />
         </button>
       </div>
       {note && <span className="spotify-note">{note}</span>}

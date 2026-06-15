@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { ArrowLeft, Box, RefreshCw, ExternalLink, FolderOpen } from 'lucide-react'
 import type { GameCard, McLauncher, McProfile } from '@shared/types'
 import { formatLastPlayed, formatPlaytime } from './format'
 
@@ -48,15 +49,23 @@ function MinecraftView({ onBack }: { onBack?: () => void }): JSX.Element {
       <header className="topbar">
         {onBack && (
           <button className="btn" onClick={onBack}>
-            ← Zurück
+            <ArrowLeft size={16} /> Zurück
           </button>
         )}
         <div className="brand">
-          <h1>🧱 Minecraft</h1>
+          <h1 className="h2-icon">
+            <Box size={22} /> Minecraft
+          </h1>
           <span className="subtitle">{profiles.length} Modpacks/Profile</span>
         </div>
         <button className="btn" onClick={load} disabled={loading}>
-          {loading ? 'Lese …' : '↻ Aktualisieren'}
+          {loading ? (
+            'Lese …'
+          ) : (
+            <>
+              <RefreshCw size={15} /> Aktualisieren
+            </>
+          )}
         </button>
       </header>
 
@@ -74,7 +83,7 @@ function MinecraftView({ onBack }: { onBack?: () => void }): JSX.Element {
                   className="btn tiny"
                   onClick={() => window.api.launchGame(launcherIds[launcher]!)}
                 >
-                  Launcher öffnen ↗
+                  Launcher öffnen <ExternalLink size={13} />
                 </button>
               )}
             </div>
@@ -106,7 +115,9 @@ function ProfileRow({ profile }: { profile: McProfile }): JSX.Element {
           {profile.iconUrl ? (
             <img className="mc-icon" src={profile.iconUrl} alt="" />
           ) : (
-            <span className="mc-icon fallback">🧱</span>
+            <span className="mc-icon fallback">
+              <Box size={20} />
+            </span>
           )}
           <div className="device-main">
             <div className="device-name">{profile.name}</div>
@@ -123,7 +134,7 @@ function ProfileRow({ profile }: { profile: McProfile }): JSX.Element {
             title="Instanz-Ordner im Explorer öffnen"
             onClick={() => window.api.openMcFolder(profile.instancePath)}
           >
-            📂
+            <FolderOpen size={15} />
           </button>
         </div>
       </div>

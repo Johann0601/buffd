@@ -1,4 +1,18 @@
 import { useState } from 'react'
+import {
+  Gamepad2,
+  Clock,
+  Users,
+  Puzzle,
+  Play,
+  Newspaper,
+  Music,
+  Check,
+  Pencil,
+  X,
+  RotateCcw,
+  GripVertical
+} from 'lucide-react'
 import type { GameCard, LibraryNewsItem, PlaytimePeriods, SteamFriend } from '@shared/types'
 import type { LibrarySub, View } from './App'
 import { formatPlaytime } from './format'
@@ -10,14 +24,14 @@ import SpotifyWidget from './SpotifyWidget'
 
 export type WidgetId = 'spiele' | 'playtime' | 'friends' | 'mods' | 'recent' | 'news' | 'spotify'
 
-const ALL_WIDGETS: { id: WidgetId; icon: string; title: string }[] = [
-  { id: 'spiele', icon: '🎮', title: 'Spiele' },
-  { id: 'playtime', icon: '⏱️', title: 'Spielzeit' },
-  { id: 'friends', icon: '👥', title: 'Freunde online' },
-  { id: 'mods', icon: '🧩', title: 'Mods' },
-  { id: 'recent', icon: '▶️', title: 'Zuletzt gespielt' },
-  { id: 'news', icon: '📰', title: 'News' },
-  { id: 'spotify', icon: '🎵', title: 'Spotify' }
+const ALL_WIDGETS: { id: WidgetId; Icon: typeof Gamepad2; title: string }[] = [
+  { id: 'spiele', Icon: Gamepad2, title: 'Spiele' },
+  { id: 'playtime', Icon: Clock, title: 'Spielzeit' },
+  { id: 'friends', Icon: Users, title: 'Freunde online' },
+  { id: 'mods', Icon: Puzzle, title: 'Mods' },
+  { id: 'recent', Icon: Play, title: 'Zuletzt gespielt' },
+  { id: 'news', Icon: Newspaper, title: 'News' },
+  { id: 'spotify', Icon: Music, title: 'Spotify' }
 ]
 // Standard-Belegung beim ersten Start (Reihenfolge zählt). Mods & News sind
 // nicht dabei, lassen sich aber jederzeit über „Anpassen" hinzufügen.
@@ -88,7 +102,9 @@ function Dashboard(props: DashboardProps): JSX.Element {
           onClick: () => props.onOpenLibrary('spiele'),
           node: (
             <>
-              <span className="stat-card-icon">🎮</span>
+              <span className="stat-card-icon">
+                <Gamepad2 size={26} />
+              </span>
               <span className="stat-card-title">Spiele</span>
               <span className="stat-card-info">
                 {props.playable.length} installiert · {formatPlaytime(props.totalSec)} gesamt
@@ -111,7 +127,9 @@ function Dashboard(props: DashboardProps): JSX.Element {
           attention: props.wotRestore > 0,
           node: (
             <>
-              <span className="stat-card-icon">🧩</span>
+              <span className="stat-card-icon">
+                <Puzzle size={26} />
+              </span>
               <span className="stat-card-title">Mods</span>
               <span className="stat-card-info">{info}</span>
             </>
@@ -129,7 +147,9 @@ function Dashboard(props: DashboardProps): JSX.Element {
           onClick: () => props.onNavigate('stats'),
           node: (
             <>
-              <span className="stat-card-icon">⏱️</span>
+              <span className="stat-card-icon">
+                <Clock size={26} />
+              </span>
               <span className="stat-card-title">Spielzeit</span>
               <span className="widget-big">{props.periods ? formatPlaytime(value) : '—'}</span>
               <div className="widget-period">
@@ -156,7 +176,9 @@ function Dashboard(props: DashboardProps): JSX.Element {
           onClick: () => props.onNavigate('friends'),
           node: (
             <>
-              <span className="stat-card-icon">👥</span>
+              <span className="stat-card-icon">
+                <Users size={26} />
+              </span>
               <span className="stat-card-title">Freunde online</span>
               {props.friendsKeyMissing ? (
                 <span className="stat-card-info">Steam-Key nötig (in Konten)</span>
@@ -184,7 +206,9 @@ function Dashboard(props: DashboardProps): JSX.Element {
         return {
           node: (
             <>
-              <span className="stat-card-title">▶️ Zuletzt gespielt</span>
+              <span className="stat-card-title icon-line">
+                <Play size={16} /> Zuletzt gespielt
+              </span>
               {props.recent.length === 0 ? (
                 <span className="stat-card-info">Noch nichts gespielt</span>
               ) : (
@@ -212,7 +236,9 @@ function Dashboard(props: DashboardProps): JSX.Element {
         return {
           node: (
             <>
-              <span className="stat-card-title">📰 News</span>
+              <span className="stat-card-title icon-line">
+                <Newspaper size={16} /> News
+              </span>
               {props.news.length === 0 ? (
                 <span className="stat-card-info">Keine Neuigkeiten</span>
               ) : (
@@ -246,14 +272,22 @@ function Dashboard(props: DashboardProps): JSX.Element {
       <div className="dashboard-toolbar">
         {editMode && (
           <button className="btn small" onClick={resetLayout} title="Auf Standard-Belegung zurücksetzen">
-            ↺ Zurücksetzen
+            <RotateCcw size={14} /> Zurücksetzen
           </button>
         )}
         <button
           className={`btn small ${editMode ? 'primary' : ''}`}
           onClick={() => setEditMode((e) => !e)}
         >
-          {editMode ? '✓ Fertig' : '✏️ Anpassen'}
+          {editMode ? (
+            <>
+              <Check size={14} /> Fertig
+            </>
+          ) : (
+            <>
+              <Pencil size={14} /> Anpassen
+            </>
+          )}
         </button>
       </div>
 
@@ -278,7 +312,7 @@ function Dashboard(props: DashboardProps): JSX.Element {
               {editMode && (
                 <>
                   <span className="widget-grip" title="Zum Verschieben ziehen">
-                    ⠿
+                    <GripVertical size={16} />
                   </span>
                   <button
                     className="widget-remove"
@@ -288,7 +322,7 @@ function Dashboard(props: DashboardProps): JSX.Element {
                       removeWidget(id)
                     }}
                   >
-                    ✕
+                    <X size={15} />
                   </button>
                 </>
               )}
@@ -303,7 +337,7 @@ function Dashboard(props: DashboardProps): JSX.Element {
           <span className="dashboard-add-label">Hinzufügen:</span>
           {available.map((w) => (
             <button key={w.id} className="btn small" onClick={() => addWidget(w.id)}>
-              {w.icon} {w.title} +
+              <w.Icon size={14} /> {w.title} +
             </button>
           ))}
         </div>

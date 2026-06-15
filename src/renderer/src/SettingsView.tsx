@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Settings, User, HardDrive, MonitorCog, ScrollText, Trash2, ChevronRight } from 'lucide-react'
 import AccountsView from './AccountsView'
 import ChangelogView from './ChangelogView'
 import StorageView from './StorageView'
@@ -45,7 +46,9 @@ function SettingsView({
     <div className="app">
       <header className="topbar">
         <div className="brand">
-          <h1>⚙️ Einstellungen</h1>
+          <h1 className="h2-icon">
+            <Settings size={22} /> Einstellungen
+          </h1>
         </div>
       </header>
 
@@ -75,45 +78,61 @@ function SettingsView({
         </h2>
         <div className="settings-list">
           <button className="settings-row clickable" onClick={() => onNavigate('settings-accounts')}>
-            <span className="settings-row-icon">👤</span>
+            <span className="settings-row-icon">
+              <User size={22} />
+            </span>
             <div className="settings-row-main">
               <div className="settings-row-title">Konten</div>
               <div className="settings-row-desc">
                 Epic-Konto sowie Keys für Steam-Erfolge, SteamGridDB-Cover und Preisvergleich
               </div>
             </div>
-            <span className="settings-row-arrow">→</span>
+            <span className="settings-row-arrow">
+              <ChevronRight size={18} />
+            </span>
           </button>
           <button className="settings-row clickable" onClick={() => onNavigate('settings-storage')}>
-            <span className="settings-row-icon">💾</span>
+            <span className="settings-row-icon">
+              <HardDrive size={22} />
+            </span>
             <div className="settings-row-main">
               <div className="settings-row-title">Speicher verwalten</div>
               <div className="settings-row-desc">
                 Größe aller Spiele und Aufräum-Vorschläge: groß &amp; lange nicht gespielt
               </div>
             </div>
-            <span className="settings-row-arrow">→</span>
+            <span className="settings-row-arrow">
+              <ChevronRight size={18} />
+            </span>
           </button>
           <button className="settings-row clickable" onClick={() => onNavigate('settings-system')}>
-            <span className="settings-row-icon">🖥️</span>
+            <span className="settings-row-icon">
+              <MonitorCog size={22} />
+            </span>
             <div className="settings-row-main">
               <div className="settings-row-title">System / Treiber</div>
               <div className="settings-row-desc">
                 Hardware mit Treiberversionen und Nvidia-Update-Prüfung
               </div>
             </div>
-            <span className="settings-row-arrow">→</span>
+            <span className="settings-row-arrow">
+              <ChevronRight size={18} />
+            </span>
           </button>
           <button
             className="settings-row clickable"
             onClick={() => onNavigate('settings-changelog')}
           >
-            <span className="settings-row-icon">📜</span>
+            <span className="settings-row-icon">
+              <ScrollText size={22} />
+            </span>
             <div className="settings-row-main">
               <div className="settings-row-title">Changelog</div>
               <div className="settings-row-desc">Was sich in der App geändert hat</div>
             </div>
-            <span className="settings-row-arrow">→</span>
+            <span className="settings-row-arrow">
+              <ChevronRight size={18} />
+            </span>
           </button>
         </div>
 
@@ -146,7 +165,7 @@ function SettingsView({
                 setConfirmUninstall(true)
               }}
             >
-              🗑 Deinstallieren
+              <Trash2 size={16} /> Deinstallieren
             </button>
           )}
         </div>

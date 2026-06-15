@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
+import { CircleArrowUp, RefreshCw, Check } from 'lucide-react'
 import type { GameCard, UpdateEvent } from '@shared/types'
 import { formatLastPlayed } from './format'
 import { updateActionFor } from './updateAction'
@@ -30,14 +31,22 @@ function UpdatesView({ tabs }: { tabs?: ReactNode }): JSX.Element {
     <div className="app">
       <header className="topbar">
         <div className="brand">
-          <h1>⬆️ Updates</h1>
+          <h1 className="h2-icon">
+            <CircleArrowUp size={22} /> Updates
+          </h1>
           <span className="subtitle">
             {pending.length === 0 ? 'alles aktuell' : `${pending.length} ausstehend`}
           </span>
         </div>
         {tabs}
         <button className="btn" onClick={load} disabled={loading}>
-          {loading ? 'Prüfe …' : '↻ Jetzt prüfen'}
+          {loading ? (
+            'Prüfe …'
+          ) : (
+            <>
+              <RefreshCw size={15} /> Jetzt prüfen
+            </>
+          )}
         </button>
       </header>
 
@@ -52,7 +61,9 @@ function UpdatesView({ tabs }: { tabs?: ReactNode }): JSX.Element {
 
         <h2 className="section-title">Ausstehende Updates</h2>
         {pending.length === 0 ? (
-          <div className="empty-inline">✓ Alle Spiele sind auf dem neuesten Stand.</div>
+          <div className="empty-inline icon-line">
+            <Check size={15} /> Alle Spiele sind auf dem neuesten Stand.
+          </div>
         ) : (
           <div className="device-list">
             {pending.map((g) => {
@@ -95,8 +106,16 @@ function UpdatesView({ tabs }: { tabs?: ReactNode }): JSX.Element {
           <div className="history-list">
             {history.map((e) => (
               <div key={e.id} className="history-row">
-                <span className={`history-type ${e.type}`}>
-                  {e.type === 'installiert' ? '✓ installiert' : '⬆ erkannt'}
+                <span className={`history-type icon-line ${e.type}`}>
+                  {e.type === 'installiert' ? (
+                    <>
+                      <Check size={13} /> installiert
+                    </>
+                  ) : (
+                    <>
+                      <CircleArrowUp size={13} /> erkannt
+                    </>
+                  )}
                 </span>
                 <span className="history-game">{e.gameName}</span>
                 <span className="history-build">

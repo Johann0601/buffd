@@ -1,16 +1,34 @@
 import { useEffect, useMemo, useState } from 'react'
+import {
+  ArrowLeft,
+  RefreshCw,
+  ChevronDown,
+  CircleArrowUp,
+  CircleCheck,
+  ExternalLink,
+  Hourglass,
+  MonitorCog,
+  Cpu,
+  Monitor,
+  Mouse,
+  Keyboard,
+  Volume2,
+  Globe,
+  Bluetooth,
+  HardDrive
+} from 'lucide-react'
 import type { DeviceCategory, DeviceInfo, NvidiaUpdate } from '@shared/types'
 
-const CATEGORY_ICON: Record<DeviceCategory, string> = {
-  Grafikkarte: '🎞️',
-  Prozessor: '🧠',
-  Monitor: '🖥️',
-  Maus: '🖱️',
-  Tastatur: '⌨️',
-  Audio: '🔊',
-  Netzwerk: '🌐',
-  Bluetooth: '🔵',
-  Speicher: '💾'
+const CATEGORY_ICON: Record<DeviceCategory, typeof Cpu> = {
+  Grafikkarte: MonitorCog,
+  Prozessor: Cpu,
+  Monitor: Monitor,
+  Maus: Mouse,
+  Tastatur: Keyboard,
+  Audio: Volume2,
+  Netzwerk: Globe,
+  Bluetooth: Bluetooth,
+  Speicher: HardDrive
 }
 
 const COLLAPSED_KEY = 'system-collapsed-categories'
@@ -101,15 +119,23 @@ function SystemView({ onBack }: { onBack?: () => void }): JSX.Element {
       <header className="topbar">
         {onBack && (
           <button className="btn" onClick={onBack}>
-            ← Zurück
+            <ArrowLeft size={16} /> Zurück
           </button>
         )}
         <div className="brand">
-          <h1>🖥️ System / Treiber</h1>
+          <h1 className="h2-icon">
+            <MonitorCog size={22} /> System / Treiber
+          </h1>
           <span className="subtitle">{devices.length} Geräte</span>
         </div>
         <button className="btn" onClick={load} disabled={loading}>
-          {loading ? 'Lese …' : '↻ Aktualisieren'}
+          {loading ? (
+            'Lese …'
+          ) : (
+            <>
+              <RefreshCw size={15} /> Aktualisieren
+            </>
+          )}
         </button>
       </header>
 
@@ -126,9 +152,15 @@ function SystemView({ onBack }: { onBack?: () => void }): JSX.Element {
           return (
             <section key={category} className="device-group">
               <button className="group-header" onClick={() => toggle(category)}>
-                <span className={`caret ${isCollapsed ? 'closed' : ''}`}>▾</span>
-                <span className="group-title">
-                  {CATEGORY_ICON[category]} {category}
+                <span className={`caret ${isCollapsed ? 'closed' : ''}`}>
+                  <ChevronDown size={16} />
+                </span>
+                <span className="group-title icon-line">
+                  {(() => {
+                    const Icon = CATEGORY_ICON[category]
+                    return <Icon size={17} />
+                  })()}
+                  {category}
                 </span>
                 <span className="group-count">{list.length}</span>
               </button>
@@ -198,7 +230,11 @@ function StorageBar({ storage }: { storage: { totalBytes: number; freeBytes: num
 function NvidiaUpdateRow({ update }: { update?: NvidiaUpdate | null }): JSX.Element | null {
   if (update === undefined) return null
   if (update === null) {
-    return <div className="nvidia-update loading">⏳ Prüfe auf Treiber-Update …</div>
+    return (
+      <div className="nvidia-update loading icon-line">
+        <Hourglass size={14} /> Prüfe auf Treiber-Update …
+      </div>
+    )
   }
   if (!update.ok) {
     return (
@@ -214,19 +250,21 @@ function NvidiaUpdateRow({ update }: { update?: NvidiaUpdate | null }): JSX.Elem
     }
     return (
       <div className="nvidia-update available">
-        <span>
-          ⬆ Update verfügbar: <strong>{update.latestVersion}</strong>
+        <span className="icon-line">
+          <CircleArrowUp size={15} /> Update verfügbar: <strong>{update.latestVersion}</strong>
           {update.releaseDate ? ` (${update.releaseDate})` : ''} · installiert:{' '}
           {update.installedVersion}
         </span>
         <button className="btn small" onClick={openApp}>
-          In NVIDIA App öffnen ↗
+          In NVIDIA App öffnen <ExternalLink size={14} />
         </button>
       </div>
     )
   }
   return (
-    <div className="nvidia-update ok">✓ Treiber aktuell (Version {update.installedVersion})</div>
+    <div className="nvidia-update ok icon-line">
+      <CircleCheck size={15} /> Treiber aktuell (Version {update.installedVersion})
+    </div>
   )
 }
 

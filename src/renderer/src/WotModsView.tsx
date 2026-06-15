@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { ArrowLeft, Wrench, FolderOpen, RefreshCw, TriangleAlert } from 'lucide-react'
 import type { WotStatus } from '@shared/types'
 
 function formatSize(bytes: number): string {
@@ -32,11 +33,13 @@ function WotModsView({ onBack }: { onBack?: () => void }): JSX.Element {
       <header className="topbar">
         {onBack && (
           <button className="btn" onClick={onBack}>
-            ← Zurück
+            <ArrowLeft size={16} /> Zurück
           </button>
         )}
         <div className="brand">
-          <h1>🛠️ World of Tanks</h1>
+          <h1 className="h2-icon">
+            <Wrench size={22} /> World of Tanks
+          </h1>
           {status?.ok && (
             <span className="subtitle">
               Version {status.currentVersion} · {active} aktiv
@@ -45,25 +48,35 @@ function WotModsView({ onBack }: { onBack?: () => void }): JSX.Element {
         </div>
         <div className="topbar-actions">
           <button className="btn" onClick={() => window.api.openWotModsFolder()} disabled={!status?.ok}>
-            📂 Mod-Ordner
+            <FolderOpen size={15} /> Mod-Ordner
           </button>
           <button className="btn" onClick={() => run(() => window.api.addWotMods())} disabled={busy || !status?.ok}>
             + Mod hinzufügen
           </button>
           <button className="btn" onClick={() => run(() => window.api.getWotStatus())} disabled={busy}>
-            {busy ? '…' : '↻ Aktualisieren'}
+            {busy ? (
+              '…'
+            ) : (
+              <>
+                <RefreshCw size={15} /> Aktualisieren
+              </>
+            )}
           </button>
         </div>
       </header>
 
       <main className="content">
-        {status && !status.ok && <div className="banner error">⚠ {status.error}</div>}
+        {status && !status.ok && (
+          <div className="banner error icon-line">
+            <TriangleAlert size={16} /> {status.error}
+          </div>
+        )}
 
         {status?.ok && status.needsRestore > 0 && (
           <div className="nvidia-update available" style={{ marginBottom: 20, maxWidth: 860 }}>
-            <span>
-              ⚠ <strong>{status.needsRestore} aktive Mods fehlen</strong> im aktuellen
-              Versionsordner — vermutlich hat World of Tanks ein Update bekommen.
+            <span className="icon-line">
+              <TriangleAlert size={15} /> <strong>{status.needsRestore} aktive Mods fehlen</strong>{' '}
+              im aktuellen Versionsordner — vermutlich hat World of Tanks ein Update bekommen.
             </span>
             <button className="btn small" onClick={() => run(() => window.api.restoreWotMods())} disabled={busy}>
               Mods wiederherstellen

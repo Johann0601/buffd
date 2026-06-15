@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { User, Users, RefreshCw, Gamepad2, Lock, ChevronDown, ChevronRight } from 'lucide-react'
 import type { FriendGame, SteamFriend, SteamFriendsResult } from '@shared/types'
 import { formatLastPlayed, formatPlaytime } from './format'
 
@@ -61,23 +62,37 @@ function FriendRow({ friend }: { friend: SteamFriend }): JSX.Element {
           {friend.avatarUrl ? (
             <img className="friend-avatar" src={friend.avatarUrl} alt="" />
           ) : (
-            <span className="friend-avatar friend-avatar-fallback">👤</span>
+            <span className="friend-avatar friend-avatar-fallback">
+              <User size={20} />
+            </span>
           )}
           <span className={`friend-dot state-${friend.state}`} />
         </span>
         <span className="friend-main">
           <span className="friend-name">{friend.personaName}</span>
           <span className="friend-status">
-            {friend.state === 'ingame' && friend.currentGame
-              ? `🎮 ${friend.currentGame}`
-              : STATE_LABEL[friend.state]}
+            {friend.state === 'ingame' && friend.currentGame ? (
+              <span className="icon-line">
+                <Gamepad2 size={13} /> {friend.currentGame}
+              </span>
+            ) : (
+              STATE_LABEL[friend.state]
+            )}
             {friend.state === 'offline' && friend.lastLogoff
               ? ` · zuletzt ${formatLastPlayed(friend.lastLogoff)}`
               : ''}
           </span>
         </span>
-        {!friend.private && <span className="friend-caret">{open ? '▾' : '▸'}</span>}
-        {friend.private && <span className="friend-private" title="Profil privat">🔒</span>}
+        {!friend.private && (
+          <span className="friend-caret">
+            {open ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+          </span>
+        )}
+        {friend.private && (
+          <span className="friend-private" title="Profil privat">
+            <Lock size={14} />
+          </span>
+        )}
       </button>
 
       {open && (
@@ -138,7 +153,9 @@ function FriendsView({ onOpenAccounts }: { onOpenAccounts: () => void }): JSX.El
     <div className="app">
       <header className="topbar">
         <div className="brand">
-          <h1>👥 Freunde</h1>
+          <h1 className="h2-icon">
+            <Users size={22} /> Freunde
+          </h1>
           <span className="subtitle">
             {loading
               ? 'lädt …'
@@ -148,7 +165,13 @@ function FriendsView({ onOpenAccounts }: { onOpenAccounts: () => void }): JSX.El
           </span>
         </div>
         <button className="btn" onClick={load} disabled={loading}>
-          {loading ? 'Lädt …' : '↻ Aktualisieren'}
+          {loading ? (
+            'Lädt …'
+          ) : (
+            <>
+              <RefreshCw size={15} /> Aktualisieren
+            </>
+          )}
         </button>
       </header>
 

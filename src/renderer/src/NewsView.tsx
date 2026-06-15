@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Newspaper, RefreshCw } from 'lucide-react'
 import type { LibraryNewsResult } from '@shared/types'
 
 // News-Feed (A7): neueste News/Patchnotes aller installierten Steam-Spiele,
@@ -32,13 +33,21 @@ function NewsView(): JSX.Element {
     <div className="app">
       <header className="topbar">
         <div className="brand">
-          <h1>📰 News</h1>
+          <h1 className="h2-icon">
+            <Newspaper size={22} /> News
+          </h1>
           <span className="subtitle">
             {loading ? 'lädt …' : `${items.length} Meldungen aus deiner Bibliothek`}
           </span>
         </div>
         <button className="btn" onClick={() => load(true)} disabled={loading}>
-          {loading ? 'Lädt …' : '↻ Aktualisieren'}
+          {loading ? (
+            'Lädt …'
+          ) : (
+            <>
+              <RefreshCw size={15} /> Aktualisieren
+            </>
+          )}
         </button>
       </header>
 

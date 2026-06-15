@@ -1,4 +1,17 @@
 import { useEffect, useMemo, useState } from 'react'
+import {
+  ShoppingCart,
+  Star,
+  Gift,
+  Tag,
+  ArrowRight,
+  ArrowLeft,
+  TriangleAlert,
+  Check,
+  ExternalLink,
+  X,
+  Download
+} from 'lucide-react'
 import type {
   EpicFreeGame,
   EpicLibraryGame,
@@ -16,7 +29,7 @@ import { formatEuro, formatPlaytime } from './format'
 type ShopSection = {
   id: string
   title: string
-  icon: string
+  Icon: typeof Gift
   description: string
   render: (onBack: () => void) => JSX.Element
 }
@@ -25,7 +38,7 @@ const SHOP_SECTIONS: ShopSection[] = [
   {
     id: 'epic',
     title: 'Epic Games',
-    icon: '🎁',
+    Icon: Gift,
     description:
       'Gratisspiele der Woche und deine komplette Epic-Bibliothek — auch alles, was nicht installiert ist.',
     render: (onBack) => <EpicShopView onBack={onBack} />
@@ -33,9 +46,9 @@ const SHOP_SECTIONS: ShopSection[] = [
   {
     id: 'steam',
     title: 'Steam',
-    icon: '🏷️',
+    Icon: Tag,
     description:
-      'Die aktuellen Steam-Angebote mit Rabatt und Preisen — per ☆ wandern Spiele direkt auf die Wunschliste.',
+      'Die aktuellen Steam-Angebote mit Rabatt und Preisen — per Stern wandern Spiele direkt auf die Wunschliste.',
     render: (onBack) => <SteamShopView onBack={onBack} />
   }
 ]
@@ -65,21 +78,27 @@ function ShopsView(): JSX.Element {
     <div className="app">
       <header className="topbar">
         <div className="brand">
-          <h1>🛒 Shops</h1>
+          <h1 className="h2-icon">
+            <ShoppingCart size={22} /> Shops
+          </h1>
           <span className="subtitle">Angebote & Plattform-Details</span>
         </div>
         <button className="btn" onClick={() => setSelected('wishlist')}>
-          <span className="wl-star">★</span> Wunschliste
+          <Star size={15} className="wl-star" /> Wunschliste
         </button>
       </header>
       <main className="content">
         <div className="mod-section-grid">
           {SHOP_SECTIONS.map((s) => (
             <button key={s.id} className="mod-section-card" onClick={() => setSelected(s.id)}>
-              <span className="mod-section-icon">{s.icon}</span>
+              <span className="mod-section-icon">
+                <s.Icon size={26} />
+              </span>
               <span className="mod-section-title">{s.title}</span>
               <span className="mod-section-desc">{s.description}</span>
-              <span className="mod-section-cta">Öffnen →</span>
+              <span className="mod-section-cta icon-line">
+                Öffnen <ArrowRight size={14} />
+              </span>
             </button>
           ))}
         </div>
@@ -87,8 +106,8 @@ function ShopsView(): JSX.Element {
         {/* Highlights aus allen Shops */}
         {freeGames.length > 0 && (
           <>
-            <h2 className="section-title" style={{ marginTop: 30 }}>
-              🎁 Gratis bei Epic
+            <h2 className="section-title icon-line" style={{ marginTop: 30 }}>
+              <Gift size={18} /> Gratis bei Epic
             </h2>
             <div className="offer-row">
               {freeGames.map((g) => (
@@ -116,8 +135,8 @@ function ShopsView(): JSX.Element {
 
         {offers.length > 0 && (
           <>
-            <h2 className="section-title" style={{ marginTop: 18 }}>
-              🏷️ Steam-Angebote
+            <h2 className="section-title icon-line" style={{ marginTop: 18 }}>
+              <Tag size={18} /> Steam-Angebote
             </h2>
             <div className="offer-row">
               {offers.map((o) => (
@@ -207,10 +226,12 @@ function EpicShopView({ onBack }: { onBack: () => void }): JSX.Element {
     <div className="app">
       <header className="topbar">
         <button className="btn" onClick={onBack}>
-          ← Zurück
+          <ArrowLeft size={16} /> Zurück
         </button>
         <div className="brand">
-          <h1>🎁 Epic Games</h1>
+          <h1 className="h2-icon">
+            <Gift size={22} /> Epic Games
+          </h1>
         </div>
         <span />
       </header>
@@ -234,7 +255,7 @@ function EpicShopView({ onBack }: { onBack: () => void }): JSX.Element {
 
         <StoreSearch
           title="Epic-Store durchsuchen"
-          placeholder="🔍 Spiel im Epic Store suchen …"
+          placeholder="Spiel im Epic Store suchen …"
           run={runEpicSearch}
         />
 
@@ -260,7 +281,7 @@ function EpicShopView({ onBack }: { onBack: () => void }): JSX.Element {
         )}
         {libError && (
           <p className="hint">
-            ⚠ {libError} — ist dein Epic-Konto unter „Konten" verbunden?
+            <TriangleAlert size={14} /> {libError} — ist dein Epic-Konto unter „Konten" verbunden?
           </p>
         )}
         {library && (
@@ -278,7 +299,11 @@ function EpicShopView({ onBack }: { onBack: () => void }): JSX.Element {
                     {g.playtimeSec > 0 ? `Spielzeit: ${formatPlaytime(g.playtimeSec)}` : 'nie gespielt'}
                   </div>
                 </div>
-                {g.installed && <span className="shop-installed">✓ installiert</span>}
+                {g.installed && (
+                  <span className="shop-installed icon-line">
+                    <Check size={13} /> installiert
+                  </span>
+                )}
               </div>
             ))}
             {filtered.length === 0 && <p className="hint">Kein Treffer für „{filter}".</p>}
@@ -312,7 +337,7 @@ function steamToRow(r: SteamSearchResult): StoreSearchRow {
 }
 
 // Store-Suche: Ergebnisse mit Preis, Klick öffnet die Store-Seite,
-// ☆ legt das Spiel auf die (shop-übergreifende) Wunschliste.
+// Der Stern legt das Spiel auf die (shop-übergreifende) Wunschliste.
 function StoreSearch({
   title,
   placeholder,
@@ -381,7 +406,11 @@ function StoreSearch({
         </button>
       </div>
 
-      {error && <p className="hint">⚠ {error}</p>}
+      {error && (
+        <p className="hint icon-line">
+          <TriangleAlert size={14} /> {error}
+        </p>
+      )}
       {results && (
         <div className="shop-library" style={{ marginTop: 12 }}>
           {results.length === 0 && !error && <p className="hint">Nichts gefunden.</p>}
@@ -407,17 +436,19 @@ function StoreSearch({
               </div>
               {r.discountPct > 0 && <span className="offer-badge discount">-{r.discountPct}%</span>}
               {wishedIds.has(r.key) ? (
-                <span className="shop-installed">✓ Wunschliste</span>
+                <span className="shop-installed icon-line">
+                  <Check size={13} /> Wunschliste
+                </span>
               ) : (
                 <button
-                  className="btn small"
+                  className="btn small icon-only"
                   title="Auf die Wunschliste (mit Preisalarm)"
                   onClick={(e) => {
                     e.stopPropagation() // nicht zusätzlich die Store-Seite öffnen
                     add(r)
                   }}
                 >
-                  ☆
+                  <Star size={15} />
                 </button>
               )}
             </div>
@@ -507,10 +538,12 @@ function SteamShopView({ onBack }: { onBack: () => void }): JSX.Element {
     <div className="app">
       <header className="topbar">
         <button className="btn" onClick={onBack}>
-          ← Zurück
+          <ArrowLeft size={16} /> Zurück
         </button>
         <div className="brand">
-          <h1>🏷️ Steam</h1>
+          <h1 className="h2-icon">
+            <Tag size={22} /> Steam
+          </h1>
           {offers && <span className="subtitle">{offers.length} Angebote</span>}
         </div>
         <span />
@@ -519,14 +552,18 @@ function SteamShopView({ onBack }: { onBack: () => void }): JSX.Element {
       <main className="content">
         <StoreSearch
           title="Steam-Store durchsuchen"
-          placeholder="🔍 Spiel im Steam Store suchen …"
+          placeholder="Spiel im Steam Store suchen …"
           run={runSteamSearch}
           onWishlistChanged={setWishlist}
         />
 
         <h2 className="section-title">Aktuelle Angebote</h2>
         {offers === null && !error && <p className="hint">Lade Angebote …</p>}
-        {error && <p className="hint">⚠ {error}</p>}
+        {error && (
+        <p className="hint icon-line">
+          <TriangleAlert size={14} /> {error}
+        </p>
+      )}
         {offers && (
           <div className="offer-grid wide">
             {offers.map((o) => (
@@ -551,7 +588,7 @@ function SteamShopView({ onBack }: { onBack: () => void }): JSX.Element {
                       toggleWish(o)
                     }}
                   >
-                    {wishedIds.has(String(o.appId)) ? '★' : '☆'}
+                    <Star size={16} fill={wishedIds.has(String(o.appId)) ? 'currentColor' : 'none'} />
                   </button>
                 </div>
                 <div className="offer-info">
@@ -567,8 +604,8 @@ function SteamShopView({ onBack }: { onBack: () => void }): JSX.Element {
         )}
         <p className="hint">
           Die Liste entspricht den „Top-Angeboten" der Steam-Startseite. Ein Klick öffnet die
-          Store-Seite im Browser — gekauft wird wie immer bei Steam selbst. Mit ☆ legst du ein
-          Spiel auf die Wunschliste: Sobald es im Angebot ist, meldet sich die 🔔-Glocke.
+          Store-Seite im Browser — gekauft wird wie immer bei Steam selbst. Mit dem Stern legst du
+          ein Spiel auf die Wunschliste: Sobald es im Angebot ist, meldet sich die Glocke.
         </p>
       </main>
     </div>
@@ -671,10 +708,12 @@ function WishlistView({ onBack }: { onBack: () => void }): JSX.Element {
     <div className="app">
       <header className="topbar">
         <button className="btn" onClick={onBack}>
-          ← Zurück
+          <ArrowLeft size={16} /> Zurück
         </button>
         <div className="brand">
-          <h1><span className="wl-star">★</span> Wunschliste</h1>
+          <h1 className="h2-icon">
+            <Star size={20} className="wl-star" /> Wunschliste
+          </h1>
           {wishlist.length > 0 && <span className="subtitle">{wishlist.length} Spiele</span>}
         </div>
         <button
@@ -683,7 +722,13 @@ function WishlistView({ onBack }: { onBack: () => void }): JSX.Element {
           disabled={importing}
           title="Übernimmt die Wunschliste deines Steam-Kontos (muss öffentlich sein)"
         >
-          {importing ? 'Importiere …' : '⬇ Steam-Wunschliste übernehmen'}
+          {importing ? (
+            'Importiere …'
+          ) : (
+            <>
+              <Download size={15} /> Steam-Wunschliste übernehmen
+            </>
+          )}
         </button>
       </header>
 
@@ -693,8 +738,8 @@ function WishlistView({ onBack }: { onBack: () => void }): JSX.Element {
       {wishlist.length === 0 && (
         <p className="hint">
           Noch leer. Übernimm oben deine Steam-Wunschliste, suche unten ein Spiel oder klicke bei
-          den Steam-Angeboten auf ☆ — die App prüft dann alle 6 Stunden den Preis und meldet
-          Rabatte über die 🔔-Glocke.
+          den Steam-Angeboten auf den Stern — die App prüft dann alle 6 Stunden den Preis und meldet
+          Rabatte über die Glocke.
         </p>
       )}
 
@@ -717,7 +762,7 @@ function WishlistView({ onBack }: { onBack: () => void }): JSX.Element {
               </div>
               {w.discountPct > 0 && <span className="offer-badge discount">-{w.discountPct}%</span>}
               <button
-                className="btn small"
+                className="btn small icon-only"
                 title="Im Store ansehen"
                 onClick={() =>
                   window.open(
@@ -726,14 +771,14 @@ function WishlistView({ onBack }: { onBack: () => void }): JSX.Element {
                   )
                 }
               >
-                ↗
+                <ExternalLink size={15} />
               </button>
               <button
-                className="btn small"
+                className="btn small icon-only"
                 title="Von der Wunschliste entfernen"
                 onClick={() => remove(w.appId)}
               >
-                ✕
+                <X size={15} />
               </button>
             </div>
           ))}
@@ -744,7 +789,7 @@ function WishlistView({ onBack }: { onBack: () => void }): JSX.Element {
         <input
           type="text"
           className="account-code-input"
-          placeholder="🔍 In Steam UND Epic suchen …"
+          placeholder="In Steam UND Epic suchen …"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           onKeyDown={(e) => {
@@ -758,8 +803,8 @@ function WishlistView({ onBack }: { onBack: () => void }): JSX.Element {
 
       {steamResults && (
         <>
-          <h3 className="section-title" style={{ marginTop: 16 }}>
-            🏷️ Steam
+          <h3 className="section-title icon-line" style={{ marginTop: 16 }}>
+            <Tag size={16} /> Steam
           </h3>
           <div className="shop-library">
             {steamResults.length === 0 && <p className="hint">Nichts gefunden.</p>}
@@ -780,7 +825,9 @@ function WishlistView({ onBack }: { onBack: () => void }): JSX.Element {
                   <span className="offer-badge discount">-{r.discountPct}%</span>
                 )}
                 {wishedIds.has(r.appId) ? (
-                  <span className="shop-installed">✓ auf der Liste</span>
+                  <span className="shop-installed icon-line">
+                  <Check size={13} /> auf der Liste
+                </span>
                 ) : (
                   <button className="btn primary small" onClick={() => addSteam(r)}>
                     + Wunschliste
@@ -794,10 +841,14 @@ function WishlistView({ onBack }: { onBack: () => void }): JSX.Element {
 
       {(epicResults || epicError) && (
         <>
-          <h3 className="section-title" style={{ marginTop: 16 }}>
-            🎁 Epic Games
+          <h3 className="section-title icon-line" style={{ marginTop: 16 }}>
+            <Gift size={16} /> Epic Games
           </h3>
-          {epicError && <p className="hint">⚠ {epicError}</p>}
+          {epicError && (
+            <p className="hint icon-line">
+              <TriangleAlert size={14} /> {epicError}
+            </p>
+          )}
           <div className="shop-library">
             {epicResults && epicResults.length === 0 && !epicError && (
               <p className="hint">Nichts gefunden.</p>
@@ -821,7 +872,9 @@ function WishlistView({ onBack }: { onBack: () => void }): JSX.Element {
                   <span className="offer-badge discount">-{r.discountPct}%</span>
                 )}
                 {wishedIds.has(r.id) ? (
-                  <span className="shop-installed">✓ auf der Liste</span>
+                  <span className="shop-installed icon-line">
+                  <Check size={13} /> auf der Liste
+                </span>
                 ) : (
                   <button className="btn primary small" onClick={() => addEpic(r)}>
                     + Wunschliste
@@ -835,7 +888,7 @@ function WishlistView({ onBack }: { onBack: () => void }): JSX.Element {
 
       <p className="hint" style={{ marginTop: 18 }}>
         Die Wunschliste gilt shop-übergreifend: Die Suche findet Spiele in Steam und Epic, Preise
-        werden direkt beim jeweiligen Shop geprüft, und Rabatte landen in der 🔔-Glocke.
+        werden direkt beim jeweiligen Shop geprüft, und Rabatte landen in der Glocke.
       </p>
       </main>
     </div>

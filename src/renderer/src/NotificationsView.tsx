@@ -1,3 +1,15 @@
+import {
+  Bell,
+  RefreshCw,
+  Check,
+  CircleArrowUp,
+  MonitorCog,
+  Gift,
+  Wallet,
+  Gamepad2,
+  ExternalLink,
+  X
+} from 'lucide-react'
 import type { EpicFreeGame, GameCard, NvidiaUpdate, WishlistItem } from '@shared/types'
 import { formatEuro } from './format'
 import { updateActionFor } from './updateAction'
@@ -35,20 +47,28 @@ function NotificationsView({
     <div className="app">
       <header className="topbar">
         <div className="brand">
-          <h1>🔔 Benachrichtigungen</h1>
+          <h1 className="h2-icon">
+            <Bell size={22} /> Benachrichtigungen
+          </h1>
           <span className="subtitle">
             {count === 0 ? 'nichts offen' : `${count} offen`}
           </span>
         </div>
         <button className="btn" onClick={onRefresh} disabled={refreshing}>
-          {refreshing ? 'Prüfe …' : '↻ Aktualisieren'}
+          {refreshing ? (
+            'Prüfe …'
+          ) : (
+            <>
+              <RefreshCw size={15} /> Aktualisieren
+            </>
+          )}
         </button>
       </header>
 
       <main className="content">
         {count === 0 && (
-          <div className="empty">
-            Alles ruhig — App, Spiele und Treiber sind auf dem neuesten Stand. ✓
+          <div className="empty icon-line">
+            <Check size={16} /> Alles ruhig — App, Spiele und Treiber sind auf dem neuesten Stand.
           </div>
         )}
 
@@ -56,7 +76,9 @@ function NotificationsView({
           {/* App-Update: schon heruntergeladen, wartet auf Neustart */}
           {appUpdateVersion && (
             <div className="settings-row notif-attention">
-              <span className="settings-row-icon">⬆️</span>
+              <span className="settings-row-icon">
+                <CircleArrowUp size={22} />
+              </span>
               <div className="settings-row-main">
                 <div className="settings-row-title">
                   buffd {appUpdateVersion} ist bereit
@@ -75,7 +97,9 @@ function NotificationsView({
           {/* Nvidia-Treiber */}
           {nvidia?.updateAvailable && (
             <div className="settings-row notif-attention">
-              <span className="settings-row-icon">🎞️</span>
+              <span className="settings-row-icon">
+                <MonitorCog size={22} />
+              </span>
               <div className="settings-row-main">
                 <div className="settings-row-title">
                   Nvidia-Treiber {nvidia.latestVersion} verfügbar
@@ -100,7 +124,9 @@ function NotificationsView({
           {/* Epic-Gratisspiele, die noch nicht eingelöst sind */}
           {epicFreebies.map((f) => (
             <div key={f.title} className="settings-row notif-attention">
-              <span className="settings-row-icon">🎁</span>
+              <span className="settings-row-icon">
+                <Gift size={22} />
+              </span>
               <div className="settings-row-main">
                 <div className="settings-row-title">Gratis bei Epic: {f.title}</div>
                 <div className="settings-row-desc">
@@ -115,15 +141,15 @@ function NotificationsView({
               </div>
               {f.storeUrl && (
                 <button className="btn primary small" onClick={() => window.open(f.storeUrl!, '_blank')}>
-                  Im Epic Store einlösen ↗
+                  Im Epic Store einlösen <ExternalLink size={14} />
                 </button>
               )}
               <button
-                className="btn small"
+                className="btn small icon-only"
                 title="Diese Erinnerung ausblenden"
                 onClick={() => onDismissFreebie(f.title)}
               >
-                ✕
+                <X size={15} />
               </button>
             </div>
           ))}
@@ -131,7 +157,9 @@ function NotificationsView({
           {/* Wunschlisten-Spiele im Angebot */}
           {wishlistDeals.map((w) => (
             <div key={w.appId} className="settings-row notif-attention">
-              <span className="settings-row-icon">💶</span>
+              <span className="settings-row-icon">
+                <Wallet size={22} />
+              </span>
               <div className="settings-row-main">
                 <div className="settings-row-title">
                   {w.name} ist im Angebot (−{w.discountPct} %)
@@ -151,7 +179,15 @@ function NotificationsView({
                   )
                 }
               >
-                {w.shop === 'epic' ? 'Im Epic Store ↗' : 'Im Steam-Store ↗'}
+                {w.shop === 'epic' ? (
+                  <>
+                    Im Epic Store <ExternalLink size={14} />
+                  </>
+                ) : (
+                  <>
+                    Im Steam-Store <ExternalLink size={14} />
+                  </>
+                )}
               </button>
             </div>
           ))}
@@ -161,7 +197,9 @@ function NotificationsView({
             const action = updateActionFor(g)
             return (
               <div key={g.id} className="settings-row">
-                <span className="settings-row-icon">🎮</span>
+                <span className="settings-row-icon">
+                  <Gamepad2 size={22} />
+                </span>
                 <div className="settings-row-main">
                   <div className="settings-row-title">{g.name}</div>
                   <div className="settings-row-desc">
@@ -182,7 +220,7 @@ function NotificationsView({
         <p className="hint">
           Hier landet alles Wichtige: App-Updates, Spiel-Updates, Nvidia-Treiber,
           Wunschlisten-Rabatte (Preisprüfung alle 6 Stunden) und Epic-Gratisspiele, die du noch
-          nicht eingelöst hast. Mit „↻ Aktualisieren" oben prüfst du alles sofort neu.
+          nicht eingelöst hast. Mit „Aktualisieren" oben prüfst du alles sofort neu.
         </p>
       </main>
     </div>

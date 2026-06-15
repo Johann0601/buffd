@@ -10,6 +10,35 @@ import type {
   RunningGame,
   WishlistItem
 } from '@shared/types'
+import {
+  Library,
+  BarChart3,
+  ShoppingCart,
+  Newspaper,
+  Users,
+  Bell,
+  Music,
+  Settings,
+  FlaskConical,
+  RefreshCw,
+  Filter,
+  X,
+  Folder,
+  FolderOpen,
+  Check,
+  Pencil,
+  Trash2,
+  Download,
+  ExternalLink,
+  CircleArrowUp,
+  Play,
+  Square,
+  Wrench,
+  Gamepad2,
+  Puzzle,
+  ArrowLeft,
+  TriangleAlert
+} from 'lucide-react'
 import { formatGameSize, formatLastPlayed, formatPlaytime } from './format'
 import { platformLabel } from './platforms'
 import { updateActionFor } from './updateAction'
@@ -243,7 +272,9 @@ function App(): JSX.Element {
           }}
           title="Bibliothek"
         >
-          <span className="nav-icon">📚</span>
+          <span className="nav-icon">
+            <Library size={20} />
+          </span>
           <span className="nav-label">Bibliothek</span>
         </button>
         <button
@@ -251,7 +282,9 @@ function App(): JSX.Element {
           onClick={() => setView('stats')}
           title="Statistik"
         >
-          <span className="nav-icon">📊</span>
+          <span className="nav-icon">
+            <BarChart3 size={20} />
+          </span>
           <span className="nav-label">Statistik</span>
         </button>
         <button
@@ -259,7 +292,9 @@ function App(): JSX.Element {
           onClick={() => setView('shops')}
           title="Shops"
         >
-          <span className="nav-icon">🛒</span>
+          <span className="nav-icon">
+            <ShoppingCart size={20} />
+          </span>
           <span className="nav-label">Shops</span>
         </button>
         <button
@@ -267,7 +302,9 @@ function App(): JSX.Element {
           onClick={() => setView('news')}
           title="News"
         >
-          <span className="nav-icon">📰</span>
+          <span className="nav-icon">
+            <Newspaper size={20} />
+          </span>
           <span className="nav-label">News</span>
         </button>
         <button
@@ -275,7 +312,9 @@ function App(): JSX.Element {
           onClick={() => setView('friends')}
           title="Freunde"
         >
-          <span className="nav-icon">👥</span>
+          <span className="nav-icon">
+            <Users size={20} />
+          </span>
           <span className="nav-label">Freunde</span>
         </button>
 
@@ -285,7 +324,7 @@ function App(): JSX.Element {
           title="Benachrichtigungen"
         >
           <span className="nav-icon">
-            🔔
+            <Bell size={20} />
             {notifCount > 0 && <span className="nav-badge">{notifCount}</span>}
           </span>
           <span className="nav-label">Benachrichtigungen</span>
@@ -296,7 +335,9 @@ function App(): JSX.Element {
           onClick={() => setSpotifyOpen((o) => !o)}
           title="Spotify-Player"
         >
-          <span className="nav-icon">🎵</span>
+          <span className="nav-icon">
+            <Music size={20} />
+          </span>
           <span className="nav-label">Spotify</span>
         </button>
         <button
@@ -304,13 +345,15 @@ function App(): JSX.Element {
           onClick={() => setView('settings')}
           title="Einstellungen"
         >
-          <span className="nav-icon">⚙️</span>
+          <span className="nav-icon">
+            <Settings size={20} />
+          </span>
           <span className="nav-label">Einstellungen</span>
         </button>
         <div className="sidebar-footer">
           {experimental && (
             <span className="exp-badge nav-label" title="Test-/Vorab-Build — keine veröffentlichte Version">
-              🧪 Experimenteller Build
+              <FlaskConical size={14} /> Experimenteller Build
             </span>
           )}
           {appVersion && <span className="app-version nav-label">Version {appVersion}</span>}
@@ -380,7 +423,9 @@ function App(): JSX.Element {
       {updateVersion && !updateDismissed && !showOnboarding && (
         <div className="modal-backdrop">
           <div className="modal update-prompt">
-            <h2>⬆️ Update bereit</h2>
+            <h2 className="h2-icon">
+              <CircleArrowUp size={20} /> Update bereit
+            </h2>
             <p className="onboard-intro">
               buffd {updateVersion} wurde heruntergeladen. Zum Installieren startet die App nur
               kurz neu — deine Daten bleiben natürlich erhalten.
@@ -389,8 +434,8 @@ function App(): JSX.Element {
               <button className="btn" onClick={() => setUpdateDismissed(true)}>
                 Später
               </button>
-              <button className="btn primary" onClick={() => window.api.installAppUpdate()}>
-                ⬆️ Jetzt neu starten &amp; aktualisieren
+              <button className="btn primary icon-btn" onClick={() => window.api.installAppUpdate()}>
+                <CircleArrowUp size={16} /> Jetzt neu starten &amp; aktualisieren
               </button>
             </div>
           </div>
@@ -428,20 +473,20 @@ function LibraryTabs({
   active: LibrarySub
   onChange: (sub: LibrarySub) => void
 }): JSX.Element {
-  const items: { id: LibrarySub; label: string }[] = [
-    { id: 'spiele', label: '🎮 Spiele' },
-    { id: 'updates', label: '⬆️ Updates' },
-    { id: 'mods', label: '🧩 Mods' }
+  const items: { id: LibrarySub; label: string; Icon: typeof Gamepad2 }[] = [
+    { id: 'spiele', label: 'Spiele', Icon: Gamepad2 },
+    { id: 'updates', label: 'Updates', Icon: CircleArrowUp },
+    { id: 'mods', label: 'Mods', Icon: Puzzle }
   ]
   return (
     <div className="subtabs">
-      {items.map((it) => (
+      {items.map(({ id, label, Icon }) => (
         <button
-          key={it.id}
-          className={`subtab ${active === it.id ? 'active' : ''}`}
-          onClick={() => onChange(it.id)}
+          key={id}
+          className={`subtab ${active === id ? 'active' : ''}`}
+          onClick={() => onChange(id)}
         >
-          {it.label}
+          <Icon size={16} /> {label}
         </button>
       ))}
     </div>
@@ -754,20 +799,21 @@ function GamesView({
     <div className="app">
       <header className="topbar">
         <div className="brand">
-          <h1 className="brand-title">
-            <img className="brand-title-mark" src={logoUrl} alt="" />
-            buffd
-          </h1>
+          <h1>Bibliothek</h1>
           <span className="subtitle">{playable.length} Spiele</span>
         </div>
         {tabs}
-        <button className="btn" onClick={scan} disabled={scanning}>
-          {scanning ? 'Scanne …' : '↻ Aktualisieren'}
+        <button className="btn icon-btn" onClick={scan} disabled={scanning}>
+          <RefreshCw size={15} /> {scanning ? 'Scanne …' : 'Aktualisieren'}
         </button>
       </header>
 
       <main className="content">
-        {error && <div className="banner error">⚠ {error}</div>}
+        {error && (
+          <div className="banner error icon-line">
+            <TriangleAlert size={16} /> {error}
+          </div>
+        )}
         {games.length === 0 && !scanning && !error && (
           <div className="empty">Nichts gefunden. Klicke auf „Aktualisieren".</div>
         )}
@@ -798,7 +844,7 @@ function GamesView({
               <input
                 type="text"
                 className="toolbar-input"
-                placeholder="🔍 Spiel suchen …"
+                placeholder="Spiel suchen …"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
@@ -815,11 +861,11 @@ function GamesView({
                 ))}
               </select>
               <button
-                className={`toolbar-select filter-toggle ${activeFilterCount ? 'active' : ''}`}
+                className={`toolbar-select filter-toggle icon-btn ${activeFilterCount ? 'active' : ''}`}
                 onClick={() => setFilterOpen((o) => !o)}
                 title="Nach Plattform, Tags und Sammlungen filtern"
               >
-                ⚙ Filter{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
+                <Filter size={15} /> Filter{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
                 {activeFilterCount > 0 && (
                   <span
                     className="filter-clear"
@@ -830,16 +876,16 @@ function GamesView({
                       resetFilters()
                     }}
                   >
-                    ✕
+                    <X size={13} />
                   </span>
                 )}
               </button>
               <button
-                className="toolbar-select"
+                className="toolbar-select icon-btn"
                 onClick={() => setManageCollections(true)}
                 title="Sammlungen anlegen, umbenennen oder löschen"
               >
-                📁 Sammlungen
+                <Folder size={15} /> Sammlungen
               </button>
             </div>
           </div>
@@ -882,10 +928,10 @@ function GamesView({
                   collections.map((c) => (
                     <button
                       key={c.id}
-                      className={`tag-chip ${collectionFilter === String(c.id) ? 'on' : ''}`}
+                      className={`tag-chip icon-chip ${collectionFilter === String(c.id) ? 'on' : ''}`}
                       onClick={() => setCollectionFilter(String(c.id))}
                     >
-                      📁 {c.name} ({c.gameCount})
+                      <Folder size={13} /> {c.name} ({c.gameCount})
                     </button>
                   ))
                 )}
@@ -910,8 +956,8 @@ function GamesView({
             )}
 
             {activeFilterCount > 0 && (
-              <button className="tag-chip clear" onClick={resetFilters}>
-                ✕ Alle Filter zurücksetzen
+              <button className="tag-chip clear icon-chip" onClick={resetFilters}>
+                <X size={13} /> Alle Filter zurücksetzen
               </button>
             )}
           </div>
@@ -954,7 +1000,7 @@ function GamesView({
                     <input
                       type="text"
                       className="toolbar-input"
-                      placeholder="🔍 Spiel suchen …"
+                      placeholder="Spiel suchen …"
                       value={niSearch}
                       onChange={(e) => setNiSearch(e.target.value)}
                     />
@@ -1079,7 +1125,9 @@ function CollectionsModal({
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal manage-modal" onClick={(e) => e.stopPropagation()}>
-        <h2>📁 Sammlungen verwalten</h2>
+        <h2 className="h2-icon">
+          <Folder size={20} /> Sammlungen verwalten
+        </h2>
 
         <div className="manage-section">
           <div className="manage-label">Neue Sammlung</div>
@@ -1119,11 +1167,15 @@ function CollectionsModal({
                           if (e.key === 'Escape') setEditId(null)
                         }}
                       />
-                      <button className="btn small" onClick={saveRename}>
-                        ✓
+                      <button className="btn small icon-only" onClick={saveRename} title="Speichern">
+                        <Check size={15} />
                       </button>
-                      <button className="btn small" onClick={() => setEditId(null)}>
-                        ✕
+                      <button
+                        className="btn small icon-only"
+                        onClick={() => setEditId(null)}
+                        title="Abbrechen"
+                      >
+                        <X size={15} />
                       </button>
                     </>
                   ) : (
@@ -1132,13 +1184,14 @@ function CollectionsModal({
                         {c.name} <span className="coll-count">({c.gameCount})</span>
                       </span>
                       <button
-                        className="btn small"
+                        className="btn small icon-only"
+                        title="Umbenennen"
                         onClick={() => {
                           setEditId(c.id)
                           setEditName(c.name)
                         }}
                       >
-                        ✎
+                        <Pencil size={14} />
                       </button>
                       {confirmDel === c.id ? (
                         <>
@@ -1150,8 +1203,12 @@ function CollectionsModal({
                           </button>
                         </>
                       ) : (
-                        <button className="btn small danger" onClick={() => setConfirmDel(c.id)}>
-                          🗑
+                        <button
+                          className="btn small danger icon-only"
+                          title="Löschen"
+                          onClick={() => setConfirmDel(c.id)}
+                        >
+                          <Trash2 size={14} />
                         </button>
                       )}
                     </>
@@ -1205,8 +1262,16 @@ function NotInstalledTile({
           <div className="cover-fallback">{game.name.charAt(0).toUpperCase()}</div>
         )}
         <span className="ni-badge">{platformLabel(game.source)}</span>
-        <button className="ni-install" onClick={install}>
-          {game.installUrl ? '⬇ Installieren' : '↗ Launcher öffnen'}
+        <button className="ni-install icon-btn" onClick={install}>
+          {game.installUrl ? (
+            <>
+              <Download size={15} /> Installieren
+            </>
+          ) : (
+            <>
+              <ExternalLink size={15} /> Launcher öffnen
+            </>
+          )}
         </button>
       </div>
       <div className="tile-info">
@@ -1273,7 +1338,11 @@ function GameTile({
       <div className="cover">
         <Cover game={game} />
         {isRunning && <span className="live-dot">● läuft</span>}
-        {!isRunning && game.updatePending && <span className="update-dot">⬆ Update</span>}
+        {!isRunning && game.updatePending && (
+          <span className="update-dot">
+            <CircleArrowUp size={12} /> Update
+          </span>
+        )}
         <span className="badge">{formatPlaytime(liveTotalSec)}</span>
       </div>
       <div className="tile-info">
@@ -1320,7 +1389,9 @@ function CollectionPicker({
 
   return (
     <div className="collection-picker">
-      <span className="collection-picker-label">📁 Sammlungen</span>
+      <span className="collection-picker-label icon-line">
+        <Folder size={14} /> Sammlungen
+      </span>
       <div className="collection-chips">
         {collections.map((c) => (
           <button
@@ -1347,8 +1418,13 @@ function CollectionPicker({
                 }
               }}
             />
-            <button className="btn small" onClick={createWithGame} disabled={!newName.trim()}>
-              ✓
+            <button
+              className="btn small icon-only"
+              onClick={createWithGame}
+              disabled={!newName.trim()}
+              title="Anlegen"
+            >
+              <Check size={15} />
             </button>
           </span>
         ) : (
@@ -1427,7 +1503,7 @@ function GameDetail({
     <div className="app">
       <header className="topbar">
         <button className="btn" onClick={onBack}>
-          ← Zurück
+          <ArrowLeft size={16} /> Zurück
         </button>
         <div className="brand">
           <h1>{game.name}</h1>
@@ -1455,7 +1531,7 @@ function GameDetail({
                     title="Bisherige Spielzeit eintragen (steht in deiner Epic-Bibliothek)"
                     onClick={() => setEditingHours('')}
                   >
-                    ✎
+                    <Pencil size={13} />
                   </button>
                 )}
               </span>
@@ -1474,8 +1550,8 @@ function GameDetail({
                       if (e.key === 'Escape') setEditingHours(null)
                     }}
                   />
-                  <button className="btn small" onClick={savePlaytime}>
-                    ✓
+                  <button className="btn small icon-only" onClick={savePlaytime} title="Speichern">
+                    <Check size={15} />
                   </button>
                 </span>
               )}
@@ -1511,7 +1587,9 @@ function GameDetail({
 
           {game.updatePending && (
             <div className="nvidia-update available" style={{ marginBottom: 22 }}>
-              <span>⬆️ Für dieses Spiel steht ein Update aus.</span>
+              <span className="icon-line">
+                <CircleArrowUp size={16} /> Für dieses Spiel steht ein Update aus.
+              </span>
               {(() => {
                 const action = updateActionFor(game)
                 return action ? (
@@ -1526,16 +1604,28 @@ function GameDetail({
           <div className="actions">
             {!isRunning ? (
               <button className="btn primary" onClick={launch} disabled={busy === 'launch'}>
-                {busy === 'launch' ? 'Starte …' : '▶ Starten'}
+                {busy === 'launch' ? (
+                  'Starte …'
+                ) : (
+                  <>
+                    <Play size={16} /> Starten
+                  </>
+                )}
               </button>
             ) : (
               <button className="btn danger" onClick={close} disabled={busy === 'close'}>
-                {busy === 'close' ? 'Schließe …' : '■ Schließen'}
+                {busy === 'close' ? (
+                  'Schließe …'
+                ) : (
+                  <>
+                    <Square size={15} /> Schließen
+                  </>
+                )}
               </button>
             )}
             {game.installDir && (
               <button className="btn" onClick={() => setShowManage(true)} title="Spiel verwalten">
-                ⚙ Verwalten
+                <Wrench size={16} /> Verwalten
               </button>
             )}
           </div>
@@ -1595,13 +1685,15 @@ function ManageGameModal({
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal manage-modal" onClick={(e) => e.stopPropagation()}>
-        <h2>⚙ {game.name} verwalten</h2>
+        <h2 className="h2-icon">
+          <Wrench size={20} /> {game.name} verwalten
+        </h2>
 
         <div className="manage-section">
           <div className="manage-label">Installationsordner</div>
           <div className="manage-path">{game.installDir ?? 'Unbekannt'}</div>
           <button className="btn" onClick={openFolder} disabled={!game.installDir}>
-            📂 Im Explorer öffnen
+            <FolderOpen size={16} /> Im Explorer öffnen
           </button>
           {pathError && (
             <div className="manage-warn">
@@ -1625,7 +1717,7 @@ function ManageGameModal({
                   onClose()
                 }}
               >
-                🗑 Deinstallieren
+                <Trash2 size={16} /> Deinstallieren
               </button>
               <div className="manage-hint">
                 {game.platform === 'steam'
@@ -1688,7 +1780,7 @@ function NotInstalledDetail({
     <div className="app">
       <header className="topbar">
         <button className="btn" onClick={onBack}>
-          ← Zurück
+          <ArrowLeft size={16} /> Zurück
         </button>
         <div className="brand">
           <h1>{game.name}</h1>
@@ -1729,8 +1821,16 @@ function NotInstalledDetail({
             </div>
 
             <div className="actions">
-              <button className="btn primary" onClick={install}>
-                {game.installUrl ? '⬇ Installieren' : '↗ Launcher öffnen'}
+              <button className="btn primary icon-btn" onClick={install}>
+                {game.installUrl ? (
+            <>
+              <Download size={15} /> Installieren
+            </>
+          ) : (
+            <>
+              <ExternalLink size={15} /> Launcher öffnen
+            </>
+          )}
               </button>
             </div>
 

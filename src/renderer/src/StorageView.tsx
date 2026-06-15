@@ -1,4 +1,14 @@
 import { useEffect, useState } from 'react'
+import {
+  ArrowLeft,
+  HardDrive,
+  RefreshCw,
+  Hourglass,
+  Sparkles,
+  Trash2,
+  Info,
+  Lightbulb
+} from 'lucide-react'
 import type { GameStorageInfo } from '@shared/types'
 import { formatGameSize, formatLastPlayed } from './format'
 import { platformLabel } from './platforms'
@@ -66,11 +76,13 @@ function StorageView({ onBack }: { onBack?: () => void }): JSX.Element {
       <header className="topbar">
         {onBack && (
           <button className="btn" onClick={onBack}>
-            ← Zurück
+            <ArrowLeft size={16} /> Zurück
           </button>
         )}
         <div className="brand">
-          <h1>💾 Speicher verwalten</h1>
+          <h1 className="h2-icon">
+            <HardDrive size={22} /> Speicher verwalten
+          </h1>
           <span className="subtitle">
             {known.length > 0
               ? `${known.length} Spiele · zusammen ${formatGameSize(totalBytes)}`
@@ -78,7 +90,13 @@ function StorageView({ onBack }: { onBack?: () => void }): JSX.Element {
           </span>
         </div>
         <button className="btn" onClick={analyze} disabled={analyzing}>
-          {analyzing ? 'Berechne …' : known.length > 0 ? '↻ Neu berechnen' : 'Größen berechnen'}
+          {analyzing ? (
+            'Berechne …'
+          ) : (
+            <>
+              <RefreshCw size={15} /> {known.length > 0 ? 'Neu berechnen' : 'Größen berechnen'}
+            </>
+          )}
         </button>
       </header>
 
@@ -95,14 +113,18 @@ function StorageView({ onBack }: { onBack?: () => void }): JSX.Element {
           </p>
         )}
         {analyzing && (
-          <p className="hint">⏳ Berechne Ordnergrößen … die Liste füllt sich Spiel für Spiel.</p>
+          <p className="hint icon-line">
+            <Hourglass size={14} /> Berechne Ordnergrößen … die Liste füllt sich Spiel für Spiel.
+          </p>
         )}
 
         {/* Aufräum-Vorschläge ganz oben hervorgehoben. */}
         {cleanupGames.length > 0 && (
           <section className="cleanup-box">
             <div className="cleanup-box-head">
-              <span className="cleanup-box-title">🧹 Aufräum-Vorschläge</span>
+              <span className="cleanup-box-title icon-line">
+                <Sparkles size={17} /> Aufräum-Vorschläge
+              </span>
               <span className="cleanup-box-sub">
                 {cleanupGames.length} {cleanupGames.length === 1 ? 'Spiel' : 'Spiele'} seit über 3
                 Monaten nicht gespielt · würde <b>{formatGameSize(cleanupBytes)}</b> freigeben
@@ -126,11 +148,13 @@ function StorageView({ onBack }: { onBack?: () => void }): JSX.Element {
                       }
                       onClick={() => uninstall(g)}
                     >
-                      🗑 Deinstallieren
+                      <Trash2 size={14} /> Deinstallieren
                     </button>
                   )}
                   {uninstallNotice?.gameId === g.gameId && (
-                    <div className="storage-cleanup-tip">ℹ️ {uninstallNotice.text}</div>
+                    <div className="storage-cleanup-tip icon-line">
+                      <Info size={13} /> {uninstallNotice.text}
+                    </div>
                   )}
                 </div>
               ))}
@@ -171,7 +195,7 @@ function StorageView({ onBack }: { onBack?: () => void }): JSX.Element {
                           }
                           onClick={() => uninstall(g)}
                         >
-                          🗑
+                          <Trash2 size={14} />
                         </button>
                       )}
                     </div>
@@ -181,13 +205,15 @@ function StorageView({ onBack }: { onBack?: () => void }): JSX.Element {
                       </div>
                     )}
                     {cleanupTip && g.sizeBytes !== null && (
-                      <div className="storage-cleanup-tip">
-                        💡 Seit über 3 Monaten nicht gespielt — Deinstallieren würde{' '}
-                        <b>{formatGameSize(g.sizeBytes)}</b> freigeben.
+                      <div className="storage-cleanup-tip icon-line">
+                        <Lightbulb size={13} /> Seit über 3 Monaten nicht gespielt —
+                        Deinstallieren würde <b>{formatGameSize(g.sizeBytes)}</b> freigeben.
                       </div>
                     )}
                     {uninstallNotice?.gameId === g.gameId && (
-                      <div className="storage-cleanup-tip">ℹ️ {uninstallNotice.text}</div>
+                      <div className="storage-cleanup-tip icon-line">
+                        <Info size={13} /> {uninstallNotice.text}
+                      </div>
                     )}
                   </div>
                 )

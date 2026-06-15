@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Gamepad2, Trophy, Check } from 'lucide-react'
 import type { SteamKeyStatus } from '@shared/types'
 
 // Erste-Schritte-Pop-up beim allerersten Start: fragt nach dem (optionalen)
@@ -42,7 +43,9 @@ function Onboarding({
   return (
     <div className="modal-backdrop">
       <div className="modal onboard">
-        <h2>Willkommen bei buffd 🎮</h2>
+        <h2 className="h2-icon">
+          Willkommen bei buffd <Gamepad2 size={20} />
+        </h2>
         <p className="onboard-intro">
           Schön, dass du dabei bist! buffd bündelt deine Spiele aus Steam, Epic &amp; Co. an einem
           Ort. Schönere Cover und Preisvergleiche sind schon eingebaut — für ein paar persönliche
@@ -50,17 +53,18 @@ function Onboarding({
         </p>
 
         <div className="onboard-card">
-          <div className="onboard-card-title">
-            🏆 Steam-Web-API-Key <span className="onboard-opt">empfohlen · optional</span>
+          <div className="onboard-card-title icon-line">
+            <Trophy size={17} /> Steam-Web-API-Key{' '}
+            <span className="onboard-opt">empfohlen · optional</span>
           </div>
           <p>
             Schaltet deine Steam-Erfolge auf den Detailseiten frei und zeigt deinen kompletten
             Besitz-Katalog — auch nicht installierte Spiele.
           </p>
           {status?.connected ? (
-            <div className="account-message ok">
-              ✓ Schon hinterlegt{status.personaName ? ` für ${status.personaName}` : ''} — alles
-              bereit.
+            <div className="account-message ok icon-line">
+              <Check size={14} /> Schon hinterlegt
+              {status.personaName ? ` für ${status.personaName}` : ''} — alles bereit.
             </div>
           ) : (
             <>

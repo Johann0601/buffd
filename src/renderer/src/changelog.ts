@@ -11,6 +11,15 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.21.0',
+    date: '2026-06-15',
+    title: 'Neue Icons in der ganzen App',
+    changes: [
+      'Die Emojis in der gesamten Oberfläche wurden durch einheitliche, schlanke Icons (Lucide) ersetzt — Seitenleiste, Knöpfe, Überschriften, Karten und Statusanzeigen. Die Icons passen sich automatisch an Hell- und Dunkel-Modus an.',
+      'Kleinigkeit: In der Bibliothek steht oben jetzt „Bibliothek" statt „buffd".'
+    ]
+  },
+  {
     version: '0.20.1',
     date: '2026-06-15',
     title: 'Update-Quelle umgestellt',
