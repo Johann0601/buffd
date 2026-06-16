@@ -3,9 +3,15 @@
 // 🔔-Glocke melden. Die Preisprüfung läuft gebündelt in EINER Anfrage:
 // appdetails erlaubt mehrere AppIDs, solange nur price_overview abgefragt wird.
 
-import type { SteamSearchResult, WishlistItem } from '@shared/types'
-import { addWishlistItem, listWishlist, updateWishlistMeta, updateWishlistPrice } from '../db'
-import { epicOfferPrice } from './epic/search'
+import type { SteamSearchResult, WishlistAltPrice, WishlistItem } from '@shared/types'
+import {
+  addWishlistItem,
+  listWishlist,
+  updateWishlistAltPrice,
+  updateWishlistMeta,
+  updateWishlistPrice
+} from '../db'
+import { epicOfferPrice, searchEpicStore } from './epic/search'
 import { steamIdentity } from './steam/webapi'
 
 interface PriceOverview {
@@ -14,12 +20,112 @@ interface PriceOverview {
   discount_percent: number
 }
 
+// --- Namens-Abgleich für den Shop-Vergleich --------------------------------
+
+/** Titel auf einen Vergleichskern reduzieren (Klein, ohne Editions-Zusätze/Sonderzeichen). */
+function normTitle(s: string): string {
+  return s
+    .toLowerCase()
+    .replace(/[™®©]/g, '')
+    .replace(/&/g, 'and')
+    .replace(
+      /\b(deluxe|ultimate|standard|premium|game of the year|goty|definitive|complete|gold|legendary|remastered|remake|edition)\b/g,
+      ''
+    )
+    .replace(/[^a-z0-9]+/g, '')
+}
+
+/** Zwei Store-Titel gelten als dasselbe Spiel? (bewusst konservativ). */
+function titlesMatch(a: string, b: string): boolean {
+  const na = normTitle(a)
+  const nb = normTitle(b)
+  if (!na || !nb) return false
+  if (na === nb) return true
+  return na.length >= 5 && nb.length >= 5 && (na.includes(nb) || nb.includes(na))
+}
+
+/** Gleiches Spiel im Epic-Store suchen (für Steam-Einträge). */
+async function epicAltPrice(name: string): Promise<WishlistAltPrice | null> {
+  const r = await searchEpicStore(name)
+  if (!r.ok) return null
+  const hit = r.results.find((el) => titlesMatch(el.name, name))
+  if (!hit) return null
+  return {
+    shop: 'epic',
+    priceCents: hit.priceCents,
+    originalCents: hit.originalCents,
+    discountPct: hit.discountPct,
+    storeUrl: hit.storeUrl
+  }
+}
+
+/** Gleiches Spiel im Steam-Store suchen (für Epic-Einträge). */
+async function steamAltPrice(name: string): Promise<WishlistAltPrice | null> {
+  const results = await searchSteamStore(name)
+  const hit = results.find((el) => titlesMatch(el.name, name))
+  if (!hit) return null
+  return {
+    shop: 'steam',
+    priceCents: hit.priceCents,
+    originalCents: hit.originalCents,
+    discountPct: hit.discountPct,
+    storeUrl: hit.storeUrl
+  }
+}
+
+/** Steam-Primärpreis EINES Spiels holen (undefined = Abruf scheiterte). */
+async function fetchSteamPrice(appId: string): Promise<PriceOverview | null | undefined> {
+  try {
+    const res = await fetch(
+      `https://store.steampowered.com/api/appdetails?appids=${appId}&cc=DE&filters=price_overview`,
+      { signal: AbortSignal.timeout(15000) }
+    )
+    if (!res.ok) return undefined
+    const json = (await res.json()) as Record<
+      string,
+      { success: boolean; data?: { price_overview?: PriceOverview } }
+    >
+    const entry = json[appId]
+    if (!entry?.success) return undefined
+    return entry.data?.price_overview ?? null // null = gratis / nicht im Verkauf
+  } catch {
+    return undefined
+  }
+}
+
+/**
+ * Preis EINES Eintrags prüfen (Primärpreis + Preis im anderen Shop) — schnell,
+ * für „gerade zur Wunschliste hinzugefügt". Die volle Liste prüft die 6-Stunden-
+ * Routine bzw. der manuelle Knopf.
+ */
+export async function checkOneWishlistPrice(appId: string): Promise<WishlistItem[]> {
+  const item = listWishlist().find((i) => i.appId === appId)
+  if (!item) return listWishlist()
+  try {
+    if (item.shop === 'steam') {
+      const p = await fetchSteamPrice(item.appId)
+      if (p) updateWishlistPrice(item.appId, p.final, p.initial, p.discount_percent)
+      else if (p === null) updateWishlistPrice(item.appId, null, null, 0)
+      updateWishlistAltPrice(item.appId, await epicAltPrice(item.name))
+    } else {
+      const price = await epicOfferPrice(item.name, item.appId)
+      if (price) {
+        updateWishlistPrice(item.appId, price.priceCents, price.originalCents, price.discountPct)
+      }
+      updateWishlistAltPrice(item.appId, await steamAltPrice(item.name))
+    }
+  } catch {
+    /* Preis bleibt vorerst unbekannt — die Routine holt ihn nach */
+  }
+  return listWishlist()
+}
+
 /** Preise aller Wunschlisten-Einträge prüfen und speichern (Steam + Epic). */
 export async function checkWishlistPrices(): Promise<WishlistItem[]> {
   const items = listWishlist()
   if (items.length === 0) return []
 
-  // Steam: ALLE Einträge in EINER Anfrage (appdetails erlaubt das bei price_overview).
+  // Steam-Primärpreise: ALLE in EINER Anfrage (appdetails erlaubt das bei price_overview).
   const steamItems = items.filter((i) => i.shop === 'steam')
   if (steamItems.length > 0) {
     try {
@@ -47,14 +153,28 @@ export async function checkWishlistPrices(): Promise<WishlistItem[]> {
     }
   }
 
-  // Epic: pro Eintrag eine Suche, mit Abstand (Cloudflare-Bot-Schutz!).
-  const epicItems = items.filter((i) => i.shop === 'epic')
-  for (const item of epicItems) {
-    const price = await epicOfferPrice(item.name, item.appId)
-    if (price) {
-      updateWishlistPrice(item.appId, price.priceCents, price.originalCents, price.discountPct)
+  // Pro Eintrag: ggf. Epic-Primärpreis + Preis im jeweils ANDEREN Shop.
+  // Epic-Aufrufe brauchen Abstand (Cloudflare-Bot-Schutz!) → sequenziell mit Pause.
+  let epicCalls = 0
+  for (const item of items) {
+    try {
+      if (item.shop === 'epic') {
+        if (epicCalls++ > 0) await new Promise((r) => setTimeout(r, 1500))
+        const price = await epicOfferPrice(item.name, item.appId)
+        if (price) {
+          updateWishlistPrice(item.appId, price.priceCents, price.originalCents, price.discountPct)
+        }
+        // Anderer Shop = Steam (günstig, kein Bot-Schutz).
+        updateWishlistAltPrice(item.appId, await steamAltPrice(item.name))
+      } else {
+        // Steam-Primärpreis kam schon aus dem Bulk-Call oben.
+        // Anderer Shop = Epic → Aufruf pacen.
+        if (epicCalls++ > 0) await new Promise((r) => setTimeout(r, 1500))
+        updateWishlistAltPrice(item.appId, await epicAltPrice(item.name))
+      }
+    } catch {
+      /* einzelner Eintrag fehlgeschlagen — Rest läuft weiter */
     }
-    if (epicItems.length > 1) await new Promise((r) => setTimeout(r, 1500))
   }
 
   return listWishlist()

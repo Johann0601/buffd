@@ -44,11 +44,16 @@ import {
   syncEpicPlaytime
 } from './services/epic/account'
 import { getEpicFreeGames } from './services/epic/store'
-import { searchEpicStore } from './services/epic/search'
+import { searchEpicStore, getEpicOffers } from './services/epic/search'
 import { getEpicLibrary } from './services/epic/library'
 import { getSteamOffers } from './services/steam/offers'
 import { getGameDetails, getGameNews, getGamePrices } from './services/gamedetails'
-import { checkWishlistPrices, importSteamWishlist, searchSteamStore } from './services/wishlist'
+import {
+  checkOneWishlistPrice,
+  checkWishlistPrices,
+  importSteamWishlist,
+  searchSteamStore
+} from './services/wishlist'
 import { itadStatus, setItadKey, clearItadKey } from './services/itad'
 import { addWishlistItem, listWishlist, removeWishlistItem } from './db'
 import { getGameAchievements } from './services/steam/achievements'
@@ -454,6 +459,7 @@ app.whenReady().then(() => {
   // Shops: Epic-Gratisspiele (ohne Login), komplette Epic-Bibliothek
   // (mit Konto) und aktuelle Steam-Angebote (ohne Login).
   ipcMain.handle('epic:free-games', () => getEpicFreeGames())
+  ipcMain.handle('epic:offers', () => getEpicOffers())
   ipcMain.handle('epic:library', () => getEpicLibrary())
   ipcMain.handle('steam:offers', () => getSteamOffers())
 
@@ -530,7 +536,7 @@ app.whenReady().then(() => {
       }
     ) => {
       addWishlistItem(item.appId, item.name, item.coverUrl, item.shop ?? 'steam', item.storeUrl ?? null)
-      return checkWishlistPrices() // direkt den aktuellen Preis holen
+      return checkOneWishlistPrice(item.appId) // nur den neuen Eintrag prüfen (schnell)
     }
   )
   ipcMain.handle('wishlist:remove', (_e, appId: string) => {

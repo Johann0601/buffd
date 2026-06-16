@@ -1,8 +1,9 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { House, ArrowRight, Play } from 'lucide-react'
-import { formatPlaytime } from './format'
+import { formatEuro, formatPlaytime } from './format'
 import type {
   EpicFreeGame,
+  EpicSearchResult,
   GameCard,
   LibraryNewsItem,
   PlaytimePeriods,
@@ -26,6 +27,7 @@ function HomeView({
   const [wot, setWot] = useState<WotStatus | null>(null)
   const [mcCount, setMcCount] = useState<number | null>(null)
   const [freeGames, setFreeGames] = useState<EpicFreeGame[]>([])
+  const [epicOffers, setEpicOffers] = useState<EpicSearchResult[]>([])
   const [steamOffers, setSteamOffers] = useState<SteamOffer[]>([])
   const [news, setNews] = useState<LibraryNewsItem[]>([])
   const [friends, setFriends] = useState<SteamFriend[]>([])
@@ -51,6 +53,7 @@ function HomeView({
       .getEpicFreeGames()
       .then((g) => setFreeGames(g.filter((f) => f.status === 'gratis')))
       .catch(() => {})
+    window.api.getEpicOffers().then(setEpicOffers).catch(() => {})
     window.api
       .getSteamOffers()
       .then((o) => setSteamOffers(o.slice(0, 12)))
@@ -81,6 +84,11 @@ function HomeView({
 
   const wotRestore = wot?.ok ? wot.needsRestore : 0
   const wotActive = wot?.ok ? wot.mods.filter((m) => m.enabled && m.installed).length : null
+
+  // Epic-Angebote, die nicht ohnehin schon als Gratisspiel laufen.
+  const epicOffersToShow = epicOffers.filter(
+    (o) => !freeGames.some((f) => titlesMatch(f.title, o.name))
+  )
 
   return (
     <div className="app">
@@ -149,12 +157,12 @@ function HomeView({
           </>
         )}
 
-        {/* Gratis bei Epic — eigene Reihe, hochkant, seitlich scrollbar */}
-        {freeGames.length > 0 && (
+        {/* Angebote bei Epic — Gratisspiele zuerst, dann reduzierte Spiele */}
+        {(freeGames.length > 0 || epicOffersToShow.length > 0) && (
           <>
             <div className="home-offers-head">
               <h2 className="section-title" style={{ marginTop: 26 }}>
-                Gratis bei Epic
+                Angebote bei Epic
               </h2>
               <button className="btn small" onClick={() => onNavigate('shops')}>
                 Alle ansehen <ArrowRight size={14} />
@@ -176,6 +184,32 @@ function HomeView({
                     <div className="offer-name">{g.title}</div>
                     <div className="offer-meta">
                       {g.originalPrice ? `statt ${g.originalPrice}` : 'kostenlos'}
+                    </div>
+                  </div>
+                </button>
+              ))}
+              {epicOffersToShow.map((o) => (
+                <button
+                  key={o.id}
+                  className="offer-card epic-card"
+                  title="Im Epic Store ansehen"
+                  onClick={() => o.storeUrl && window.open(o.storeUrl, '_blank')}
+                >
+                  <div className="offer-cover tall">
+                    {o.coverUrl ? <img src={o.coverUrl} alt={o.name} loading="lazy" /> : <span />}
+                    {o.discountPct > 0 && (
+                      <span className="offer-badge discount">-{o.discountPct}%</span>
+                    )}
+                  </div>
+                  <div className="offer-info">
+                    <div className="offer-name">{o.name}</div>
+                    <div className="offer-meta">
+                      {o.originalCents !== null && (
+                        <>
+                          <s>{formatEuro(o.originalCents)}</s>{' '}
+                        </>
+                      )}
+                      <b>{o.priceCents !== null ? formatEuro(o.priceCents) : ''}</b>
                     </div>
                   </div>
                 </button>
@@ -262,6 +296,22 @@ function HomeView({
  *  immer die Seite hoch/runter, die Reihe bewegt man am Scrollbalken. */
 function OfferRow({ children }: { children: ReactNode }): JSX.Element {
   return <div className="offer-row">{children}</div>
+}
+
+/** Grober Titel-Abgleich, um Gratisspiele nicht doppelt als Angebot zu zeigen. */
+function titlesMatch(a: string, b: string): boolean {
+  const norm = (s: string): string =>
+    s
+      .toLowerCase()
+      .replace(/[™®©]/g, '')
+      .replace(/&/g, 'and')
+      .replace(/\b(deluxe|ultimate|standard|premium|definitive|complete|edition|remastered)\b/g, '')
+      .replace(/[^a-z0-9]+/g, '')
+  const na = norm(a)
+  const nb = norm(b)
+  if (!na || !nb) return false
+  if (na === nb) return true
+  return na.length >= 5 && nb.length >= 5 && (na.includes(nb) || nb.includes(na))
 }
 
 export default HomeView

@@ -11,6 +11,20 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.21.6',
+    date: '2026-06-16',
+    title: 'Shops umgebaut: gemeinsame Suche & Preisvergleich',
+    changes: [
+      'Die beiden Knöpfe „Epic Games" und „Steam" oben in den Shops sind weg — stattdessen gibt es eine gemeinsame Suchleiste, die Steam und Epic gleichzeitig durchsucht.',
+      'In der Suche kannst du filtern: nur in einem Shop suchen (Steam/Epic/beide), nur Angebote, nur Gratis-Spiele und per Schieberegler (0 bis 80+ €) einen Höchstpreis festlegen.',
+      'Findet die App ein Spiel in beiden Shops, zeigt sie den günstigeren Preis an (mit Hinweis, was es im anderen Shop kostet).',
+      'Leeres Suchfeld + „Suchen" zeigt die aktuellen Steam-Angebote zum Stöbern — zusammen mit den Filtern (z. B. „Nur Angebote" oder Höchstpreis) bekommst du so schnell viele passende Spiele.',
+      'Die Wunschliste klappt jetzt als Popup direkt unter dem Knopf aus (wie das Spotify-Widget) und listet alle Spiele mit Preis — inklusive Preisvergleich zwischen Steam und Epic.',
+      'Neuer Knopf „Zurücksetzen" leert Suche und Filter wieder komplett.',
+      'Die Epic-Leiste heißt jetzt „Angebote bei Epic" und ist mit reduzierten Epic-Spielen gefüllt — die Gratisspiele stehen weiterhin am Anfang (auf der Startseite und in den Shops). Dazu kommen wie gehabt die Steam-Angebote.'
+    ]
+  },
+  {
     version: '0.21.5',
     date: '2026-06-16',
     title: 'Feedback-Funktion & Update-Knöpfe',

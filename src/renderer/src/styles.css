@@ -2911,6 +2911,225 @@ img.logo-cover {
   position: static;
 }
 
+/* --- Shops: gemeinsame Suche + Filter + Wunschliste-Popup --- */
+.chip.active {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 16%, var(--panel));
+  color: var(--accent);
+}
+
+.store-search {
+  margin-bottom: 8px;
+}
+
+.store-search-bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.store-search-icon {
+  position: absolute;
+  left: 14px;
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.store-search-input {
+  flex: 1;
+  height: 42px;
+  padding: 0 14px 0 42px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--panel);
+  color: var(--text);
+  font-size: 15px;
+}
+.store-search-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.store-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.store-filter-shops {
+  display: inline-flex;
+  gap: 6px;
+  padding-right: 8px;
+  margin-right: 4px;
+  border-right: 1px solid var(--border);
+}
+
+.store-filter-price {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.store-filter-price-text {
+  color: var(--muted);
+}
+
+/* Feld + €-Zeichen als EIN Kästchen (€ liegt direkt am Eingabefeld) */
+.store-filter-price-field {
+  display: inline-flex;
+  align-items: center;
+  height: 30px;
+  padding: 0 8px 0 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel);
+}
+.store-filter-price-field:focus-within {
+  border-color: var(--accent);
+}
+
+.store-filter-price-input {
+  width: 34px;
+  height: 100%;
+  padding: 0 1px 0 8px;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: right;
+}
+.store-filter-price-input:focus {
+  outline: none;
+}
+/* Hässliche Hoch/Runter-Pfeile des Zahlenfelds ausblenden */
+.store-filter-price-input::-webkit-outer-spin-button,
+.store-filter-price-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.store-filter-price-euro {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* Preis-Schieberegler (0 … 80+ €) */
+.price-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 128px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--panel-2);
+  outline: none;
+  cursor: pointer;
+}
+.price-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid var(--panel);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+  transition: transform 0.1s;
+}
+.price-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+}
+
+.shop-row-alt {
+  color: var(--muted);
+  margin-left: 4px;
+}
+
+/* Wunschliste-Popup, klappt unter dem Knopf aus */
+.wishlist-anchor {
+  position: relative;
+}
+
+.btn.active {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.wishlist-count {
+  margin-left: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--accent);
+  color: #fff;
+  border-radius: 999px;
+  padding: 1px 7px;
+}
+
+.wishlist-chevron {
+  margin-left: 4px;
+  transition: transform 0.18s ease;
+}
+.wishlist-chevron.open {
+  transform: rotate(180deg);
+}
+
+.wishlist-dropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 50;
+  width: 460px;
+  max-width: min(460px, 90vw);
+  max-height: 70vh;
+  overflow-y: auto;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.4);
+  animation: wishlist-pop 0.16s ease;
+}
+
+@keyframes wishlist-pop {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.wishlist-dropdown-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.wishlist-dropdown-title {
+  font-size: 15px;
+  font-weight: 700;
+}
+.wishlist-dropdown-title .subtitle {
+  margin-left: 6px;
+}
+
+.wishlist-dropdown-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 /* --- Freunde (Stufe A: Steam-Freunde) --- */
 .friend-list {
   display: flex;

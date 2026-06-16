@@ -199,6 +199,7 @@ const api = {
 
   /** Shops: Gratisspiele, komplette Epic-Bibliothek, Steam-Angebote. */
   getEpicFreeGames: (): Promise<EpicFreeGame[]> => ipcRenderer.invoke('epic:free-games'),
+  getEpicOffers: (): Promise<EpicSearchResult[]> => ipcRenderer.invoke('epic:offers'),
   getEpicLibrary: (): Promise<EpicLibraryResult> => ipcRenderer.invoke('epic:library'),
   getSteamOffers: (): Promise<SteamOffer[]> => ipcRenderer.invoke('steam:offers'),
 

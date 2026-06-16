@@ -115,6 +115,56 @@ export async function searchEpicStore(
   }
 }
 
+// Aktuelle Epic-Angebote (reduzierte Spiele) — gleiche Abfrage wie die Suche,
+// aber ohne Suchbegriff und mit onSale-Filter.
+const OFFERS_QUERY = `
+query searchStoreQuery($country: String!, $locale: String, $count: Int) {
+  Catalog {
+    searchStore(country: $country, locale: $locale, count: $count, onSale: true,
+                sortBy: "currentPrice", sortDir: "ASC",
+                category: "games/edition/base|bundles/games|editors") {
+      elements {
+        title id namespace
+        keyImages { type url }
+        price(country: $country) { totalPrice { discountPrice originalPrice } }
+        catalogNs { mappings(pageType: "productHome") { pageSlug } }
+        productSlug
+      }
+    }
+  }
+}`
+
+/** Aktuelle Epic-Angebote (nur wirklich reduzierte, kostenpflichtige Spiele). */
+export async function getEpicOffers(count = 24): Promise<EpicSearchResult[]> {
+  try {
+    const res = await net.fetch(GRAPHQL_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36'
+      },
+      body: JSON.stringify({
+        query: OFFERS_QUERY,
+        variables: { country: 'DE', locale: 'de', count }
+      }),
+      signal: AbortSignal.timeout(12000)
+    })
+    if (!res.ok) return []
+    const json = (await res.json()) as {
+      data?: { Catalog?: { searchStore?: { elements?: SearchElement[] } } }
+    }
+    const elements = json.data?.Catalog?.searchStore?.elements ?? []
+    return elements
+      .map(toResult)
+      // Nur echte Rabatte auf kostenpflichtige Spiele (Gratisspiele laufen separat).
+      .filter((r) => r.discountPct > 0 && (r.priceCents ?? 0) > 0)
+      .sort((a, b) => b.discountPct - a.discountPct)
+  } catch {
+    return []
+  }
+}
+
 /**
  * Aktuellen Preis EINES Wunschlisten-Eintrags prüfen: Suche nach dem Namen
  * und Treffer über namespace:offerId zuordnen (nutzt dieselbe, bewährte Abfrage).

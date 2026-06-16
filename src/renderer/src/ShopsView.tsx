@@ -1,115 +1,306 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   ShoppingCart,
   Star,
   Gift,
   Tag,
-  ArrowRight,
-  ArrowLeft,
   TriangleAlert,
   Check,
   ExternalLink,
   X,
-  Download
+  Download,
+  Search,
+  ChevronDown
 } from 'lucide-react'
 import type {
   EpicFreeGame,
-  EpicLibraryGame,
   EpicSearchResult,
   SteamOffer,
   SteamSearchResult,
-  WishlistItem
+  WishlistItem,
+  WishlistShop
 } from '@shared/types'
-import { formatEuro, formatPlaytime } from './format'
+import { formatEuro } from './format'
 
-// Shops: pro Plattform eine Detailseite mit allem, was sich auslesen lässt
-// (Angebote ohne Login; Epic-Bibliothek über das verbundene Konto).
-// Erweiterbar wie der Mods-Tab: neuer Eintrag im Registry-Array genügt.
+// Shops: EINE gemeinsame Suchleiste durchsucht Steam & Epic gleichzeitig
+// (mit Filtern), zeigt bei Treffern in beiden Shops den günstigeren Preis.
+// Die Wunschliste klappt als Popup unter dem Knopf aus. Darunter bleiben die
+// Highlights (Epic-Gratisspiele + Steam-Angebote) als Karussell stehen.
 
-type ShopSection = {
-  id: string
-  title: string
-  Icon: typeof Gift
-  description: string
-  render: (onBack: () => void) => JSX.Element
+// --- Hilfen -------------------------------------------------------------------
+
+function formatCents(cents: number | null, currency: string): string {
+  if (cents === null) return ''
+  const symbol = currency === 'EUR' ? '€' : currency
+  return `${(cents / 100).toLocaleString('de-DE', { minimumFractionDigits: 2 })} ${symbol}`
 }
 
-const SHOP_SECTIONS: ShopSection[] = [
-  {
-    id: 'epic',
-    title: 'Epic Games',
-    Icon: Gift,
-    description:
-      'Gratisspiele der Woche und deine komplette Epic-Bibliothek — auch alles, was nicht installiert ist.',
-    render: (onBack) => <EpicShopView onBack={onBack} />
-  },
-  {
-    id: 'steam',
-    title: 'Steam',
-    Icon: Tag,
-    description:
-      'Die aktuellen Steam-Angebote mit Rabatt und Preisen — per Stern wandern Spiele direkt auf die Wunschliste.',
-    render: (onBack) => <SteamShopView onBack={onBack} />
+const shopLabel = (s: WishlistShop): string => (s === 'epic' ? 'Epic' : 'Steam')
+
+/** Titel auf einen Vergleichskern reduzieren (für „gibt's das in beiden Shops?"). */
+function normTitle(s: string): string {
+  return s
+    .toLowerCase()
+    .replace(/[™®©]/g, '')
+    .replace(/&/g, 'and')
+    .replace(
+      /\b(deluxe|ultimate|standard|premium|game of the year|goty|definitive|complete|gold|legendary|remastered|remake|edition)\b/g,
+      ''
+    )
+    .replace(/[^a-z0-9]+/g, '')
+}
+
+function titlesMatch(a: string, b: string): boolean {
+  const na = normTitle(a)
+  const nb = normTitle(b)
+  if (!na || !nb) return false
+  if (na === nb) return true
+  return na.length >= 5 && nb.length >= 5 && (na.includes(nb) || nb.includes(na))
+}
+
+/** Preis-Rang fürs Vergleichen (null/unbekannt zählt als „teuer"). */
+const priceRank = (c: number | null): number => (c === null ? Infinity : c)
+
+/** Höchstwert des Preis-Schiebereglers in Euro — dort = „80+" = kein Limit. */
+const PRICE_MAX = 80
+
+/** Kleines Zeilen-Cover mit Buchstaben-Rückfall, falls das Bild nicht lädt. */
+function RowCover({ url, name }: { url: string | null; name: string }): JSX.Element {
+  const [failed, setFailed] = useState(false)
+  if (!url || failed) {
+    return <span className="shop-row-cover fallback">{name.charAt(0)}</span>
   }
-]
+  return (
+    <img className="shop-row-cover" src={url} alt="" loading="lazy" onError={() => setFailed(true)} />
+  )
+}
+
+function priceText(priceCents: number | null, originalCents: number | null, discountPct: number): string {
+  if (priceCents === null) return ''
+  if (priceCents === 0) return 'Gratis'
+  if (discountPct > 0) {
+    return `${formatEuro(priceCents)} statt ${originalCents !== null ? formatEuro(originalCents) : '—'}`
+  }
+  return formatEuro(priceCents)
+}
+
+// --- Such-Treffer (shop-übergreifend zusammengeführt) -------------------------
+
+interface StoreRow {
+  key: string // == WishlistItem.appId
+  shop: WishlistShop
+  name: string
+  coverUrl: string | null
+  priceCents: number | null
+  originalCents: number | null
+  discountPct: number
+  storeUrl: string | null
+}
+
+/** Ein zusammengeführter Treffer: der günstigere Shop + ggf. der andere. */
+interface MergedRow {
+  best: StoreRow
+  other: StoreRow | null
+}
+
+function steamRow(r: SteamSearchResult): StoreRow {
+  return { key: r.appId, shop: 'steam', ...r }
+}
+function offerToRow(o: SteamOffer): StoreRow {
+  return {
+    key: String(o.appId),
+    shop: 'steam',
+    name: o.name,
+    coverUrl: o.coverUrl,
+    priceCents: o.finalPriceCents,
+    originalCents: o.originalPriceCents,
+    discountPct: o.discountPercent,
+    storeUrl: o.storeUrl
+  }
+}
+function epicRow(r: EpicSearchResult): StoreRow {
+  return {
+    key: r.id,
+    shop: 'epic',
+    name: r.name,
+    coverUrl: r.coverUrl,
+    priceCents: r.priceCents,
+    originalCents: r.originalCents,
+    discountPct: r.discountPct,
+    storeUrl: r.storeUrl
+  }
+}
+
+/** Treffer aus beiden Shops zusammenführen: gleicher Titel in beiden = eine Zeile. */
+function mergeRows(rows: StoreRow[]): MergedRow[] {
+  const merged: MergedRow[] = []
+  for (const row of rows) {
+    const hit = merged.find((m) => m.best.shop !== row.shop && titlesMatch(m.best.name, row.name) && !m.other)
+    if (hit) {
+      if (priceRank(row.priceCents) < priceRank(hit.best.priceCents)) {
+        hit.other = hit.best
+        hit.best = row
+      } else {
+        hit.other = row
+      }
+    } else {
+      merged.push({ best: row, other: null })
+    }
+  }
+  return merged
+}
+
+// --- Wunschliste: günstigeren Preis über beide Shops ermitteln ----------------
+
+interface BestPrice {
+  shop: WishlistShop
+  priceCents: number | null
+  originalCents: number | null
+  discountPct: number
+  storeUrl: string | null
+  other: { shop: WishlistShop; priceCents: number | null } | null
+}
+
+function bestWishlistPrice(w: WishlistItem): BestPrice {
+  const primary: BestPrice = {
+    shop: w.shop,
+    priceCents: w.priceCents,
+    originalCents: w.originalCents,
+    discountPct: w.discountPct,
+    storeUrl: w.storeUrl,
+    other: null
+  }
+  // Anderer Shop nur, wenn dort wirklich ein Preis bekannt ist.
+  if (!w.alt || w.alt.priceCents === null) return primary
+  const altIsCheaper = priceRank(w.alt.priceCents) < priceRank(w.priceCents)
+  if (altIsCheaper) {
+    return {
+      shop: w.alt.shop,
+      priceCents: w.alt.priceCents,
+      originalCents: w.alt.originalCents,
+      discountPct: w.alt.discountPct,
+      storeUrl: w.alt.storeUrl,
+      other: { shop: w.shop, priceCents: w.priceCents }
+    }
+  }
+  return { ...primary, other: { shop: w.alt.shop, priceCents: w.alt.priceCents } }
+}
+
+// --- Hauptansicht -------------------------------------------------------------
+
+type ShopChoice = 'both' | 'steam' | 'epic'
 
 function ShopsView(): JSX.Element {
-  const [selected, setSelected] = useState<string | null>(null)
   // Highlights aus allen Shops für die Übersicht.
   const [freeGames, setFreeGames] = useState<EpicFreeGame[]>([])
+  const [epicOffers, setEpicOffers] = useState<EpicSearchResult[]>([])
   const [offers, setOffers] = useState<SteamOffer[]>([])
+
+  // Wunschliste (Popup).
+  const [wishlist, setWishlist] = useState<WishlistItem[]>([])
+  const [wishOpen, setWishOpen] = useState(false)
 
   useEffect(() => {
     window.api
       .getEpicFreeGames()
       .then((g) => setFreeGames(g.filter((f) => f.status === 'gratis')))
       .catch(() => {})
+    window.api.getEpicOffers().then(setEpicOffers).catch(() => {})
     window.api
       .getSteamOffers()
       .then((o) => setOffers(o.slice(0, 12)))
       .catch(() => {})
+    window.api.getWishlist().then(setWishlist).catch(() => {})
   }, [])
 
-  if (selected === 'wishlist') return <WishlistView onBack={() => setSelected(null)} />
-  const section = SHOP_SECTIONS.find((s) => s.id === selected)
-  if (section) return section.render(() => setSelected(null))
+  const wishedIds = useMemo(() => new Set(wishlist.map((w) => w.appId)), [wishlist])
+
+  // Epic-Angebote, die nicht ohnehin schon als Gratisspiel laufen.
+  const epicOffersToShow = useMemo(
+    () => epicOffers.filter((o) => !freeGames.some((f) => titlesMatch(f.title, o.name))),
+    [epicOffers, freeGames]
+  )
+
+  const addToWishlist = async (r: StoreRow): Promise<void> => {
+    setWishlist(
+      await window.api.addToWishlist({
+        appId: r.key,
+        name: r.name,
+        coverUrl: r.coverUrl,
+        shop: r.shop,
+        storeUrl: r.storeUrl
+      })
+    )
+  }
+
+  const toggleSteamOfferWish = async (o: SteamOffer): Promise<void> => {
+    const appId = String(o.appId)
+    setWishlist(
+      wishedIds.has(appId)
+        ? await window.api.removeFromWishlist(appId)
+        : await window.api.addToWishlist({
+            appId,
+            name: o.name,
+            coverUrl: o.coverUrl,
+            shop: 'steam',
+            storeUrl: o.storeUrl
+          })
+    )
+  }
+
+  const toggleEpicOfferWish = async (o: EpicSearchResult): Promise<void> => {
+    setWishlist(
+      wishedIds.has(o.id)
+        ? await window.api.removeFromWishlist(o.id)
+        : await window.api.addToWishlist({
+            appId: o.id,
+            name: o.name,
+            coverUrl: o.coverUrl,
+            shop: 'epic',
+            storeUrl: o.storeUrl
+          })
+    )
+  }
 
   return (
     <div className="app">
-      <header className="topbar">
+      <header className="topbar shop-topbar">
         <div className="brand">
           <h1 className="h2-icon">
             <ShoppingCart size={22} /> Shops
           </h1>
-          <span className="subtitle">Angebote & Plattform-Details</span>
+          <span className="subtitle">Steam & Epic gemeinsam durchsuchen</span>
         </div>
-        <button className="btn" onClick={() => setSelected('wishlist')}>
-          <Star size={15} className="wl-star" /> Wunschliste
-        </button>
+        <div className="wishlist-anchor">
+          <button
+            className={`btn ${wishOpen ? 'active' : ''}`}
+            onClick={() => setWishOpen((v) => !v)}
+          >
+            <Star size={15} className="wl-star" /> Wunschliste
+            {wishlist.length > 0 && <span className="wishlist-count">{wishlist.length}</span>}
+            <ChevronDown size={14} className={`wishlist-chevron ${wishOpen ? 'open' : ''}`} />
+          </button>
+          {wishOpen && (
+            <WishlistDropdown
+              wishlist={wishlist}
+              onChanged={setWishlist}
+              onClose={() => setWishOpen(false)}
+            />
+          )}
+        </div>
       </header>
+
       <main className="content">
-        <div className="mod-section-grid">
-          {SHOP_SECTIONS.map((s) => (
-            <button key={s.id} className="mod-section-card" onClick={() => setSelected(s.id)}>
-              <span className="mod-section-icon">
-                <s.Icon size={26} />
-              </span>
-              <span className="mod-section-title">{s.title}</span>
-              <span className="mod-section-desc">{s.description}</span>
-              <span className="mod-section-cta icon-line">
-                Öffnen <ArrowRight size={14} />
-              </span>
-            </button>
-          ))}
-        </div>
+        <StoreSearch wishedIds={wishedIds} onAdd={addToWishlist} />
 
         {/* Highlights aus allen Shops */}
-        {freeGames.length > 0 && (
+        {(freeGames.length > 0 || epicOffersToShow.length > 0) && (
           <>
             <h2 className="section-title icon-line" style={{ marginTop: 30 }}>
-              <Gift size={18} /> Gratis bei Epic
+              <Gift size={18} /> Angebote bei Epic
             </h2>
             <div className="offer-row">
+              {/* Gratisspiele stehen immer am Anfang. */}
               {freeGames.map((g) => (
                 <button
                   key={g.title}
@@ -129,6 +320,47 @@ function ShopsView(): JSX.Element {
                   </div>
                 </button>
               ))}
+              {/* Danach die regulären Epic-Angebote. */}
+              {epicOffersToShow.map((o) => (
+                <div
+                  key={o.id}
+                  className="offer-card epic-card"
+                  title="Im Epic Store ansehen"
+                  onClick={() => o.storeUrl && window.open(o.storeUrl, '_blank')}
+                >
+                  <div className="offer-cover tall">
+                    {o.coverUrl ? <img src={o.coverUrl} alt={o.name} loading="lazy" /> : <span />}
+                    {o.discountPct > 0 && (
+                      <span className="offer-badge discount">-{o.discountPct}%</span>
+                    )}
+                    <button
+                      className={`wish-btn ${wishedIds.has(o.id) ? 'active' : ''}`}
+                      title={
+                        wishedIds.has(o.id)
+                          ? 'Von der Wunschliste entfernen'
+                          : 'Auf die Wunschliste (mit Preisalarm)'
+                      }
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        toggleEpicOfferWish(o)
+                      }}
+                    >
+                      <Star size={16} fill={wishedIds.has(o.id) ? 'currentColor' : 'none'} />
+                    </button>
+                  </div>
+                  <div className="offer-info">
+                    <div className="offer-name">{o.name}</div>
+                    <div className="offer-meta">
+                      {o.originalCents !== null && (
+                        <>
+                          <s>{formatEuro(o.originalCents)}</s>{' '}
+                        </>
+                      )}
+                      <b>{o.priceCents !== null ? formatEuro(o.priceCents) : ''}</b>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           </>
         )}
@@ -140,7 +372,7 @@ function ShopsView(): JSX.Element {
             </h2>
             <div className="offer-row">
               {offers.map((o) => (
-                <button
+                <div
                   key={o.appId}
                   className="offer-card steam-card"
                   title="Im Steam Store ansehen"
@@ -149,6 +381,23 @@ function ShopsView(): JSX.Element {
                   <div className="offer-cover">
                     {o.coverUrl ? <img src={o.coverUrl} alt={o.name} loading="lazy" /> : <span />}
                     <span className="offer-badge discount">-{o.discountPercent}%</span>
+                    <button
+                      className={`wish-btn ${wishedIds.has(String(o.appId)) ? 'active' : ''}`}
+                      title={
+                        wishedIds.has(String(o.appId))
+                          ? 'Von der Wunschliste entfernen'
+                          : 'Auf die Wunschliste (mit Preisalarm)'
+                      }
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        toggleSteamOfferWish(o)
+                      }}
+                    >
+                      <Star
+                        size={16}
+                        fill={wishedIds.has(String(o.appId)) ? 'currentColor' : 'none'}
+                      />
+                    </button>
                   </div>
                   <div className="offer-info">
                     <div className="offer-name">{o.name}</div>
@@ -157,7 +406,7 @@ function ShopsView(): JSX.Element {
                       <b>{formatCents(o.finalPriceCents, o.currency)}</b>
                     </div>
                   </div>
-                </button>
+                </div>
               ))}
             </div>
           </>
@@ -167,243 +416,167 @@ function ShopsView(): JSX.Element {
   )
 }
 
-// --- Hilfen -------------------------------------------------------------------
+// --- Gemeinsame Such-Leiste mit Filtern ---------------------------------------
 
-function formatCents(cents: number | null, currency: string): string {
-  if (cents === null) return ''
-  const symbol = currency === 'EUR' ? '€' : currency
-  return `${(cents / 100).toLocaleString('de-DE', { minimumFractionDigits: 2 })} ${symbol}`
-}
-
-function formatDay(unix: number | null): string {
-  if (!unix) return ''
-  return new Date(unix * 1000).toLocaleDateString('de-DE', { day: 'numeric', month: 'long' })
-}
-
-/** Kleines Zeilen-Cover mit Buchstaben-Rückfall, falls das Bild nicht lädt. */
-function RowCover({ url, name }: { url: string | null; name: string }): JSX.Element {
-  const [failed, setFailed] = useState(false)
-  if (!url || failed) {
-    return <span className="shop-row-cover fallback">{name.charAt(0)}</span>
-  }
-  return (
-    <img
-      className="shop-row-cover"
-      src={url}
-      alt=""
-      loading="lazy"
-      onError={() => setFailed(true)}
-    />
-  )
-}
-
-// --- Epic ----------------------------------------------------------------------
-
-function EpicShopView({ onBack }: { onBack: () => void }): JSX.Element {
-  const [freeGames, setFreeGames] = useState<EpicFreeGame[] | null>(null)
-  const [library, setLibrary] = useState<EpicLibraryGame[] | null>(null)
-  const [libError, setLibError] = useState<string | null>(null)
-  const [filter, setFilter] = useState('')
-
-  useEffect(() => {
-    window.api.getEpicFreeGames().then(setFreeGames).catch(() => setFreeGames([]))
-    window.api
-      .getEpicLibrary()
-      .then((r) => (r.ok ? setLibrary(r.games) : setLibError(r.error ?? 'Abruf fehlgeschlagen.')))
-      .catch((e) => setLibError(String(e)))
-  }, [])
-
-  const current = freeGames?.filter((g) => g.status === 'gratis') ?? []
-  const upcoming = freeGames?.filter((g) => g.status === 'demnaechst') ?? []
-
-  const filtered = useMemo(() => {
-    const needle = filter.trim().toLowerCase()
-    if (!library) return []
-    return needle ? library.filter((g) => g.title.toLowerCase().includes(needle)) : library
-  }, [library, filter])
-
-  return (
-    <div className="app">
-      <header className="topbar">
-        <button className="btn" onClick={onBack}>
-          <ArrowLeft size={16} /> Zurück
-        </button>
-        <div className="brand">
-          <h1 className="h2-icon">
-            <Gift size={22} /> Epic Games
-          </h1>
-        </div>
-        <span />
-      </header>
-
-      <main className="content">
-        <h2 className="section-title">Gratis diese Woche</h2>
-        {freeGames === null ? (
-          <p className="hint">Lade Gratisspiele …</p>
-        ) : current.length === 0 && upcoming.length === 0 ? (
-          <p className="hint">Aktuell sind keine Gratisspiele gelistet.</p>
-        ) : (
-          <div className="offer-grid">
-            {current.map((g) => (
-              <FreeGameCard key={g.title} game={g} />
-            ))}
-            {upcoming.map((g) => (
-              <FreeGameCard key={g.title} game={g} />
-            ))}
-          </div>
-        )}
-
-        <StoreSearch
-          title="Epic-Store durchsuchen"
-          placeholder="Spiel im Epic Store suchen …"
-          run={runEpicSearch}
-        />
-
-        <div className="shop-library-head">
-          <h2 className="section-title">
-            Deine Epic-Bibliothek{library ? ` (${library.length} Spiele)` : ''}
-          </h2>
-          {library && library.length > 8 && (
-            <input
-              type="text"
-              className="account-code-input shop-filter"
-              placeholder="Suchen …"
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-            />
-          )}
-        </div>
-        {library === null && !libError && (
-          <p className="hint">
-            Lade Bibliothek … Beim allerersten Mal kann das eine Minute dauern (danach geht es
-            schnell, die Daten werden zwischengespeichert).
-          </p>
-        )}
-        {libError && (
-          <p className="hint">
-            <TriangleAlert size={14} /> {libError} — ist dein Epic-Konto unter „Konten" verbunden?
-          </p>
-        )}
-        {library && (
-          <div className="shop-library">
-            {filtered.map((g) => (
-              <div key={g.appName} className="shop-row">
-                {g.coverUrl ? (
-                  <img className="shop-row-cover" src={g.coverUrl} alt="" loading="lazy" />
-                ) : (
-                  <span className="shop-row-cover fallback">{g.title.charAt(0)}</span>
-                )}
-                <div className="shop-row-main">
-                  <div className="shop-row-title">{g.title}</div>
-                  <div className="shop-row-meta">
-                    {g.playtimeSec > 0 ? `Spielzeit: ${formatPlaytime(g.playtimeSec)}` : 'nie gespielt'}
-                  </div>
-                </div>
-                {g.installed && (
-                  <span className="shop-installed icon-line">
-                    <Check size={13} /> installiert
-                  </span>
-                )}
-              </div>
-            ))}
-            {filtered.length === 0 && <p className="hint">Kein Treffer für „{filter}".</p>}
-          </div>
-        )}
-      </main>
-    </div>
-  )
-}
-
-// --- Store-Suche (gemeinsam für Steam & Epic) -------------------------------------
-
-/** Einheitliche Treffer-Zeile, egal aus welchem Shop. */
-interface StoreSearchRow {
-  key: string // == WishlistItem.appId
-  shop: 'steam' | 'epic'
-  name: string
-  coverUrl: string | null
-  priceCents: number | null
-  originalCents: number | null
-  discountPct: number
-  storeUrl: string | null
-}
-
-function epicToRow(r: EpicSearchResult): StoreSearchRow {
-  return { key: r.id, shop: 'epic', ...r, coverUrl: r.coverUrl }
-}
-
-function steamToRow(r: SteamSearchResult): StoreSearchRow {
-  return { key: r.appId, shop: 'steam', ...r }
-}
-
-// Store-Suche: Ergebnisse mit Preis, Klick öffnet die Store-Seite,
-// Der Stern legt das Spiel auf die (shop-übergreifende) Wunschliste.
 function StoreSearch({
-  title,
-  placeholder,
-  run,
-  onWishlistChanged
+  wishedIds,
+  onAdd
 }: {
-  title: string
-  placeholder: string
-  run: (term: string) => Promise<{ ok: boolean; rows: StoreSearchRow[]; error?: string }>
-  onWishlistChanged?: (items: WishlistItem[]) => void
+  wishedIds: Set<string>
+  onAdd: (r: StoreRow) => Promise<void>
 }): JSX.Element {
   const [search, setSearch] = useState('')
-  const [results, setResults] = useState<StoreSearchRow[] | null>(null)
+  const [merged, setMerged] = useState<MergedRow[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [searching, setSearching] = useState(false)
-  const [wishedIds, setWishedIds] = useState<Set<string>>(new Set())
 
-  useEffect(() => {
-    window.api
-      .getWishlist()
-      .then((items) => setWishedIds(new Set(items.map((w) => w.appId))))
-      .catch(() => {})
-  }, [])
+  // Filter
+  const [shop, setShop] = useState<ShopChoice>('both')
+  const [onlyDeals, setOnlyDeals] = useState(false)
+  const [onlyFree, setOnlyFree] = useState(false)
+  const [maxPrice, setMaxPrice] = useState(PRICE_MAX) // Euro; PRICE_MAX (80) = „80+" = kein Limit
 
   const runSearch = async (): Promise<void> => {
-    if (search.trim().length < 2) return
     setSearching(true)
     setError(null)
     try {
-      const r = await run(search)
-      setResults(r.rows)
-      if (!r.ok) setError(r.error ?? 'Suche fehlgeschlagen.')
+      const wantSteam = shop !== 'epic'
+      const wantEpic = shop !== 'steam'
+
+      // Ohne Suchbegriff: die Steam-Hauptangebote zeigen (zum Stöbern/Filtern).
+      if (search.trim().length < 2) {
+        const offers = wantSteam
+          ? await window.api.getSteamOffers().catch(() => [] as SteamOffer[])
+          : []
+        if (!wantSteam) {
+          setError('Für „Stöbern" ohne Suchbegriff bitte Steam (oder „Beide") wählen.')
+        }
+        setMerged(mergeRows(offers.map(offerToRow)))
+        return
+      }
+
+      const [steam, epic] = await Promise.all([
+        wantSteam
+          ? window.api.searchSteamStore(search).catch(() => [] as SteamSearchResult[])
+          : Promise.resolve([] as SteamSearchResult[]),
+        wantEpic
+          ? window.api.searchEpicStore(search)
+          : Promise.resolve({ ok: true as const, results: [] as EpicSearchResult[] })
+      ])
+      const rows: StoreRow[] = [
+        ...steam.map(steamRow),
+        ...(epic.ok ? epic.results.map(epicRow) : [])
+      ]
+      if (wantEpic && !epic.ok) setError(epic.error)
+      setMerged(mergeRows(rows))
     } finally {
       setSearching(false)
     }
   }
 
-  const add = async (r: StoreSearchRow): Promise<void> => {
-    const items = await window.api.addToWishlist({
-      appId: r.key,
-      name: r.name,
-      coverUrl: r.coverUrl,
-      shop: r.shop,
-      storeUrl: r.storeUrl
+  // Filter auf die zusammengeführten Treffer anwenden (Preis = günstigerer Shop).
+  const shown = useMemo(() => {
+    if (!merged) return null
+    const maxCents = maxPrice < PRICE_MAX ? maxPrice * 100 : null // PRICE_MAX = kein Limit
+    return merged.filter((m) => {
+      const p = m.best.priceCents
+      if (onlyFree && p !== 0) return false
+      if (onlyDeals && m.best.discountPct === 0 && (m.other?.discountPct ?? 0) === 0) return false
+      if (maxCents !== null) {
+        if (p === null || p > maxCents) return false
+      }
+      return true
     })
-    setWishedIds(new Set(items.map((w) => w.appId)))
-    onWishlistChanged?.(items)
+  }, [merged, onlyFree, onlyDeals, maxPrice])
+
+  const filtersActive = onlyDeals || onlyFree || maxPrice < PRICE_MAX || shop !== 'both'
+
+  // Suche zurücksetzen: Eingabe, Treffer und Filter leeren — nichts wird mehr angezeigt.
+  const reset = (): void => {
+    setSearch('')
+    setMerged(null)
+    setError(null)
+    setShop('both')
+    setOnlyDeals(false)
+    setOnlyFree(false)
+    setMaxPrice(PRICE_MAX)
   }
+  const canReset = merged !== null || search.trim() !== '' || filtersActive
 
   return (
-    <section style={{ marginBottom: 30 }}>
-      <h2 className="section-title">{title}</h2>
-      <div className="account-actions" style={{ maxWidth: 560 }}>
+    <section className="store-search">
+      <div className="store-search-bar">
+        <Search size={18} className="store-search-icon" />
         <input
           type="text"
-          className="account-code-input"
-          placeholder={placeholder}
+          className="store-search-input"
+          placeholder="Spiel in Steam & Epic suchen … (leer lassen = Steam-Angebote stöbern)"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === 'Enter') runSearch()
           }}
         />
-        <button className="btn" onClick={runSearch} disabled={searching || search.trim().length < 2}>
+        <button className="btn primary" onClick={runSearch} disabled={searching}>
           {searching ? 'Suche …' : 'Suchen'}
         </button>
+        {canReset && (
+          <button className="btn" onClick={reset} title="Suche & Filter zurücksetzen">
+            <X size={15} /> Zurücksetzen
+          </button>
+        )}
+      </div>
+
+      <div className="store-filters">
+        <div className="store-filter-shops">
+          {(['both', 'steam', 'epic'] as ShopChoice[]).map((s) => (
+            <button
+              key={s}
+              className={`chip ${shop === s ? 'active' : ''}`}
+              onClick={() => setShop(s)}
+            >
+              {s === 'both' ? 'Beide' : s === 'steam' ? 'Steam' : 'Epic'}
+            </button>
+          ))}
+        </div>
+        <button
+          className={`chip ${onlyDeals ? 'active' : ''}`}
+          onClick={() => setOnlyDeals((v) => !v)}
+        >
+          Nur Angebote
+        </button>
+        <button className={`chip ${onlyFree ? 'active' : ''}`} onClick={() => setOnlyFree((v) => !v)}>
+          Nur Gratis
+        </button>
+        <label className="store-filter-price">
+          <span className="store-filter-price-text">max</span>
+          <span className="store-filter-price-field">
+            <input
+              type="number"
+              className="store-filter-price-input"
+              min="0"
+              max={PRICE_MAX}
+              step="1"
+              value={maxPrice}
+              title={`Höchstpreis in € — ${PRICE_MAX} bedeutet: kein Limit`}
+              onChange={(e) => {
+                const n = Math.round(Number(e.target.value))
+                if (Number.isNaN(n)) return
+                setMaxPrice(Math.min(PRICE_MAX, Math.max(0, n)))
+              }}
+            />
+            <span className="store-filter-price-euro">€</span>
+          </span>
+          <input
+            type="range"
+            className="price-slider"
+            min="0"
+            max={PRICE_MAX}
+            step="1"
+            value={maxPrice}
+            onChange={(e) => setMaxPrice(Number(e.target.value))}
+          />
+        </label>
       </div>
 
       {error && (
@@ -411,224 +584,92 @@ function StoreSearch({
           <TriangleAlert size={14} /> {error}
         </p>
       )}
-      {results && (
-        <div className="shop-library" style={{ marginTop: 12 }}>
-          {results.length === 0 && !error && <p className="hint">Nichts gefunden.</p>}
-          {results.map((r) => (
-            <div
-              key={r.key}
-              className="shop-row clickable"
-              title={r.storeUrl ? 'Im Store ansehen' : r.name}
-              onClick={() => r.storeUrl && window.open(r.storeUrl, '_blank')}
-            >
-              <RowCover url={r.coverUrl} name={r.name} />
-              <div className="shop-row-main">
-                <div className="shop-row-title">{r.name}</div>
-                <div className="shop-row-meta">
-                  {r.priceCents === null
-                    ? ''
-                    : r.priceCents === 0
-                      ? 'Gratis'
-                      : r.discountPct > 0
-                        ? `${formatEuro(r.priceCents)} statt ${r.originalCents !== null ? formatEuro(r.originalCents) : '—'}`
-                        : formatEuro(r.priceCents)}
+
+      {shown && (
+        <div className="shop-library" style={{ marginTop: 6 }}>
+          {shown.length === 0 && (
+            <p className="hint">
+              {merged && merged.length > 0 && filtersActive
+                ? 'Keine Treffer mit diesen Filtern.'
+                : 'Nichts gefunden.'}
+            </p>
+          )}
+          {shown.map((m) => {
+            const r = m.best
+            const onWishlist = wishedIds.has(r.key) || (m.other ? wishedIds.has(m.other.key) : false)
+            return (
+              <div
+                key={r.key}
+                className="shop-row clickable"
+                title={r.storeUrl ? 'Im Store ansehen' : r.name}
+                onClick={() => r.storeUrl && window.open(r.storeUrl, '_blank')}
+              >
+                <RowCover url={r.coverUrl} name={r.name} />
+                <div className="shop-row-main">
+                  <div className="shop-row-title">
+                    {r.name} <span className="shop-tag">{shopLabel(r.shop)}</span>
+                  </div>
+                  <div className="shop-row-meta">
+                    {priceText(r.priceCents, r.originalCents, r.discountPct) || 'Preis unbekannt'}
+                    {m.other && (
+                      <span className="shop-row-alt">
+                        · auch bei {shopLabel(m.other.shop)}
+                        {m.other.priceCents !== null ? ` für ${formatEuro(m.other.priceCents)}` : ''}
+                      </span>
+                    )}
+                  </div>
                 </div>
+                {r.discountPct > 0 && <span className="offer-badge discount">-{r.discountPct}%</span>}
+                {onWishlist ? (
+                  <span className="shop-installed icon-line">
+                    <Check size={13} /> Wunschliste
+                  </span>
+                ) : (
+                  <button
+                    className="btn small icon-only"
+                    title="Auf die Wunschliste (mit Preisalarm)"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onAdd(r)
+                    }}
+                  >
+                    <Star size={15} />
+                  </button>
+                )}
               </div>
-              {r.discountPct > 0 && <span className="offer-badge discount">-{r.discountPct}%</span>}
-              {wishedIds.has(r.key) ? (
-                <span className="shop-installed icon-line">
-                  <Check size={13} /> Wunschliste
-                </span>
-              ) : (
-                <button
-                  className="btn small icon-only"
-                  title="Auf die Wunschliste (mit Preisalarm)"
-                  onClick={(e) => {
-                    e.stopPropagation() // nicht zusätzlich die Store-Seite öffnen
-                    add(r)
-                  }}
-                >
-                  <Star size={15} />
-                </button>
-              )}
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
     </section>
   )
 }
 
-async function runEpicSearch(
-  term: string
-): Promise<{ ok: boolean; rows: StoreSearchRow[]; error?: string }> {
-  const r = await window.api.searchEpicStore(term)
-  return r.ok
-    ? { ok: true, rows: r.results.map(epicToRow) }
-    : { ok: false, rows: [], error: r.error }
-}
+// --- Wunschliste-Popup (klappt unter dem Knopf aus) ---------------------------
 
-async function runSteamSearch(
-  term: string
-): Promise<{ ok: boolean; rows: StoreSearchRow[]; error?: string }> {
-  try {
-    return { ok: true, rows: (await window.api.searchSteamStore(term)).map(steamToRow) }
-  } catch {
-    return { ok: false, rows: [], error: 'Steam-Suche fehlgeschlagen.' }
-  }
-}
-
-function FreeGameCard({ game }: { game: EpicFreeGame }): JSX.Element {
-  const isNow = game.status === 'gratis'
-  return (
-    <button
-      className="offer-card"
-      title={game.storeUrl ? 'Im Epic Store ansehen' : game.title}
-      onClick={() => game.storeUrl && window.open(game.storeUrl, '_blank')}
-    >
-      <div className="offer-cover tall">
-        {game.coverUrl ? <img src={game.coverUrl} alt={game.title} loading="lazy" /> : <span />}
-        <span className={`offer-badge ${isNow ? 'free' : 'soon'}`}>
-          {isNow ? 'GRATIS' : 'demnächst'}
-        </span>
-      </div>
-      <div className="offer-info">
-        <div className="offer-name">{game.title}</div>
-        <div className="offer-meta">
-          {isNow
-            ? `bis ${formatDay(game.endDate)}`
-            : `ab ${formatDay(game.startDate)}`}
-          {game.originalPrice ? ` · statt ${game.originalPrice}` : ''}
-        </div>
-      </div>
-    </button>
-  )
-}
-
-// --- Steam ----------------------------------------------------------------------
-
-function SteamShopView({ onBack }: { onBack: () => void }): JSX.Element {
-  const [offers, setOffers] = useState<SteamOffer[] | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [wishlist, setWishlist] = useState<WishlistItem[]>([])
-
-  useEffect(() => {
-    window.api.getSteamOffers().then(setOffers).catch((e) => setError(String(e)))
-    window.api.getWishlist().then(setWishlist).catch(() => {})
-  }, [])
-
-  const wishedIds = useMemo(() => new Set(wishlist.map((w) => w.appId)), [wishlist])
-
-  const toggleWish = async (o: SteamOffer): Promise<void> => {
-    const appId = String(o.appId)
-    setWishlist(
-      wishedIds.has(appId)
-        ? await window.api.removeFromWishlist(appId)
-        : await window.api.addToWishlist({
-            appId,
-            name: o.name,
-            coverUrl: o.coverUrl,
-            shop: 'steam',
-            storeUrl: o.storeUrl
-          })
-    )
-  }
-
-  return (
-    <div className="app">
-      <header className="topbar">
-        <button className="btn" onClick={onBack}>
-          <ArrowLeft size={16} /> Zurück
-        </button>
-        <div className="brand">
-          <h1 className="h2-icon">
-            <Tag size={22} /> Steam
-          </h1>
-          {offers && <span className="subtitle">{offers.length} Angebote</span>}
-        </div>
-        <span />
-      </header>
-
-      <main className="content">
-        <StoreSearch
-          title="Steam-Store durchsuchen"
-          placeholder="Spiel im Steam Store suchen …"
-          run={runSteamSearch}
-          onWishlistChanged={setWishlist}
-        />
-
-        <h2 className="section-title">Aktuelle Angebote</h2>
-        {offers === null && !error && <p className="hint">Lade Angebote …</p>}
-        {error && (
-        <p className="hint icon-line">
-          <TriangleAlert size={14} /> {error}
-        </p>
-      )}
-        {offers && (
-          <div className="offer-grid wide">
-            {offers.map((o) => (
-              <div
-                key={o.appId}
-                className="offer-card"
-                title="Im Steam Store ansehen"
-                onClick={() => window.open(o.storeUrl, '_blank')}
-              >
-                <div className="offer-cover">
-                  {o.coverUrl ? <img src={o.coverUrl} alt={o.name} loading="lazy" /> : <span />}
-                  <span className="offer-badge discount">-{o.discountPercent}%</span>
-                  <button
-                    className={`wish-btn ${wishedIds.has(String(o.appId)) ? 'active' : ''}`}
-                    title={
-                      wishedIds.has(String(o.appId))
-                        ? 'Von der Wunschliste entfernen'
-                        : 'Auf die Wunschliste (mit Preisalarm)'
-                    }
-                    onClick={(e) => {
-                      e.stopPropagation() // nicht zusätzlich den Store öffnen
-                      toggleWish(o)
-                    }}
-                  >
-                    <Star size={16} fill={wishedIds.has(String(o.appId)) ? 'currentColor' : 'none'} />
-                  </button>
-                </div>
-                <div className="offer-info">
-                  <div className="offer-name">{o.name}</div>
-                  <div className="offer-meta">
-                    <s>{formatCents(o.originalPriceCents, o.currency)}</s>{' '}
-                    <b>{formatCents(o.finalPriceCents, o.currency)}</b>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-        <p className="hint">
-          Die Liste entspricht den „Top-Angeboten" der Steam-Startseite. Ein Klick öffnet die
-          Store-Seite im Browser — gekauft wird wie immer bei Steam selbst. Mit dem Stern legst du
-          ein Spiel auf die Wunschliste: Sobald es im Angebot ist, meldet sich die Glocke.
-        </p>
-      </main>
-    </div>
-  )
-}
-
-// --- Wunschliste (eigene, shop-übergreifende Seite) -------------------------------
-
-function WishlistView({ onBack }: { onBack: () => void }): JSX.Element {
-  const [wishlist, setWishlist] = useState<WishlistItem[]>([])
-  const onChanged = setWishlist
-
-  useEffect(() => {
-    window.api.getWishlist().then(setWishlist).catch(() => {})
-  }, [])
-
-  const [search, setSearch] = useState('')
-  const [steamResults, setSteamResults] = useState<SteamSearchResult[] | null>(null)
-  const [epicResults, setEpicResults] = useState<EpicSearchResult[] | null>(null)
-  const [epicError, setEpicError] = useState<string | null>(null)
-  const [searching, setSearching] = useState(false)
+function WishlistDropdown({
+  wishlist,
+  onChanged,
+  onClose
+}: {
+  wishlist: WishlistItem[]
+  onChanged: (items: WishlistItem[]) => void
+  onClose: () => void
+}): JSX.Element {
   const [importing, setImporting] = useState(false)
   const [importMsg, setImportMsg] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null)
+  const panelRef = useRef<HTMLDivElement>(null)
+
+  // Außerhalb klicken schließt das Popup.
+  useEffect(() => {
+    const onDown = (e: MouseEvent): void => {
+      if (!panelRef.current) return
+      const anchor = panelRef.current.closest('.wishlist-anchor')
+      if (anchor && !anchor.contains(e.target as Node)) onClose()
+    }
+    document.addEventListener('mousedown', onDown)
+    return () => document.removeEventListener('mousedown', onDown)
+  }, [onClose])
 
   const importFromSteam = async (): Promise<void> => {
     setImporting(true)
@@ -641,8 +682,8 @@ function WishlistView({ onBack }: { onBack: () => void }): JSX.Element {
           kind: 'ok',
           text:
             result.imported > 0
-              ? `${result.imported} von ${result.total} Einträgen aus deiner Steam-Wunschliste übernommen.`
-              : `Alle ${result.total} Einträge deiner Steam-Wunschliste waren schon da.`
+              ? `${result.imported} von ${result.total} Einträgen übernommen.`
+              : `Alle ${result.total} Einträge waren schon da.`
         })
       } else {
         setImportMsg({ kind: 'error', text: result.error ?? 'Import fehlgeschlagen.' })
@@ -652,245 +693,99 @@ function WishlistView({ onBack }: { onBack: () => void }): JSX.Element {
     }
   }
 
-  // Beide Stores gleichzeitig durchsuchen.
-  const runSearch = async (): Promise<void> => {
-    if (search.trim().length < 2) return
-    setSearching(true)
-    setEpicError(null)
-    try {
-      const [steam, epic] = await Promise.all([
-        window.api.searchSteamStore(search).catch(() => [] as SteamSearchResult[]),
-        window.api.searchEpicStore(search)
-      ])
-      setSteamResults(steam)
-      if (epic.ok) {
-        setEpicResults(epic.results)
-      } else {
-        setEpicResults([])
-        setEpicError(epic.error)
-      }
-    } finally {
-      setSearching(false)
-    }
-  }
-
-  const addSteam = async (r: SteamSearchResult): Promise<void> => {
-    onChanged(
-      await window.api.addToWishlist({
-        appId: r.appId,
-        name: r.name,
-        coverUrl: r.coverUrl,
-        shop: 'steam',
-        storeUrl: r.storeUrl
-      })
-    )
-  }
-
-  const addEpic = async (r: EpicSearchResult): Promise<void> => {
-    onChanged(
-      await window.api.addToWishlist({
-        appId: r.id,
-        name: r.name,
-        coverUrl: r.coverUrl,
-        shop: 'epic',
-        storeUrl: r.storeUrl
-      })
-    )
-  }
-
   const remove = async (appId: string): Promise<void> => {
     onChanged(await window.api.removeFromWishlist(appId))
   }
 
-  const wishedIds = new Set(wishlist.map((w) => w.appId))
-
   return (
-    <div className="app">
-      <header className="topbar">
-        <button className="btn" onClick={onBack}>
-          <ArrowLeft size={16} /> Zurück
-        </button>
-        <div className="brand">
-          <h1 className="h2-icon">
-            <Star size={20} className="wl-star" /> Wunschliste
-          </h1>
+    <div className="wishlist-dropdown" ref={panelRef}>
+      <div className="wishlist-dropdown-head">
+        <span className="wishlist-dropdown-title icon-line">
+          <Star size={16} className="wl-star" /> Wunschliste
           {wishlist.length > 0 && <span className="subtitle">{wishlist.length} Spiele</span>}
+        </span>
+        <div className="icon-line">
+          <button
+            className="btn small"
+            onClick={importFromSteam}
+            disabled={importing}
+            title="Übernimmt die Wunschliste deines Steam-Kontos (muss öffentlich sein)"
+          >
+            {importing ? (
+              'Importiere …'
+            ) : (
+              <>
+                <Download size={14} /> Steam übernehmen
+              </>
+            )}
+          </button>
+          <button className="btn small icon-only" title="Schließen" onClick={onClose}>
+            <X size={15} />
+          </button>
         </div>
-        <button
-          className="btn"
-          onClick={importFromSteam}
-          disabled={importing}
-          title="Übernimmt die Wunschliste deines Steam-Kontos (muss öffentlich sein)"
-        >
-          {importing ? (
-            'Importiere …'
-          ) : (
-            <>
-              <Download size={15} /> Steam-Wunschliste übernehmen
-            </>
-          )}
-        </button>
-      </header>
-
-      <main className="content">
-      {importMsg && <div className={`account-message ${importMsg.kind}`}>{importMsg.text}</div>}
-
-      {wishlist.length === 0 && (
-        <p className="hint">
-          Noch leer. Übernimm oben deine Steam-Wunschliste, suche unten ein Spiel oder klicke bei
-          den Steam-Angeboten auf den Stern — die App prüft dann alle 6 Stunden den Preis und meldet
-          Rabatte über die Glocke.
-        </p>
-      )}
-
-      {wishlist.length > 0 && (
-        <div className="shop-library" style={{ marginBottom: 16 }}>
-          {wishlist.map((w) => (
-            <div key={w.appId} className="shop-row">
-              <RowCover url={w.coverUrl} name={w.name} />
-              <div className="shop-row-main">
-                <div className="shop-row-title">
-                  {w.name} <span className="shop-tag">{w.shop === 'epic' ? 'Epic' : 'Steam'}</span>
-                </div>
-                <div className="shop-row-meta">
-                  {w.priceCents === null
-                    ? 'Noch kein Preis — vermutlich nicht erschienen (oder gratis)'
-                    : w.discountPct > 0
-                      ? `Im Angebot: ${formatEuro(w.priceCents)} statt ${w.originalCents !== null ? formatEuro(w.originalCents) : '—'}`
-                      : `Aktuell ${formatEuro(w.priceCents)} — kein Rabatt`}
-                </div>
-              </div>
-              {w.discountPct > 0 && <span className="offer-badge discount">-{w.discountPct}%</span>}
-              <button
-                className="btn small icon-only"
-                title="Im Store ansehen"
-                onClick={() =>
-                  window.open(
-                    w.storeUrl ?? `https://store.steampowered.com/app/${w.appId}/`,
-                    '_blank'
-                  )
-                }
-              >
-                <ExternalLink size={15} />
-              </button>
-              <button
-                className="btn small icon-only"
-                title="Von der Wunschliste entfernen"
-                onClick={() => remove(w.appId)}
-              >
-                <X size={15} />
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-
-      <div className="account-actions" style={{ maxWidth: 560 }}>
-        <input
-          type="text"
-          className="account-code-input"
-          placeholder="In Steam UND Epic suchen …"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') runSearch()
-          }}
-        />
-        <button className="btn" onClick={runSearch} disabled={searching || search.trim().length < 2}>
-          {searching ? 'Suche …' : 'Suchen'}
-        </button>
       </div>
 
-      {steamResults && (
-        <>
-          <h3 className="section-title icon-line" style={{ marginTop: 16 }}>
-            <Tag size={16} /> Steam
-          </h3>
-          <div className="shop-library">
-            {steamResults.length === 0 && <p className="hint">Nichts gefunden.</p>}
-            {steamResults.map((r) => (
-              <div key={r.appId} className="shop-row">
-                <RowCover url={r.coverUrl} name={r.name} />
+      {importMsg && <div className={`account-message ${importMsg.kind}`}>{importMsg.text}</div>}
+
+      {wishlist.length === 0 ? (
+        <p className="hint" style={{ margin: '8px 4px' }}>
+          Noch leer. Such oben ein Spiel und klick auf den Stern, oder übernimm deine
+          Steam-Wunschliste. Die App prüft alle 6 Stunden den Preis in beiden Shops und meldet
+          Rabatte über die Glocke.
+        </p>
+      ) : (
+        <div className="wishlist-dropdown-list">
+          {wishlist.map((w) => {
+            const best = bestWishlistPrice(w)
+            return (
+              <div key={w.appId} className="shop-row">
+                <RowCover url={w.coverUrl} name={w.name} />
                 <div className="shop-row-main">
-                  <div className="shop-row-title">{r.name}</div>
+                  <div className="shop-row-title">
+                    {w.name} <span className="shop-tag">{shopLabel(best.shop)}</span>
+                  </div>
                   <div className="shop-row-meta">
-                    {r.priceCents === null
-                      ? ''
-                      : r.discountPct > 0
-                        ? `${formatEuro(r.priceCents)} statt ${r.originalCents !== null ? formatEuro(r.originalCents) : '—'}`
-                        : formatEuro(r.priceCents)}
+                    {best.priceCents === null
+                      ? 'Noch kein Preis — evtl. nicht erschienen (oder gratis)'
+                      : best.discountPct > 0
+                        ? `Im Angebot: ${priceText(best.priceCents, best.originalCents, best.discountPct)}`
+                        : best.priceCents === 0
+                          ? 'Gratis'
+                          : `Aktuell ${formatEuro(best.priceCents)}`}
+                    {best.other && best.other.priceCents !== null && (
+                      <span className="shop-row-alt">
+                        · {shopLabel(best.other.shop)} {formatEuro(best.other.priceCents)}
+                      </span>
+                    )}
                   </div>
                 </div>
-                {r.discountPct > 0 && (
-                  <span className="offer-badge discount">-{r.discountPct}%</span>
+                {best.discountPct > 0 && (
+                  <span className="offer-badge discount">-{best.discountPct}%</span>
                 )}
-                {wishedIds.has(r.appId) ? (
-                  <span className="shop-installed icon-line">
-                  <Check size={13} /> auf der Liste
-                </span>
-                ) : (
-                  <button className="btn primary small" onClick={() => addSteam(r)}>
-                    + Wunschliste
-                  </button>
-                )}
+                <button
+                  className="btn small icon-only"
+                  title={`Im ${shopLabel(best.shop)}-Store ansehen`}
+                  onClick={() =>
+                    window.open(
+                      best.storeUrl ?? `https://store.steampowered.com/app/${w.appId}/`,
+                      '_blank'
+                    )
+                  }
+                >
+                  <ExternalLink size={15} />
+                </button>
+                <button
+                  className="btn small icon-only"
+                  title="Von der Wunschliste entfernen"
+                  onClick={() => remove(w.appId)}
+                >
+                  <X size={15} />
+                </button>
               </div>
-            ))}
-          </div>
-        </>
+            )
+          })}
+        </div>
       )}
-
-      {(epicResults || epicError) && (
-        <>
-          <h3 className="section-title icon-line" style={{ marginTop: 16 }}>
-            <Gift size={16} /> Epic Games
-          </h3>
-          {epicError && (
-            <p className="hint icon-line">
-              <TriangleAlert size={14} /> {epicError}
-            </p>
-          )}
-          <div className="shop-library">
-            {epicResults && epicResults.length === 0 && !epicError && (
-              <p className="hint">Nichts gefunden.</p>
-            )}
-            {(epicResults ?? []).map((r) => (
-              <div key={r.id} className="shop-row">
-                <RowCover url={r.coverUrl} name={r.name} />
-                <div className="shop-row-main">
-                  <div className="shop-row-title">{r.name}</div>
-                  <div className="shop-row-meta">
-                    {r.priceCents === null
-                      ? ''
-                      : r.priceCents === 0
-                        ? 'Gratis'
-                        : r.discountPct > 0
-                          ? `${formatEuro(r.priceCents)} statt ${r.originalCents !== null ? formatEuro(r.originalCents) : '—'}`
-                          : formatEuro(r.priceCents)}
-                  </div>
-                </div>
-                {r.discountPct > 0 && (
-                  <span className="offer-badge discount">-{r.discountPct}%</span>
-                )}
-                {wishedIds.has(r.id) ? (
-                  <span className="shop-installed icon-line">
-                  <Check size={13} /> auf der Liste
-                </span>
-                ) : (
-                  <button className="btn primary small" onClick={() => addEpic(r)}>
-                    + Wunschliste
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-        </>
-      )}
-
-      <p className="hint" style={{ marginTop: 18 }}>
-        Die Wunschliste gilt shop-übergreifend: Die Suche findet Spiele in Steam und Epic, Preise
-        werden direkt beim jeweiligen Shop geprüft, und Rabatte landen in der Glocke.
-      </p>
-      </main>
     </div>
   )
 }

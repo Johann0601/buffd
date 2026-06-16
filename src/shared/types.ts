@@ -448,6 +448,15 @@ export interface SgdbStatus {
 /** Aus welchem Shop ein Wunschlisten-Eintrag stammt. */
 export type WishlistShop = 'steam' | 'epic'
 
+/** Preis desselben Spiels im jeweils ANDEREN Shop (für den Preisvergleich). */
+export interface WishlistAltPrice {
+  shop: WishlistShop
+  priceCents: number | null
+  originalCents: number | null
+  discountPct: number
+  storeUrl: string | null
+}
+
 /** Ein Spiel auf der Wunschliste (mit zuletzt geprüftem Preis). */
 export interface WishlistItem {
   id: number
@@ -460,6 +469,7 @@ export interface WishlistItem {
   originalCents: number | null // Preis ohne Rabatt
   discountPct: number // 0 = kein Rabatt -> keine Benachrichtigung
   checkedAt: number | null // letzte Preisprüfung (Unix-Sekunden)
+  alt: WishlistAltPrice | null // gleiches Spiel im anderen Shop (Preisvergleich)
 }
 
 /** Ein Suchtreffer aus dem Steam-Store (zum Hinzufügen zur Wunschliste). */

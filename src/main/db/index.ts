@@ -8,7 +8,8 @@ import type {
   GameStorageInfo,
   Platform,
   UpdateEvent,
-  WishlistItem
+  WishlistItem,
+  WishlistShop
 } from '@shared/types'
 
 // Eine einzige, app-weite DB-Verbindung. better-sqlite3 arbeitet synchron —
@@ -180,6 +181,19 @@ const MIGRATIONS: ((db: Database.Database) => void)[] = [
       );
 
       CREATE INDEX IF NOT EXISTS idx_collection_games_game ON collection_games(game_id);
+    `)
+  },
+  // v14: Preisvergleich über beide Shops. Pro Wunschlisten-Eintrag merken wir
+  //      zusätzlich, ob es das Spiel auch im ANDEREN Shop gibt und zu welchem
+  //      Preis — damit lässt sich der günstigere anzeigen.
+  (database) => {
+    database.exec(`
+      ALTER TABLE wishlist ADD COLUMN alt_shop TEXT;
+      ALTER TABLE wishlist ADD COLUMN alt_price_cents INTEGER;
+      ALTER TABLE wishlist ADD COLUMN alt_original_cents INTEGER;
+      ALTER TABLE wishlist ADD COLUMN alt_discount_pct INTEGER NOT NULL DEFAULT 0;
+      ALTER TABLE wishlist ADD COLUMN alt_store_url TEXT;
+      ALTER TABLE wishlist ADD COLUMN alt_checked_at INTEGER;
     `)
   }
 ]
@@ -524,16 +538,58 @@ export function listGamesForStorage(): GameStorageInfo[] {
 //  Wunschliste (Preisalarm)
 // ---------------------------------------------------------------------------
 
+interface WishlistRow {
+  id: number
+  appId: string
+  shop: WishlistShop
+  name: string
+  coverUrl: string | null
+  storeUrl: string | null
+  priceCents: number | null
+  originalCents: number | null
+  discountPct: number
+  checkedAt: number | null
+  altShop: WishlistShop | null
+  altPriceCents: number | null
+  altOriginalCents: number | null
+  altDiscountPct: number
+  altStoreUrl: string | null
+}
+
 export function listWishlist(): WishlistItem[] {
-  return getDatabase()
+  const rows = getDatabase()
     .prepare(
       `SELECT id, app_id AS appId, shop, name, cover_url AS coverUrl, store_url AS storeUrl,
               price_cents AS priceCents, original_cents AS originalCents,
-              discount_pct AS discountPct, checked_at AS checkedAt
+              discount_pct AS discountPct, checked_at AS checkedAt,
+              alt_shop AS altShop, alt_price_cents AS altPriceCents,
+              alt_original_cents AS altOriginalCents, alt_discount_pct AS altDiscountPct,
+              alt_store_url AS altStoreUrl
        FROM wishlist
        ORDER BY discount_pct DESC, name COLLATE NOCASE ASC`
     )
-    .all() as WishlistItem[]
+    .all() as WishlistRow[]
+  return rows.map((r) => ({
+    id: r.id,
+    appId: r.appId,
+    shop: r.shop,
+    name: r.name,
+    coverUrl: r.coverUrl,
+    storeUrl: r.storeUrl,
+    priceCents: r.priceCents,
+    originalCents: r.originalCents,
+    discountPct: r.discountPct,
+    checkedAt: r.checkedAt,
+    alt: r.altShop
+      ? {
+          shop: r.altShop,
+          priceCents: r.altPriceCents,
+          originalCents: r.altOriginalCents,
+          discountPct: r.altDiscountPct,
+          storeUrl: r.altStoreUrl
+        }
+      : null
+  }))
 }
 
 export function addWishlistItem(
@@ -576,6 +632,33 @@ export function updateWishlistPrice(
        WHERE app_id = ?`
     )
     .run(priceCents, originalCents, discountPct, appId)
+}
+
+/** Preis desselben Spiels im anderen Shop merken (null = dort nicht gefunden). */
+export function updateWishlistAltPrice(
+  appId: string,
+  alt: {
+    shop: WishlistShop
+    priceCents: number | null
+    originalCents: number | null
+    discountPct: number
+    storeUrl: string | null
+  } | null
+): void {
+  getDatabase()
+    .prepare(
+      `UPDATE wishlist SET alt_shop = ?, alt_price_cents = ?, alt_original_cents = ?,
+              alt_discount_pct = ?, alt_store_url = ?, alt_checked_at = strftime('%s','now')
+       WHERE app_id = ?`
+    )
+    .run(
+      alt?.shop ?? null,
+      alt?.priceCents ?? null,
+      alt?.originalCents ?? null,
+      alt?.discountPct ?? 0,
+      alt?.storeUrl ?? null,
+      appId
+    )
 }
 
 /** Grunddaten eines Eintrags (für Detail-Abfragen wie Store-Infos/News/Erfolge). */
