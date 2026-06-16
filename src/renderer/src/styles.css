@@ -25,7 +25,7 @@
   --ok: #15803d;
   --error: #dc2626;
   --border: #d4d9e4;
-  /* --sidebar-bg bleibt dunkel (siehe .sidebar) — nicht überschreiben. */
+  --sidebar-bg: #e6e9f1; /* helle Seitenleiste (leicht abgesetzt vom Inhalt) */
   --scroll: #c0c8d8;
   --scroll-hover: #a7b1c6;
   --btn-hover: #d3dae8; /* heller Hover statt des dunklen #2a3042 */
@@ -134,17 +134,8 @@ body {
 /* Seitenleiste: per Knopf ein-/ausklappbar (kein Auto-Aufklappen mehr beim
    Hover). Eingeklappt = nur Icons (62px), ausgeklappt = mit Beschriftung. */
 .sidebar {
-  /* Die Seitenleiste bleibt in BEIDEN Themes dunkel (wie Discord/VS Code) —
-     dadurch sind die farbigen Emojis immer gut lesbar. Wir überschreiben die
-     Farb-Variablen lokal, sodass alle Kinder (Tabs, Marke, Fußzeile) die
-     dunkle Palette erben, auch wenn außen der Hell-Modus aktiv ist. */
-  --bg: #0f1117;
-  --text: #e6e8ee;
-  --muted: #9aa3b2;
-  --panel: #181b24;
-  --panel-2: #1f2330;
-  --border: #262b39;
-  --accent: #6c8cff;
+  /* Die Seitenleiste folgt dem aktiven Theme (dunkel bzw. hell). Der eigene
+     Hintergrund ist über --sidebar-bg leicht vom Inhaltsbereich abgesetzt. */
   position: fixed;
   left: 0;
   top: 0;

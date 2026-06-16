@@ -11,6 +11,14 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.21.7',
+    date: '2026-06-16',
+    title: 'Seitenleiste im Hell-Modus',
+    changes: [
+      'Im Hell-Modus war die Seitenleiste weiterhin dunkel — jetzt folgt sie wie der Rest der App dem hellen Design.'
+    ]
+  },
+  {
     version: '0.21.6',
     date: '2026-06-16',
     title: 'Shops umgebaut: gemeinsame Suche & Preisvergleich',
