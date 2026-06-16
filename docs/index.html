@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>buffd — Dein Spiele-Hub</title>
+    <meta
+      name="description"
+      content="buffd bündelt deine Spiele aus Steam, Epic & Co. an einem Ort — mit Spielzeit, Angeboten und mehr. Kostenlos für Windows."
+    />
+    <link rel="icon" href="logo.svg" type="image/svg+xml" />
+    <style>
+      :root {
+        --bg: #0f1117;
+        --panel: #181b24;
+        --border: #262b39;
+        --text: #e6e8ee;
+        --muted: #9aa3b2;
+        --accent: #a855f7;
+        --accent-2: #6c8cff;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+        background: radial-gradient(900px 600px at 50% -10%, #1a1430 0%, var(--bg) 55%);
+        color: var(--text);
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        padding: 0 20px;
+      }
+      main {
+        max-width: 720px;
+        width: 100%;
+        padding: 72px 0 40px;
+      }
+      .logo {
+        width: 104px;
+        height: 104px;
+        filter: drop-shadow(0 6px 24px rgba(168, 85, 247, 0.35));
+      }
+      h1 {
+        font-size: 52px;
+        font-weight: 800;
+        letter-spacing: -1px;
+        margin: 18px 0 6px;
+      }
+      h1 .accent {
+        background: linear-gradient(90deg, var(--accent), var(--accent-2));
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+      .tagline {
+        font-size: 19px;
+        color: var(--muted);
+        margin: 0 auto 36px;
+        max-width: 520px;
+        line-height: 1.5;
+      }
+      .download {
+        display: inline-flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        text-decoration: none;
+      }
+      .download-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        background: linear-gradient(90deg, var(--accent), var(--accent-2));
+        color: #fff;
+        font-size: 19px;
+        font-weight: 700;
+        padding: 16px 34px;
+        border-radius: 14px;
+        box-shadow: 0 12px 34px rgba(108, 140, 255, 0.32);
+        transition: transform 0.12s ease, box-shadow 0.12s ease;
+      }
+      .download:hover .download-btn {
+        transform: translateY(-2px);
+        box-shadow: 0 16px 40px rgba(108, 140, 255, 0.45);
+      }
+      .download-sub {
+        font-size: 13px;
+        color: var(--muted);
+      }
+      .note {
+        margin: 26px auto 0;
+        max-width: 520px;
+        font-size: 13.5px;
+        color: var(--muted);
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 12px 16px;
+        line-height: 1.55;
+      }
+      .note b {
+        color: var(--text);
+      }
+      .features {
+        list-style: none;
+        padding: 0;
+        margin: 48px auto 0;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 14px;
+        max-width: 680px;
+      }
+      .features li {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 16px 18px;
+        text-align: left;
+      }
+      .features .ft-title {
+        font-weight: 700;
+        margin-bottom: 4px;
+      }
+      .features .ft-desc {
+        font-size: 13px;
+        color: var(--muted);
+        line-height: 1.45;
+      }
+      footer {
+        margin-top: auto;
+        padding: 30px 0;
+        font-size: 13px;
+        color: var(--muted);
+      }
+      footer a {
+        color: var(--accent-2);
+        text-decoration: none;
+      }
+      footer a:hover {
+        text-decoration: underline;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <svg
+        class="logo"
+        viewBox="0 0 256 256"
+        xmlns="http://www.w3.org/2000/svg"
+        role="img"
+        aria-label="buffd Logo"
+      >
+        <g transform="translate(128,128)">
+          <path
+            d="M0 -84 L73 -42 L73 42 L0 84 L-73 42 L-73 -42 Z"
+            fill="none"
+            stroke="#a855f7"
+            stroke-width="7"
+            stroke-linejoin="miter"
+          />
+          <line x1="0" y1="-15" x2="0" y2="-44" stroke="#a855f7" stroke-width="6.5" stroke-linecap="round" />
+          <line x1="13" y1="7.5" x2="39" y2="22" stroke="#a855f7" stroke-width="6.5" stroke-linecap="round" />
+          <line x1="-13" y1="7.5" x2="-39" y2="22" stroke="#a855f7" stroke-width="6.5" stroke-linecap="round" />
+          <circle cx="0" cy="-47" r="10.5" fill="#a855f7" />
+          <circle cx="41" cy="24" r="10.5" fill="#a855f7" />
+          <circle cx="-41" cy="24" r="10.5" fill="#a855f7" />
+          <circle cx="0" cy="0" r="9.5" fill="none" stroke="#a855f7" stroke-width="6" />
+        </g>
+      </svg>
+      <h1>buf<span class="accent">fd</span></h1>
+      <p class="tagline">
+        Alle deine Spiele aus Steam, Epic &amp; Co. an einem Ort — mit Spielzeit, Angeboten,
+        Freunden und mehr.
+      </p>
+
+      <a
+        class="download"
+        id="download"
+        href="https://github.com/Johann0601/buffd/releases/latest"
+      >
+        <span class="download-btn">⬇ &nbsp;Für Windows herunterladen</span>
+        <span class="download-sub" id="download-sub">neueste Version · GitHub-Release</span>
+      </a>
+
+      <p class="note">
+        Beim ersten Start zeigt Windows evtl. <b>„Der Computer wurde durch Windows geschützt"</b>.
+        Das ist normal (die App ist noch nicht kostenpflichtig signiert). Einfach auf
+        <b>„Weitere Informationen"</b> → <b>„Trotzdem ausführen"</b> klicken.
+      </p>
+
+      <ul class="features">
+        <li>
+          <div class="ft-title">Eine Bibliothek</div>
+          <div class="ft-desc">Steam, Epic, Battle.net, Minecraft &amp; mehr — automatisch erkannt.</div>
+        </li>
+        <li>
+          <div class="ft-title">Spielzeit &amp; Statistik</div>
+          <div class="ft-desc">Sieh, was du wann und wie lange spielst.</div>
+        </li>
+        <li>
+          <div class="ft-title">Angebote &amp; Wunschliste</div>
+          <div class="ft-desc">Steam- und Epic-Preise vergleichen, Rabatte im Blick.</div>
+        </li>
+        <li>
+          <div class="ft-title">Automatische Updates</div>
+          <div class="ft-desc">Die App hält sich selbst aktuell.</div>
+        </li>
+      </ul>
+    </main>
+
+    <footer>
+      Open Source auf
+      <a href="https://github.com/Johann0601/buffd">GitHub</a>
+      · made by Johann
+    </footer>
+
+    <script>
+      // Den Download-Knopf auf die neueste .exe der aktuellsten Version zeigen
+      // lassen (über die GitHub-API). Klappt das nicht (z. B. offline), bleibt
+      // der Knopf auf der Release-Seite — funktioniert also immer.
+      (async () => {
+        try {
+          const res = await fetch(
+            "https://api.github.com/repos/Johann0601/buffd/releases/latest",
+            { headers: { Accept: "application/vnd.github+json" } }
+          );
+          if (!res.ok) return;
+          const data = await res.json();
+          const exe = (data.assets || []).find((a) => a.name.toLowerCase().endsWith(".exe"));
+          if (exe) {
+            document.getElementById("download").href = exe.browser_download_url;
+            const mb = (exe.size / 1048576).toFixed(0);
+            document.getElementById("download-sub").textContent =
+              `Version ${String(data.tag_name || "").replace(/^v/, "")} · ${mb} MB · Windows`;
+          }
+        } catch (_) {
+          /* offline o. ä. — Standard-Link bleibt */
+        }
+      })();
+    </script>
+  </body>
+</html>

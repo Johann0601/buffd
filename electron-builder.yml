@@ -48,5 +48,8 @@ nsis:
   createDesktopShortcut: true
   createStartMenuShortcut: true
   shortcutName: buffd
-  artifactName: buffd Setup ${version}.exe
+  # Fester Dateiname OHNE Version -> dauerhafter Download-Link:
+  #   github.com/Johann0601/buffd/releases/latest/download/buffd-Setup.exe
+  # Der Auto-Updater liest den Namen aus latest.yml, funktioniert also weiter.
+  artifactName: buffd-Setup.exe
   deleteAppDataOnUninstall: false # Deinstallation löscht NICHT die Spielzeit-DB
