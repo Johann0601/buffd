@@ -1,0 +1,50 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Dunkles Theme (die Seite ist dauerhaft dunkel). Werte als HSL für shadcn. */
+:root {
+  --background: 222 30% 7%;
+  --foreground: 222 20% 96%;
+  --card: 225 24% 11%;
+  --card-foreground: 222 20% 96%;
+  --primary: 269 91% 65%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 225 18% 16%;
+  --secondary-foreground: 222 20% 96%;
+  --muted: 225 18% 16%;
+  --muted-foreground: 220 13% 65%;
+  --accent: 225 18% 18%;
+  --accent-foreground: 222 20% 96%;
+  --border: 225 16% 20%;
+  --input: 225 16% 20%;
+  --ring: 269 91% 65%;
+  --radius: 0.9rem;
+}
+
+* {
+  border-color: hsl(var(--border));
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Hintergrund-Glühpunkte (lila + blau, wie das Logo / der App-Akzent). */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(720px 480px at 16% -10%, rgba(168, 85, 247, 0.16), transparent 60%),
+    radial-gradient(700px 480px at 88% 2%, rgba(108, 140, 255, 0.14), transparent 60%);
+}
