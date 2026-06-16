@@ -11,6 +11,16 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.21.8',
+    date: '2026-06-16',
+    title: 'Benachrichtigungs-Popup & Feedback-Verbesserungen',
+    changes: [
+      'Die Benachrichtigungen sind jetzt ein Popup an der Seitenleiste (wie Spotify und die Wunschliste) statt einer eigenen Seite — der „Aktualisieren"-Knopf bleibt erhalten.',
+      'Feedback kann jetzt nur noch einmal pro Minute gesendet werden (Spamschutz) — danach zeigt der Knopf einen kurzen Countdown.',
+      'Screenshots lassen sich jetzt direkt per Strg+V als Anhang einfügen (z. B. mit dem Windows-Snipping-Tool kopiert).'
+    ]
+  },
+  {
     version: '0.21.7',
     date: '2026-06-16',
     title: 'Seitenleiste im Hell-Modus',

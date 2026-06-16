@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   MessageSquare,
   Bug,
@@ -13,7 +13,15 @@ import {
 import { formatGameSize } from './format'
 
 type Kind = 'bug' | 'idea' | 'other'
-type Status = 'idle' | 'sending' | 'sent' | 'empty' | 'error' | 'noconfig' | 'toobig'
+type Status =
+  | 'idle'
+  | 'sending'
+  | 'sent'
+  | 'empty'
+  | 'error'
+  | 'noconfig'
+  | 'toobig'
+  | 'ratelimited'
 
 /** Maximale Anhang-Größe (8 MB — muss zur Grenze im Hauptprozess passen). */
 const MAX_ATTACHMENT_BYTES = 8 * 1024 * 1024
@@ -40,17 +48,26 @@ function FeedbackView(): JSX.Element {
   const [version, setVersion] = useState('')
   const [available, setAvailable] = useState(true)
   const [attachment, setAttachment] = useState<Attachment | null>(null)
+  const [cooldownUntil, setCooldownUntil] = useState(0) // Spamschutz: gesperrt bis (ms)
+  const [nowTs, setNowTs] = useState(Date.now())
   const fileInput = useRef<HTMLInputElement>(null)
+
+  const remaining = Math.max(0, Math.ceil((cooldownUntil - nowTs) / 1000))
 
   useEffect(() => {
     window.api.getAppVersion().then(setVersion).catch(() => {})
     window.api.feedbackAvailable().then(setAvailable).catch(() => {})
   }, [])
 
-  const pickFile = async (e: React.ChangeEvent<HTMLInputElement>): Promise<void> => {
-    const file = e.target.files?.[0]
-    e.target.value = '' // erneutes Auswählen derselben Datei erlauben
-    if (!file) return
+  // Countdown für den Spamschutz weiterlaufen lassen, solange gesperrt.
+  useEffect(() => {
+    if (cooldownUntil <= Date.now()) return
+    const t = setInterval(() => setNowTs(Date.now()), 500)
+    return () => clearInterval(t)
+  }, [cooldownUntil])
+
+  // Eine Datei (aus Auswahl oder Zwischenablage) als Anhang übernehmen.
+  const applyFile = useCallback(async (file: File, fallbackName?: string): Promise<void> => {
     if (file.size > MAX_ATTACHMENT_BYTES) {
       setAttachment(null)
       setStatus('toobig')
@@ -58,15 +75,43 @@ function FeedbackView(): JSX.Element {
     }
     const buf = await file.arrayBuffer()
     setAttachment({
-      name: file.name,
+      name: file.name || fallbackName || 'anhang',
       mime: file.type,
       size: file.size,
       data: new Uint8Array(buf)
     })
-    if (status !== 'idle') setStatus('idle')
+    setStatus((s) => (s !== 'idle' ? 'idle' : s))
+  }, [])
+
+  const pickFile = async (e: React.ChangeEvent<HTMLInputElement>): Promise<void> => {
+    const file = e.target.files?.[0]
+    e.target.value = '' // erneutes Auswählen derselben Datei erlauben
+    if (file) await applyFile(file)
   }
 
+  // Screenshot/Bild aus der Zwischenablage per Strg+V einfügen.
+  useEffect(() => {
+    const onPaste = (e: ClipboardEvent): void => {
+      const items = e.clipboardData?.items
+      if (!items) return
+      for (const it of items) {
+        if (it.type.startsWith('image/')) {
+          const file = it.getAsFile()
+          if (file) {
+            e.preventDefault()
+            const ext = it.type.split('/')[1] || 'png'
+            void applyFile(file, `screenshot-${Date.now()}.${ext}`)
+          }
+          return
+        }
+      }
+    }
+    document.addEventListener('paste', onPaste)
+    return () => document.removeEventListener('paste', onPaste)
+  }, [applyFile])
+
   const submit = async (): Promise<void> => {
+    if (remaining > 0) return // Spamschutz (Knopf ist ohnehin gesperrt)
     if (!message.trim()) {
       setStatus('empty')
       return
@@ -81,6 +126,10 @@ function FeedbackView(): JSX.Element {
       setStatus('sent')
       setMessage('')
       setAttachment(null)
+      setCooldownUntil(Date.now() + 60_000)
+    } else if (res.reason === 'ratelimited') {
+      setStatus('ratelimited')
+      setCooldownUntil(Date.now() + (res.retryAfterMs ?? 60_000))
     } else {
       setStatus(
         res.reason === 'noconfig'
@@ -166,7 +215,9 @@ function FeedbackView(): JSX.Element {
                 <Paperclip size={15} /> Datei anhängen
               </button>
             )}
-            <span className="feedback-attach-hint">max. 8 MB (z. B. Screenshot/Logdatei)</span>
+            <span className="feedback-attach-hint">
+              max. 8 MB — Screenshot auch per Strg+V einfügbar
+            </span>
           </div>
 
           <div className="feedback-meta">
@@ -178,10 +229,12 @@ function FeedbackView(): JSX.Element {
             <button
               className="btn primary"
               onClick={submit}
-              disabled={status === 'sending' || !available}
+              disabled={status === 'sending' || !available || remaining > 0}
             >
               {status === 'sending' ? (
                 'Sende …'
+              ) : remaining > 0 ? (
+                `Erneut in ${remaining}s`
               ) : (
                 <>
                   <Send size={16} /> Absenden
@@ -207,6 +260,12 @@ function FeedbackView(): JSX.Element {
             {status === 'error' && (
               <span className="feedback-status warn icon-line">
                 <TriangleAlert size={16} /> Senden fehlgeschlagen — bist du online?
+              </span>
+            )}
+            {status === 'ratelimited' && remaining > 0 && (
+              <span className="feedback-status warn icon-line">
+                <TriangleAlert size={16} /> Bitte warte noch {remaining}s — du kannst nur einmal pro
+                Minute senden.
               </span>
             )}
           </div>

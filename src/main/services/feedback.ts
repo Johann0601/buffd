@@ -31,8 +31,13 @@ const KINDS: Record<FeedbackKind, KindMeta> = {
 
 export interface FeedbackResult {
   ok: boolean
-  reason?: 'noconfig' | 'empty' | 'error' | 'toobig'
+  reason?: 'noconfig' | 'empty' | 'error' | 'toobig' | 'ratelimited'
+  retryAfterMs?: number // bei 'ratelimited': verbleibende Wartezeit
 }
+
+/** Spamschutz: höchstens eine erfolgreiche Nachricht pro Minute. */
+const RATE_LIMIT_MS = 60_000
+let lastSentAt = 0
 
 /** Den NT-Kernel (z. B. „10.0.26200") in einen lesbaren Windows-Namen umwandeln.
  *  Windows 11 meldet weiterhin Major 10, ist aber an Build >= 22000 erkennbar. */
@@ -54,6 +59,11 @@ export async function sendFeedback(
   if (!text) return { ok: false, reason: 'empty' }
   if (attachment && attachment.data.byteLength > MAX_ATTACHMENT_BYTES) {
     return { ok: false, reason: 'toobig' }
+  }
+  // Spamschutz: nur eine erfolgreiche Nachricht pro Minute.
+  const sinceLast = Date.now() - lastSentAt
+  if (sinceLast < RATE_LIMIT_MS) {
+    return { ok: false, reason: 'ratelimited', retryAfterMs: RATE_LIMIT_MS - sinceLast }
   }
 
   const meta = KINDS[kind] ?? KINDS.other
@@ -87,6 +97,7 @@ export async function sendFeedback(
         attachment.name
       )
       const res = await fetch(BUILTIN_FEEDBACK_WEBHOOK, { method: 'POST', body: form })
+      if (res.ok) lastSentAt = Date.now()
       return res.ok ? { ok: true } : { ok: false, reason: 'error' }
     }
     const res = await net.fetch(BUILTIN_FEEDBACK_WEBHOOK, {
@@ -94,6 +105,7 @@ export async function sendFeedback(
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     })
+    if (res.ok) lastSentAt = Date.now()
     return res.ok ? { ok: true } : { ok: false, reason: 'error' }
   } catch {
     return { ok: false, reason: 'error' }

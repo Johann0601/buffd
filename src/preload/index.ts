@@ -88,8 +88,11 @@ const api = {
     kind: 'bug' | 'idea' | 'other',
     message: string,
     attachment?: { name: string; mime: string; data: Uint8Array }
-  ): Promise<{ ok: boolean; reason?: 'noconfig' | 'empty' | 'error' | 'toobig' }> =>
-    ipcRenderer.invoke('feedback:send', { kind, message, attachment }),
+  ): Promise<{
+    ok: boolean
+    reason?: 'noconfig' | 'empty' | 'error' | 'toobig' | 'ratelimited'
+    retryAfterMs?: number
+  }> => ipcRenderer.invoke('feedback:send', { kind, message, attachment }),
 
   /** buffd deinstallieren (startet den Uninstaller; nur in der installierten Version).
    *  deleteData = true löscht zusätzlich die eigenen Nutzerdaten (Spielzeit, Einstellungen). */

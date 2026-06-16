@@ -69,7 +69,6 @@ export type View =
   | 'shops'
   | 'news'
   | 'friends'
-  | 'notifications'
   | 'feedback'
   | 'settings'
   | 'settings-accounts'
@@ -90,6 +89,9 @@ function App(): JSX.Element {
   const [spotifyOpen, setSpotifyOpen] = useState(false) // Mini-Player-Popup an der Seitenleiste
   const spotifyPopupRef = useRef<HTMLDivElement>(null)
   const spotifyBtnRef = useRef<HTMLButtonElement>(null)
+  const [notifOpen, setNotifOpen] = useState(false) // Benachrichtigungs-Popup an der Seitenleiste
+  const notifPopupRef = useRef<HTMLDivElement>(null)
+  const notifBtnRef = useRef<HTMLButtonElement>(null)
   // Von der Startseite aus kann ein Spiel direkt in der Detailansicht geöffnet werden.
   const [gameToShow, setGameToShow] = useState<number | null>(null)
   // Merkt, ob die Detailansicht von der Startseite aus geöffnet wurde -> dann führt
@@ -272,6 +274,18 @@ function App(): JSX.Element {
     return () => document.removeEventListener('mousedown', onDown)
   }, [spotifyOpen])
 
+  // Benachrichtigungs-Popup per Klick außerhalb schließen (wie bei Spotify).
+  useEffect(() => {
+    if (!notifOpen) return
+    const onDown = (e: MouseEvent): void => {
+      const t = e.target as Node
+      if (notifPopupRef.current?.contains(t) || notifBtnRef.current?.contains(t)) return
+      setNotifOpen(false)
+    }
+    document.addEventListener('mousedown', onDown)
+    return () => document.removeEventListener('mousedown', onDown)
+  }, [notifOpen])
+
   const inSettings = view.startsWith('settings')
 
   return (
@@ -351,8 +365,9 @@ function App(): JSX.Element {
         </button>
 
         <button
-          className={`nav-item nav-bottom ${view === 'notifications' ? 'active' : ''}`}
-          onClick={() => setView('notifications')}
+          ref={notifBtnRef}
+          className={`nav-item nav-bottom ${notifOpen ? 'active' : ''}`}
+          onClick={() => setNotifOpen((o) => !o)}
           title="Benachrichtigungen"
         >
           <span className="nav-icon">
@@ -434,18 +449,6 @@ function App(): JSX.Element {
         {view === 'friends' && (
           <FriendsView onOpenAccounts={() => setView('settings-accounts')} />
         )}
-        {view === 'notifications' && (
-          <NotificationsView
-            appUpdateVersion={updateVersion}
-            pendingGames={pendingGames}
-            nvidia={nvidia}
-            wishlistDeals={wishlistDeals}
-            epicFreebies={visibleFreebies}
-            onDismissFreebie={dismissFreebie}
-            onRefresh={refreshNotifications}
-            refreshing={refreshing}
-          />
-        )}
         {view === 'feedback' && <FeedbackView />}
         {inSettings && (
           <SettingsView view={view} onNavigate={setView} theme={theme} onThemeChange={setTheme} />
@@ -457,6 +460,22 @@ function App(): JSX.Element {
       {spotifyOpen && (
         <div className="spotify-popup" ref={spotifyPopupRef}>
           <SpotifyWidget />
+        </div>
+      )}
+
+      {/* Benachrichtigungs-Popup an der Seitenleiste (wie Spotify; „Aktualisieren" bleibt drin). */}
+      {notifOpen && (
+        <div className="notif-popup" ref={notifPopupRef}>
+          <NotificationsView
+            appUpdateVersion={updateVersion}
+            pendingGames={pendingGames}
+            nvidia={nvidia}
+            wishlistDeals={wishlistDeals}
+            epicFreebies={visibleFreebies}
+            onDismissFreebie={dismissFreebie}
+            onRefresh={refreshNotifications}
+            refreshing={refreshing}
+          />
         </div>
       )}
 

@@ -3833,6 +3833,72 @@ img.logo-cover {
   box-shadow: 0 16px 44px rgba(0, 0, 0, 0.5);
 }
 
+/* Benachrichtigungs-Popup an der Seitenleiste (wie Spotify, nur größer). */
+.notif-popup {
+  position: fixed;
+  left: 72px;
+  bottom: 16px;
+  z-index: 110;
+  width: 420px;
+  max-width: calc(100vw - 96px);
+  max-height: 78vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.5);
+  animation: wishlist-pop 0.16s ease;
+}
+/* Ausgeklappte Seitenleiste ist breiter -> Popup mitschieben. */
+.shell:has(.sidebar.pinned) .notif-popup {
+  left: 226px;
+}
+
+.notif-popup-inner {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.notif-popup-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.notif-popup-title {
+  font-size: 15px;
+  font-weight: 700;
+}
+.notif-popup-title .subtitle {
+  margin-left: 6px;
+}
+
+.notif-popup-body {
+  overflow-y: auto;
+  padding: 14px 16px;
+}
+
+/* Im schmalen Popup dürfen die Zeilen umbrechen und nehmen die volle Breite. */
+.notif-popup-body .settings-row {
+  max-width: none;
+  flex-wrap: wrap;
+  padding: 12px 14px;
+  gap: 10px 12px;
+}
+.notif-popup-body .settings-row .btn {
+  margin-left: auto;
+}
+
+.notif-popup-hint {
+  margin-top: 12px;
+  margin-bottom: 0;
+}
+
 /* --- News-Feed (A7) --- */
 .news-feed {
   display: flex;

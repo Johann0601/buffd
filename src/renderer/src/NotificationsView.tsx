@@ -44,28 +44,24 @@ function NotificationsView({
     epicFreebies.length
 
   return (
-    <div className="app">
-      <header className="topbar">
-        <div className="brand">
-          <h1 className="h2-icon">
-            <Bell size={22} /> Benachrichtigungen
-          </h1>
-          <span className="subtitle">
-            {count === 0 ? 'nichts offen' : `${count} offen`}
-          </span>
-        </div>
-        <button className="btn" onClick={onRefresh} disabled={refreshing}>
+    <div className="notif-popup-inner">
+      <div className="notif-popup-head">
+        <span className="notif-popup-title icon-line">
+          <Bell size={18} /> Benachrichtigungen
+          <span className="subtitle">{count === 0 ? 'nichts offen' : `${count} offen`}</span>
+        </span>
+        <button className="btn small" onClick={onRefresh} disabled={refreshing}>
           {refreshing ? (
             'Prüfe …'
           ) : (
             <>
-              <RefreshCw size={15} /> Aktualisieren
+              <RefreshCw size={14} /> Aktualisieren
             </>
           )}
         </button>
-      </header>
+      </div>
 
-      <main className="content">
+      <div className="notif-popup-body">
         {count === 0 && (
           <div className="empty icon-line">
             <Check size={16} /> Alles ruhig — App, Spiele und Treiber sind auf dem neuesten Stand.
@@ -217,13 +213,11 @@ function NotificationsView({
           })}
         </div>
 
-        <p className="hint">
-          Hier landet alles Wichtige: App-Updates, Spiel-Updates, Nvidia-Treiber,
-          Wunschlisten-Rabatte (Preisprüfung alle 6 Stunden) und Epic-Gratisspiele, die du noch
-          nicht eingelöst hast. Mit „Aktualisieren" oben prüfst du alles sofort neu — inklusive
-          einer sofortigen Suche nach neuen App-Versionen.
+        <p className="hint notif-popup-hint">
+          App- & Spiel-Updates, Nvidia-Treiber, Wunschlisten-Rabatte (Preisprüfung alle 6 Stunden)
+          und nicht eingelöste Epic-Gratisspiele. „Aktualisieren" prüft alles sofort neu.
         </p>
-      </main>
+      </div>
     </div>
   )
 }
