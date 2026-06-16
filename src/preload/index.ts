@@ -67,9 +67,36 @@ const api = {
   /** Beim Start: bereits fertig heruntergeladenes Update (Version) oder null. */
   getAppUpdateStatus: (): Promise<string | null> => ipcRenderer.invoke('app:update-status'),
 
-  /** buffd deinstallieren (startet den Uninstaller; nur in der installierten Version). */
-  uninstallApp: (): Promise<{ ok: boolean; reason?: 'experimental' }> =>
-    ipcRenderer.invoke('app:uninstall'),
+  /** Sofort auf App-Updates prüfen (manuell). Stößt bei Fund den Download an;
+   *  der „update-ready"-Listener meldet sich, wenn er fertig ist. */
+  checkForAppUpdates: (): Promise<{
+    ok: boolean
+    updateAvailable?: boolean
+    version?: string
+    checkedAt?: number
+    reason?: string
+  }> => ipcRenderer.invoke('app:check-updates'),
+
+  /** Zeitpunkt (ms) der letzten erfolgreichen App-Update-Prüfung (oder null). */
+  getLastUpdateCheck: (): Promise<number | null> => ipcRenderer.invoke('app:last-update-check'),
+
+  /** Ist die Feedback-Funktion in diesem Build konfiguriert (Webhook vorhanden)? */
+  feedbackAvailable: (): Promise<boolean> => ipcRenderer.invoke('feedback:available'),
+
+  /** Feedback / Bug-Report senden (an den Discord-Kanal), optional mit Anhang. */
+  sendFeedback: (
+    kind: 'bug' | 'idea' | 'other',
+    message: string,
+    attachment?: { name: string; mime: string; data: Uint8Array }
+  ): Promise<{ ok: boolean; reason?: 'noconfig' | 'empty' | 'error' | 'toobig' }> =>
+    ipcRenderer.invoke('feedback:send', { kind, message, attachment }),
+
+  /** buffd deinstallieren (startet den Uninstaller; nur in der installierten Version).
+   *  deleteData = true löscht zusätzlich die eigenen Nutzerdaten (Spielzeit, Einstellungen). */
+  uninstallApp: (opts?: {
+    deleteData?: boolean
+  }): Promise<{ ok: boolean; reason?: 'experimental' }> =>
+    ipcRenderer.invoke('app:uninstall', opts),
 
   /** Meldet sich, wenn ein App-Update fertig heruntergeladen ist (mit Versionsnummer). */
   onAppUpdateReady: (cb: (version: string) => void): (() => void) => {

@@ -207,6 +207,19 @@ export function getDatabase(): Database.Database {
   return db
 }
 
+/** Datenbankverbindung schließen (gibt die Datei frei, z. B. vor dem Löschen
+ *  der Nutzerdaten beim Deinstallieren). */
+export function closeDatabase(): void {
+  if (db) {
+    try {
+      db.close()
+    } catch {
+      /* schon zu o. ä. */
+    }
+    db = null
+  }
+}
+
 // ---------------------------------------------------------------------------
 //  Abfragen rund um Spiele
 // ---------------------------------------------------------------------------

@@ -220,7 +220,8 @@ function NotificationsView({
         <p className="hint">
           Hier landet alles Wichtige: App-Updates, Spiel-Updates, Nvidia-Treiber,
           Wunschlisten-Rabatte (Preisprüfung alle 6 Stunden) und Epic-Gratisspiele, die du noch
-          nicht eingelöst hast. Mit „Aktualisieren" oben prüfst du alles sofort neu.
+          nicht eingelöst hast. Mit „Aktualisieren" oben prüfst du alles sofort neu — inklusive
+          einer sofortigen Suche nach neuen App-Versionen.
         </p>
       </main>
     </div>

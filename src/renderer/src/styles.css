@@ -1972,6 +1972,27 @@ img.logo-cover {
   flex: none;
 }
 
+/* Deinstallieren-Bestätigung: Häkchen „Daten löschen" über den Knöpfen. */
+.settings-row-actions {
+  flex-direction: column;
+  align-items: flex-end;
+}
+.settings-row-actions-row {
+  display: flex;
+  gap: 8px;
+}
+.uninstall-data-opt {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  color: var(--muted);
+  cursor: pointer;
+}
+.uninstall-data-opt input {
+  cursor: pointer;
+}
+
 .settings-row-title {
   font-size: 14.5px;
   font-weight: 700;
@@ -1981,6 +2002,13 @@ img.logo-cover {
   font-size: 12.5px;
   color: var(--muted);
   margin-top: 2px;
+}
+
+/* Ergebnis der manuellen Update-Prüfung (z. B. „Du bist auf dem neuesten Stand"). */
+.settings-row-note {
+  font-size: 12.5px;
+  color: var(--accent);
+  margin-top: 6px;
 }
 
 .settings-row-arrow {
@@ -3762,4 +3790,89 @@ img.logo-cover {
 .storage-cleanup-tip.icon-line svg,
 .banner.icon-line svg {
   margin-top: 2px;
+}
+
+/* ---- Feedback / Bug-Report ---- */
+.feedback-form {
+  max-width: 680px;
+}
+.feedback-intro {
+  color: var(--muted);
+  margin: 0 0 16px;
+  line-height: 1.5;
+}
+.feedback-kinds {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.feedback-textarea {
+  width: 100%;
+  resize: vertical;
+  min-height: 150px;
+  padding: 12px 14px;
+  font: inherit;
+  line-height: 1.5;
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  outline: none;
+  transition: border-color 0.12s;
+}
+.feedback-textarea:focus {
+  border-color: var(--accent);
+}
+.feedback-attach {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+.feedback-attach-hint {
+  font-size: 12px;
+  color: var(--muted);
+}
+.feedback-file {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 6px 5px 12px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  font-size: 13px;
+  max-width: 100%;
+}
+.feedback-file-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 260px;
+}
+.feedback-file-size {
+  color: var(--muted);
+  flex: none;
+}
+
+.feedback-meta {
+  font-size: 12.5px;
+  color: var(--muted);
+  margin: 10px 2px 0;
+}
+.feedback-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 16px;
+}
+.feedback-status {
+  font-size: 13.5px;
+}
+.feedback-status.ok {
+  color: #4caf86;
+}
+.feedback-status.warn {
+  color: #e0a23a;
 }

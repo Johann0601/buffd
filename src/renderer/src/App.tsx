@@ -39,7 +39,8 @@ import {
   ArrowLeft,
   TriangleAlert,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  MessageSquare
 } from 'lucide-react'
 import { formatGameSize, formatLastPlayed, formatPlaytime } from './format'
 import { platformLabel } from './platforms'
@@ -51,6 +52,7 @@ import FriendsView from './FriendsView'
 import GameDetailExtras from './GameDetailExtras'
 import HomeView from './HomeView'
 import ModsView from './ModsView'
+import FeedbackView from './FeedbackView'
 import NewsView from './NewsView'
 import Onboarding from './Onboarding'
 import NotificationsView from './NotificationsView'
@@ -68,6 +70,7 @@ export type View =
   | 'news'
   | 'friends'
   | 'notifications'
+  | 'feedback'
   | 'settings'
   | 'settings-accounts'
   | 'settings-system'
@@ -186,6 +189,9 @@ function App(): JSX.Element {
     try {
       await window.api.scanLibrary().catch(() => {}) // frische Spiel-Update-Erkennung
       await Promise.all([
+        // App-Update sofort prüfen; bei Fund lädt es im Hintergrund und der
+        // onAppUpdateReady-Listener blendet dann die Benachrichtigung ein.
+        window.api.checkForAppUpdates().catch(() => {}),
         loadPending(),
         window.api
           .checkWishlistPrices()
@@ -367,6 +373,16 @@ function App(): JSX.Element {
           <span className="nav-label">Spotify</span>
         </button>
         <button
+          className={`nav-item ${view === 'feedback' ? 'active' : ''}`}
+          onClick={() => setView('feedback')}
+          title="Feedback senden"
+        >
+          <span className="nav-icon">
+            <MessageSquare size={20} />
+          </span>
+          <span className="nav-label">Feedback</span>
+        </button>
+        <button
           className={`nav-item ${inSettings ? 'active' : ''}`}
           onClick={() => setView('settings')}
           title="Einstellungen"
@@ -430,6 +446,7 @@ function App(): JSX.Element {
             refreshing={refreshing}
           />
         )}
+        {view === 'feedback' && <FeedbackView />}
         {inSettings && (
           <SettingsView view={view} onNavigate={setView} theme={theme} onThemeChange={setTheme} />
         )}

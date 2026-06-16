@@ -15,3 +15,8 @@ export const BUILTIN_ITAD_KEY: string | null =
 // Spotify-Client-ID (PKCE-Flow — KEIN Secret nötig, daher unkritisch einbettbar).
 export const BUILTIN_SPOTIFY_CLIENT_ID: string | null =
   import.meta.env.MAIN_VITE_SPOTIFY_CLIENT_ID?.trim() || null
+
+// Discord-Webhook-URL für die In-App-Feedback-/Bug-Report-Funktion. Erlaubt nur
+// das Schreiben in genau einen Kanal; jederzeit in Discord neu generierbar.
+export const BUILTIN_FEEDBACK_WEBHOOK: string | null =
+  import.meta.env.MAIN_VITE_FEEDBACK_WEBHOOK?.trim() || null

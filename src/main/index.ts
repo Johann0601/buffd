@@ -1,12 +1,13 @@
 import { app, shell, BrowserWindow, ipcMain, protocol, net, screen } from 'electron'
 import { dirname, join } from 'path'
-import { existsSync } from 'fs'
+import { existsSync, rmSync } from 'fs'
 import { spawn } from 'child_process'
 import { pathToFileURL } from 'url'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { autoUpdater } from 'electron-updater'
 import {
   initDatabase,
+  closeDatabase,
   getDatabase,
   getLauncherTarget,
   listGames,
@@ -75,6 +76,12 @@ import {
 import { sgdbStatus, setSgdbKey, clearSgdbKey, upgradeWikiCovers } from './services/sgdb'
 import { COVER_PLATFORMS } from './services/covers'
 import { analyzeGameStorage, computeGameSize, listGameStorage } from './services/storage'
+import {
+  sendFeedback,
+  feedbackAvailable,
+  type FeedbackKind,
+  type FeedbackAttachment
+} from './services/feedback'
 
 // Referenz aufs Hauptfenster, damit der Wächter Live-Updates schicken kann.
 let mainWindow: BrowserWindow | null = null
@@ -82,6 +89,8 @@ let mainWindow: BrowserWindow | null = null
 // abgeschlossen ist, BEVOR das Fenster/der Renderer bereit ist, kann der
 // Renderer den Stand beim Start trotzdem über „app:update-status" abfragen.
 let pendingUpdateVersion: string | null = null
+// Zeitpunkt (ms) der letzten erfolgreichen Update-Prüfung (Start, 6-h-Takt, manuell).
+let lastUpdateCheckAt: number | null = null
 
 // Datenordner fest auf %APPDATA%\spiele-hub legen. Ohne das würde die
 // installierte App (productName "Spiele Hub") einen ANDEREN Ordner nutzen
@@ -171,6 +180,13 @@ function setupAutoUpdater(): void {
     }
   })
   autoUpdater.on('error', () => {}) // offline o. ä. — still ignorieren
+  // Eine erfolgreich abgeschlossene Prüfung (egal ob Update da oder nicht) merken.
+  autoUpdater.on('update-available', () => {
+    lastUpdateCheckAt = Date.now()
+  })
+  autoUpdater.on('update-not-available', () => {
+    lastUpdateCheckAt = Date.now()
+  })
   const check = (): void => {
     autoUpdater.checkForUpdates().catch(() => {})
   }
@@ -233,14 +249,61 @@ app.whenReady().then(() => {
   // Beim Start abfragen, ob schon ein Update fertig heruntergeladen ist (falls
   // der Download schneller war als der Renderer-Listener).
   ipcMain.handle('app:update-status', () => pendingUpdateVersion)
+  // Zeitpunkt (ms) der letzten erfolgreichen Update-Prüfung (oder null).
+  ipcMain.handle('app:last-update-check', () => lastUpdateCheckAt)
+
+  // Feedback / Bug-Report: an den Discord-Webhook senden + ob konfiguriert.
+  ipcMain.handle('feedback:available', () => feedbackAvailable())
+  ipcMain.handle(
+    'feedback:send',
+    (_e, args: { kind: FeedbackKind; message: string; attachment?: FeedbackAttachment }) =>
+      sendFeedback(args.kind, args.message, args.attachment)
+  )
+
+  // Manuell sofort auf App-Updates prüfen (z. B. „Aktualisieren" in der Glocke).
+  // Bei Fund lädt electron-updater im Hintergrund; der „update-downloaded"-Handler
+  // meldet sich dann von selbst. Wir warten hier NICHT auf den Download.
+  ipcMain.handle('app:check-updates', async () => {
+    if (!app.isPackaged) return { ok: false, reason: 'dev' as const }
+    try {
+      const result = await autoUpdater.checkForUpdates()
+      const version = result?.updateInfo?.version
+      const updateAvailable = !!version && version !== app.getVersion()
+      lastUpdateCheckAt = Date.now()
+      return { ok: true as const, updateAvailable, version, checkedAt: lastUpdateCheckAt }
+    } catch (err) {
+      const msg = String(err instanceof Error ? err.message : err)
+      // Im Testbuild (--dir, ohne Installer) fehlt app-update.yml -> kein Updater.
+      if (msg.includes('app-update.yml')) return { ok: false as const, reason: 'noconfig' as const }
+      return { ok: false as const, reason: 'error' as const }
+    }
+  })
 
   // buffd selbst deinstallieren: den von NSIS angelegten Uninstaller starten und
   // die App beenden (er entfernt den Rest). Im Experimentier-/Dev-Build (kein
   // Installer) gibt es keinen Uninstaller -> dem Renderer Bescheid geben.
-  ipcMain.handle('app:uninstall', () => {
+  // Optional (deleteData): vorher die eigenen Nutzerdaten löschen — die SQLite-DB
+  // (Spielzeit/Statistik/Einstellungen) in userData sowie den Update-Cache.
+  ipcMain.handle('app:uninstall', (_e, opts?: { deleteData?: boolean }) => {
     const uninstaller = join(dirname(app.getPath('exe')), 'Uninstall buffd.exe')
     if (!app.isPackaged || !existsSync(uninstaller)) {
       return { ok: false, reason: 'experimental' as const }
+    }
+    if (opts?.deleteData === true) {
+      // DB schließen (Datei freigeben) und Fenster zerstören (gibt die vom
+      // Renderer gehaltenen Sperren wie localStorage frei), dann Ordner löschen.
+      closeDatabase()
+      stopTracker()
+      for (const w of BrowserWindow.getAllWindows()) w.destroy()
+      const userData = app.getPath('userData') // …\Roaming\spiele-hub
+      const updaterCache = join(app.getPath('appData'), '..', 'Local', 'spiele-hub-updater')
+      for (const dir of [userData, updaterCache]) {
+        try {
+          rmSync(dir, { recursive: true, force: true })
+        } catch {
+          /* einzelne noch gesperrte Dateien ignorieren — bestmöglich aufräumen */
+        }
+      }
     }
     spawn(uninstaller, [], { detached: true, stdio: 'ignore' }).unref()
     setTimeout(() => app.quit(), 1000) // Dateien freigeben, damit der Uninstaller löschen kann
@@ -568,7 +631,11 @@ app.whenReady().then(() => {
 // Zeit nicht verloren geht (sonst bliebe die Sitzung ohne Ende -> Dauer 0).
 app.on('before-quit', () => {
   stopTracker()
-  flushActiveSessions()
+  try {
+    flushActiveSessions() // schlägt fehl, wenn die DB beim Deinstallieren schon geschlossen wurde
+  } catch {
+    /* DB bereits geschlossen (z. B. „Daten löschen" beim Deinstallieren) */
+  }
 })
 
 app.on('window-all-closed', () => {

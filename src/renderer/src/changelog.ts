@@ -11,6 +11,17 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.21.5',
+    date: '2026-06-16',
+    title: 'Feedback-Funktion & Update-Knöpfe',
+    changes: [
+      'Neuer Bereich „Feedback" in der Seitenleiste: Bug melden oder Vorschlag schicken (Art wählen, Text, optional ein Anhang bis 8 MB wie ein Screenshot). App- und Windows-Version werden automatisch mitgeschickt.',
+      'Neuer Knopf „Nach Updates suchen" in den Einstellungen (Bereich App) — prüft sofort und zeigt an, wann zuletzt geprüft wurde.',
+      'Der „Aktualisieren"-Knopf bei den Benachrichtigungen prüft jetzt auch sofort auf neue App-Versionen.',
+      'Beim Deinstallieren gibt es jetzt ein optionales Häkchen, um die eigenen buffd-Daten (Spielzeit & Einstellungen) gleich mitzulöschen.'
+    ]
+  },
+  {
     version: '0.21.4',
     date: '2026-06-16',
     title: 'Launcher-Filter, gemeinsame Suche & schnellerer Update-Check',
