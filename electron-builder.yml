@@ -37,6 +37,7 @@ asarUnpack:
   - '**/*.node'
 
 win:
+  signAndEditExecutable: false # winCodeSign braucht Symlink-Rechte (Developer Mode) → überspringen
   target:
     - target: nsis
       arch: [x64]
