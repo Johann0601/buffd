@@ -11,6 +11,16 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.21.10',
+    date: '2026-06-17',
+    title: 'Minecraft: Server-Status (Hypixel)',
+    changes: [
+      'Im Minecraft-Bereich gibt es oben einen neuen Umschalter zwischen „Launcher" und „Server".',
+      'Der Server-Tab zeigt den Live-Status abgefragter Server (aktuell Hypixel): Spielerzahl, MOTD, Version, Ping und Server-Icon — ganz ohne Anmeldung oder API-Schlüssel.',
+      '„Aktualisieren" fragt die Server neu ab; nicht erreichbare Server werden als „Offline" angezeigt.'
+    ]
+  },
+  {
     version: '0.21.9',
     date: '2026-06-17',
     title: 'Minecraft in der Spielebibliothek',

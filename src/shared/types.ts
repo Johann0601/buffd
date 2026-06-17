@@ -112,6 +112,30 @@ export interface McProfile {
   instancePath: string // Ordner der Instanz (zum Öffnen im Explorer)
 }
 
+/** Ein im Server-Tab abgefragter Minecraft-Server (Konfiguration). */
+export interface McServerInfo {
+  id: string // stabiler Schlüssel, z. B. 'hypixel'
+  label: string // Anzeigename
+  host: string
+  port: number
+}
+
+/** Ergebnis eines Server List Ping (kein API-Key nötig). */
+export interface McServerStatus {
+  id: string
+  label: string
+  host: string
+  port: number
+  online: boolean
+  playersOnline: number | null
+  playersMax: number | null
+  motd: string | null // bereinigt (ohne §-Farbcodes)
+  version: string | null // z. B. "Requires MC 1.8 / 1.21"
+  pingMs: number | null // Roundtrip in Millisekunden
+  faviconDataUrl: string | null // data:image/png;base64,… (Server-Icon)
+  error?: string // gesetzt, wenn offline/Fehler
+}
+
 // --- Phase 4: World-of-Tanks-Mods ---
 
 /** Eine verwaltete WoT-Mod (.wotmod-Datei). */

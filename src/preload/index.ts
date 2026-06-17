@@ -25,6 +25,7 @@ import type {
   PlayStatsResult,
   RunningGame,
   McProfile,
+  McServerStatus,
   NotInstalledResult,
   ScanResult,
   SgdbStatus,
@@ -189,6 +190,8 @@ const api = {
   /** Phase 5: Minecraft-Profile/Modpacks aller Launcher. */
   getMcProfiles: (): Promise<McProfile[]> => ipcRenderer.invoke('mc:profiles'),
   openMcFolder: (path: string): Promise<void> => ipcRenderer.invoke('mc:open-folder', path),
+  /** Stufe 1: Minecraft-Server per Server List Ping abfragen (kein API-Key). */
+  getMcServers: (): Promise<McServerStatus[]> => ipcRenderer.invoke('mc:servers'),
 
   /** Konten: Epic-Verbindung verwalten. */
   getEpicStatus: (): Promise<EpicAccountStatus> => ipcRenderer.invoke('epic:status'),

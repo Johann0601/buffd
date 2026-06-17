@@ -1442,6 +1442,66 @@ body {
   white-space: nowrap;
 }
 
+/* ---- Minecraft: Launcher/Server-Umschalter + Server-Liste ---- */
+.mc-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.mc-server-motd {
+  margin-top: 5px;
+  font-size: 12px;
+  color: var(--muted);
+  white-space: pre-line;
+  line-height: 1.35;
+}
+
+.mc-server-stats {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+  white-space: nowrap;
+}
+
+.mc-server-players {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.mc-server-max {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.mc-server-sub {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.mc-ping {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.mc-server-offline {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
 /* ---- Sidebar-Fußzeile: App-Version / App-Update bereit ---- */
 .sidebar-footer {
   padding: 10px 2px 4px;

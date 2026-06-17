@@ -37,7 +37,6 @@ import {
   Wrench,
   Gamepad2,
   Puzzle,
-  Box,
   ArrowLeft,
   TriangleAlert,
   ChevronLeft,

@@ -36,6 +36,7 @@ import {
   toggleWotMod
 } from './services/wot'
 import { listMcProfiles } from './services/minecraft'
+import { listMcServerStatus } from './services/minecraft/serverPing'
 import {
   EPIC_LOGIN_URL,
   epicAccountStatus,
@@ -424,6 +425,8 @@ app.whenReady().then(() => {
   ipcMain.handle('mc:open-folder', (_e, path: string) => {
     if (existsSync(path)) shell.openPath(path)
   })
+  // Stufe 1: Minecraft-Server per Server List Ping abfragen (kein API-Key).
+  ipcMain.handle('mc:servers', () => listMcServerStatus())
 
   // Phase 4: World-of-Tanks-Mod-Management.
   ipcMain.handle('wot:status', () => getWotStatus())
