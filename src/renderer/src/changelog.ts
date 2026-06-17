@@ -11,6 +11,16 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.21.9',
+    date: '2026-06-17',
+    title: 'Minecraft in der Spielebibliothek',
+    changes: [
+      'Minecraft erscheint jetzt als eigene Kachel in der Spiele-Ansicht mit Grass-Block-Icon und kumulierter Spielzeit aus allen Modpacks.',
+      'Ein Klick auf die Kachel öffnet die Übersicht aller erkannten Minecraft-Launcher (Modrinth, CurseForge, FTB App) mit ihren Profilen.',
+      'Modrinth, CurseForge und FTB App werden nicht mehr einzeln in der Launcher-Leiste oben angezeigt — sie sind jetzt unter Minecraft gebündelt.'
+    ]
+  },
+  {
     version: '0.21.8',
     date: '2026-06-16',
     title: 'Benachrichtigungs-Popup & Feedback-Verbesserungen',

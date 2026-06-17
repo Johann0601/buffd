@@ -4,6 +4,7 @@ import type {
   Collection,
   EpicFreeGame,
   GameCard,
+  McProfile,
   NotInstalledGame,
   NvidiaUpdate,
   Platform,
@@ -36,6 +37,7 @@ import {
   Wrench,
   Gamepad2,
   Puzzle,
+  Box,
   ArrowLeft,
   TriangleAlert,
   ChevronLeft,
@@ -47,6 +49,7 @@ import { platformLabel } from './platforms'
 import { updateActionFor } from './updateAction'
 import { uninstallActionFor } from './uninstallAction'
 import logoUrl from './assets/logo.svg'
+import minecraftIconUrl from './assets/minecraft-icon.svg'
 import FriendsForGame from './FriendsForGame'
 import FriendsView from './FriendsView'
 import GameDetailExtras from './GameDetailExtras'
@@ -61,6 +64,7 @@ import ShopsView from './ShopsView'
 import SpotifyWidget from './SpotifyWidget'
 import StatsView from './StatsView'
 import UpdatesView from './UpdatesView'
+import MinecraftView from './MinecraftView'
 
 export type View =
   | 'home'
@@ -626,6 +630,7 @@ function GamesView({
     }
   })
   const [filterOpen, setFilterOpen] = useState(false)
+  const [selectedMinecraft, setSelectedMinecraft] = useState(false)
   useEffect(() => {
     localStorage.setItem('games-filter-tags', JSON.stringify(selectedTags))
   }, [selectedTags])
@@ -763,6 +768,28 @@ function GamesView({
   const launchers = useMemo(() => games.filter((g) => g.kind === 'launcher'), [games])
   const playable = useMemo(() => games.filter((g) => g.kind === 'game'), [games])
 
+  // Minecraft-Launcher (Modrinth, CurseForge, FTB) — für die Minecraft-Kachel.
+  const mcLaunchers = useMemo(
+    () => launchers.filter((l) => ['modrinth', 'curseforge', 'ftb'].includes(l.platform)),
+    [launchers]
+  )
+  // Alle anderen Launcher ohne Minecraft — für die Chip-Leiste.
+  const nonMcLaunchers = useMemo(
+    () => launchers.filter((l) => !['modrinth', 'curseforge', 'ftb'].includes(l.platform)),
+    [launchers]
+  )
+
+  // Spielzeit aus allen MC-Profilen summieren.
+  const [mcProfiles, setMcProfiles] = useState<McProfile[]>([])
+  useEffect(() => {
+    if (mcLaunchers.length === 0) return
+    window.api.getMcProfiles().then(setMcProfiles).catch(() => {})
+  }, [mcLaunchers.length])
+  const mcTotalPlaytimeSec = useMemo(
+    () => mcProfiles.reduce((sum, p) => sum + (p.playtimeSec ?? 0), 0),
+    [mcProfiles]
+  )
+
   // Nur Plattformen anbieten, von denen es auch Spiele gibt — installiert ODER
   // nicht installiert, da der Filter jetzt für beide Listen gilt.
   const availablePlatforms = useMemo(
@@ -857,6 +884,10 @@ function GamesView({
     return list
   }, [notInstalled, search, platformFilter, selectedTags, collectionFilter, niSort])
 
+  if (selectedMinecraft) {
+    return <MinecraftView onBack={() => setSelectedMinecraft(false)} />
+  }
+
   if (selected) {
     return (
       <GameDetail
@@ -907,11 +938,11 @@ function GamesView({
           <div className="empty">Nichts gefunden. Klicke auf „Aktualisieren".</div>
         )}
 
-        {launchers.length > 0 && (
+        {nonMcLaunchers.length > 0 && (
           <section className="launcher-section">
             <h2 className="section-title">Launcher</h2>
             <div className="launcher-bar">
-              {launchers.map((l) => (
+              {nonMcLaunchers.map((l) => (
                 <LauncherChip
                   key={l.id}
                   launcher={l}
@@ -1062,6 +1093,18 @@ function GamesView({
           <div className="empty">Kein Spiel passt zu Suche/Filter.</div>
         )}
         <div className="grid">
+          {mcLaunchers.length > 0 &&
+            (platformFilter === 'all' || ['modrinth', 'curseforge', 'ftb'].includes(platformFilter)) &&
+            (search.trim() === '' || 'minecraft'.includes(search.trim().toLowerCase())) && (
+              <MinecraftTile
+                launcherCount={mcLaunchers.length}
+                totalPlaytimeSec={mcTotalPlaytimeSec}
+                onClick={() => {
+                  setFromHome(false)
+                  setSelectedMinecraft(true)
+                }}
+              />
+            )}
           {visible.map((game) => (
             <GameTile
               key={game.id}
@@ -1437,6 +1480,31 @@ function GameTile({
       <div className="tile-info">
         <div className="tile-name">{game.name}</div>
         <div className="tile-meta">Zuletzt: {formatLastPlayed(game.lastPlayed)}</div>
+      </div>
+    </div>
+  )
+}
+
+function MinecraftTile({
+  launcherCount,
+  totalPlaytimeSec,
+  onClick
+}: {
+  launcherCount: number
+  totalPlaytimeSec: number
+  onClick: () => void
+}): JSX.Element {
+  return (
+    <div className="tile" title="Minecraft" onClick={onClick}>
+      <div className="cover">
+        <img src={minecraftIconUrl} alt="Minecraft" />
+        {totalPlaytimeSec > 0 && (
+          <span className="badge">{formatPlaytime(totalPlaytimeSec)}</span>
+        )}
+      </div>
+      <div className="tile-info">
+        <div className="tile-name">Minecraft</div>
+        <div className="tile-meta">{launcherCount} Launcher</div>
       </div>
     </div>
   )
