@@ -11,6 +11,17 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.22.0',
+    date: '2026-06-22',
+    title: 'Neues Library-Design & Querformat-Banner',
+    changes: [
+      'Frisches Design: violetter Akzent statt Blau, dunklerer Grund und neue Schriften (Space Grotesk, JetBrains Mono, Audiowide).',
+      'Die Bibliothek hat oben jetzt einen großen „Spotlight" mit dem zuletzt gespielten Spiel (direkt startbar) und darunter eine „Weiter spielen"-Reihe.',
+      'Neuer Umschalter zwischen Raster- und kompakter Listenansicht (nach Quelle gruppiert mit Spielzeit, Status und Start-Knopf) — die Wahl wird gemerkt.',
+      'Spotlight und Karten zeigen hochwertige Querformat-Banner von SteamGridDB (kein NSFW/Humor, beste Auflösung). Bei mehreren Bildern wechseln alle Karten gemeinsam mit weicher Überblendung.'
+    ]
+  },
+  {
     version: '0.21.10',
     date: '2026-06-17',
     title: 'Minecraft: Server-Status (Hypixel)',

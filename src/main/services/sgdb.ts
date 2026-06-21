@@ -3,7 +3,12 @@
 // kostenlosen API-Key (steamgriddb.com -> Profil -> Preferences -> API).
 
 import type { SgdbStatus } from '@shared/types'
-import { listGamesWithWikiCover, setGameCover } from '../db'
+import {
+  listGamesWithWikiCover,
+  setGameCover,
+  getGameHero,
+  setGameHero
+} from '../db'
 import { getStoredKey, setStoredKey } from './keys'
 import { BUILTIN_SGDB_KEY } from './builtinKeys'
 
@@ -49,6 +54,85 @@ export async function sgdbCover(name: string): Promise<string | null> {
   } catch {
     return null
   }
+}
+
+// Nur statische, jugendfreie Banner (kein NSFW, kein „Humor"/Meme).
+const HERO_QUERY = 'types=static&nsfw=false&humor=false'
+
+/**
+ * Aus einer SGDB-Heroes-Antwort die besten 3 URLs ziehen. Breitbild (≥ 1920 px)
+ * wird bevorzugt; innerhalb gleicher Klasse bleibt die SGDB-Reihenfolge (nach
+ * Beliebtheit) erhalten.
+ */
+function pickHeroes(json: unknown): string[] {
+  const items =
+    (json as { data?: { url: string; width?: number; height?: number }[] } | null)?.data ?? []
+  return items
+    .map((h, i) => ({ h, i }))
+    .sort(
+      (a, b) =>
+        ((b.h.width ?? 0) >= 1920 ? 1 : 0) - ((a.h.width ?? 0) >= 1920 ? 1 : 0) || a.i - b.i
+    )
+    .slice(0, 3)
+    .map((x) => x.h.url)
+}
+
+/**
+ * Querformat-„Hero"-Banner zu einem Spiel suchen (bis zu 3). Steam-Spiele lassen
+ * sich direkt über die AppID abfragen; für alle anderen über die Namenssuche.
+ */
+async function sgdbHeroes(platform: string, platformId: string, name: string): Promise<string[]> {
+  const key = getSgdbKey()
+  if (!key) return []
+  try {
+    // Steam: direkter Weg über die AppID (am genauesten).
+    if (platform === 'steam' && platformId) {
+      const direct = await sgdbFetch(key, `/heroes/steam/${platformId}?${HERO_QUERY}`)
+      const urls = pickHeroes(direct)
+      if (urls.length > 0) return urls
+    }
+    // Sonst (oder falls Steam nichts hatte): über die Namenssuche das Spiel finden.
+    const search = (await sgdbFetch(
+      key,
+      `/search/autocomplete/${encodeURIComponent(name)}`
+    )) as { data?: { id: number }[] } | null
+    const gameId = search?.data?.[0]?.id
+    if (!gameId) return []
+    return pickHeroes(await sgdbFetch(key, `/heroes/game/${gameId}?${HERO_QUERY}`))
+  } catch {
+    return []
+  }
+}
+
+/** Cache-Wert der DB in eine URL-Liste übersetzen (robust gegen alten Einzel-URL-Cache). */
+function parseHeroCache(raw: string): string[] {
+  if (!raw) return []
+  if (raw[0] === '[') {
+    try {
+      return JSON.parse(raw) as string[]
+    } catch {
+      return []
+    }
+  }
+  return [raw] // Alt-Cache: einzelne URL
+}
+
+/**
+ * Cache-bewusster Hero-Abruf: liefert die zwischengespeicherten URLs, sonst fragt
+ * er SGDB einmal an und merkt sich das Ergebnis (auch „nichts gefunden") in der DB.
+ * Rückgabe: bis zu 3 URLs.
+ */
+export async function gameHero(
+  platform: string,
+  platformId: string,
+  name: string
+): Promise<string[]> {
+  const cached = getGameHero(platform, platformId)
+  // null = noch nie geprüft -> jetzt abrufen. '' = geprüft, keiner. sonst JSON-Liste.
+  if (cached !== null && cached !== undefined) return parseHeroCache(cached)
+  const urls = await sgdbHeroes(platform, platformId, name)
+  setGameHero(platform, platformId, urls.length > 0 ? JSON.stringify(urls) : '')
+  return urls
 }
 
 /**

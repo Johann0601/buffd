@@ -1,6 +1,6 @@
 {
   "name": "spiele-hub",
-  "version": "0.21.10",
+  "version": "0.22.0",
   "description": "buffd – zentraler Hub für deine PC-Spiele über alle Launcher hinweg: Bibliothek, Spielzeit-Tracking, News, Statistiken, Sammlungen und mehr.",
   "main": "./out/main/index.js",
   "author": "Johann",
@@ -21,6 +21,9 @@
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.1",
     "@electron-toolkit/utils": "^3.0.0",
+    "@fontsource/audiowide": "^5.2.7",
+    "@fontsource/jetbrains-mono": "^5.2.8",
+    "@fontsource/space-grotesk": "^5.2.10",
     "better-sqlite3": "^12.2.0",
     "electron-updater": "^6.8.9",
     "lucide-react": "^1.18.0"

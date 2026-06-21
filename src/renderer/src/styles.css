@@ -1,17 +1,29 @@
 :root {
-  --bg: #0f1117;
-  --panel: #181b24;
-  --panel-2: #1f2330;
-  --text: #e6e8ee;
-  --muted: #9aa3b2;
-  --accent: #6c8cff;
+  /* Palette nach „Claude Design"-Entwurf (Vault: Projekte/buffdApp/Claude_Design/).
+     Violett-Akzent statt des alten Blau, dunklerer/neutralerer Grund. */
+  --bg: #16181d;
+  --panel: #1a1d24;
+  --panel-2: #1f232c;
+  --panel-3: #262b35; /* leicht erhabene Flächen (Karten/Hover) */
+  --text: #f4f1f8;
+  --muted: #b4b1c2; /* hellerer gedimmter Text */
+  --muted-dim: #76747f; /* stärker gedimmt (Labels, Sekundärzeilen) */
+  --accent: #a855f7; /* Violett */
+  --accent-bright: #bd7cff; /* hellerer Violett-Ton (Hover/Glow) */
+  --accent-line: rgba(168, 85, 247, 0.34); /* Akzent-Ränder */
+  --accent-dim: rgba(168, 85, 247, 0.14); /* getönte Akzent-Flächen */
   --ok: #4ade80;
   --error: #f87171;
-  --border: #262b39;
-  --sidebar-bg: #0c0e14;
-  --scroll: #2c3346;
-  --scroll-hover: #3b455c;
-  --btn-hover: #2a3042; /* Hover-Hintergrund neutraler Knöpfe */
+  --border: #2a2f3a;
+  --border-soft: #232831; /* weichere Trennlinien */
+  --sidebar-bg: #121419;
+  --scroll: #2c3140;
+  --scroll-hover: #3a4150;
+  --btn-hover: #262b35; /* Hover-Hintergrund neutraler Knöpfe */
+  /* Schriften nach „Claude Design"-Entwurf (lokal gebündelt via @fontsource) */
+  --font-ui: 'Space Grotesk', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'Cascadia Code', monospace;
+  --font-display: 'Audiowide', 'Space Grotesk', sans-serif; /* Wortmarke/Logo */
 }
 
 /* Hell-Modus: dieselben Variablen, helle Werte. Umschalten in den Einstellungen. */
@@ -19,12 +31,18 @@
   --bg: #eef0f5;
   --panel: #ffffff;
   --panel-2: #e4e8f1;
+  --panel-3: #dadfeb; /* erhabene Flächen im Hell-Modus */
   --text: #1d2433;
   --muted: #5d6678;
-  --accent: #3b5bdb;
+  --muted-dim: #7c8494; /* stärker gedimmt (hell) */
+  --accent: #9333ea; /* Violett, dunkler für Kontrast auf Hell */
+  --accent-bright: #a855f7;
+  --accent-line: rgba(147, 51, 234, 0.32);
+  --accent-dim: rgba(147, 51, 234, 0.1);
   --ok: #15803d;
   --error: #dc2626;
   --border: #d4d9e4;
+  --border-soft: #e0e4ee;
   --sidebar-bg: #e6e9f1; /* helle Seitenleiste (leicht abgesetzt vom Inhalt) */
   --scroll: #c0c8d8;
   --scroll-hover: #a7b1c6;
@@ -35,9 +53,9 @@
    ursprünglichen Pastelltöne (#c2cdff, #ffd27a, …) sind für DUNKLEN Grund
    gedacht und auf hellem Hintergrund viel zu kontrastarm. */
 :root[data-theme='light'] .banner.info {
-  color: #283fa0;
-  background: rgba(108, 140, 255, 0.12);
-  border-color: rgba(59, 91, 219, 0.4);
+  color: #6b21a8;
+  background: rgba(147, 51, 234, 0.1);
+  border-color: rgba(147, 51, 234, 0.4);
 }
 
 :root[data-theme='light'] .banner.error {
@@ -88,7 +106,7 @@
 
 body {
   margin: 0;
-  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  font-family: var(--font-ui);
   background: var(--bg);
   color: var(--text);
   -webkit-font-smoothing: antialiased;
@@ -852,17 +870,17 @@ body {
   padding: 11px 14px;
   border-radius: 9px;
   font-size: 13px;
-  background: rgba(108, 140, 255, 0.12);
-  border: 1px solid rgba(108, 140, 255, 0.4);
-  color: #b9c6ff;
+  background: var(--accent-dim);
+  border: 1px solid var(--accent-line);
+  color: var(--accent-bright);
   max-width: 520px;
 }
 
 /* ---- System / Treiber ---- */
 .banner.info {
-  background: rgba(108, 140, 255, 0.1);
-  border: 1px solid rgba(108, 140, 255, 0.35);
-  color: #c2cdff;
+  background: var(--accent-dim);
+  border: 1px solid var(--accent-line);
+  color: var(--accent-bright);
   line-height: 1.5;
   max-width: 760px;
 }
@@ -970,7 +988,7 @@ body {
 
 .storage-fill {
   height: 100%;
-  background: linear-gradient(90deg, #6c8cff, #8aa2ff);
+  background: linear-gradient(90deg, var(--accent), var(--accent-bright));
   border-radius: 999px;
 }
 
@@ -2635,7 +2653,7 @@ img.logo-cover {
   font-size: 11px;
   font-weight: 600;
   color: var(--accent);
-  background: rgba(108, 140, 255, 0.12);
+  background: var(--accent-dim);
   border: 1px solid var(--border);
   padding: 2px 8px;
   border-radius: 999px;
@@ -4211,4 +4229,380 @@ img.logo-cover {
 }
 .feedback-status.warn {
   color: #e0a23a;
+}
+
+/* ===== „Claude Design": Spotlight-Hero + „Weiter spielen"-Reihe (Library) ===== */
+.spotlight {
+  position: relative;
+  border-radius: 16px;
+  overflow: hidden;
+  margin-bottom: 26px;
+  min-height: 230px;
+  display: flex;
+  align-items: flex-end;
+  background-size: cover;
+  background-position: center;
+  border: 1px solid var(--border);
+}
+/* Lesbarkeits-Verlauf über dem Farbverlauf (Text links gut lesbar) */
+.spotlight::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0.74) 0%,
+    rgba(0, 0, 0, 0.46) 46%,
+    rgba(0, 0, 0, 0.05) 100%
+  );
+}
+.spotlight-letter {
+  position: absolute;
+  right: 28px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: var(--font-display);
+  font-size: 220px;
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.1);
+  user-select: none;
+  pointer-events: none;
+}
+.spotlight-body {
+  position: relative;
+  z-index: 2;
+  padding: 28px 30px;
+  max-width: 72%;
+}
+/* Crossfade-Artwork (Top-3-Heroes rotieren) — liegt hinter Overlay/Text. */
+.rot-art {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background-size: cover;
+  background-position: center;
+}
+.art-layer {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  opacity: 0;
+  transition: opacity 1.2s ease;
+}
+.spotlight-kicker {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 8px;
+}
+.spotlight-title {
+  font-size: 40px;
+  font-weight: 700;
+  margin: 0 0 12px;
+  color: #fff;
+  letter-spacing: -0.01em;
+  line-height: 1.05;
+}
+.spotlight-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.78);
+  margin-bottom: 18px;
+}
+.spotlight-meta .dot {
+  opacity: 0.5;
+}
+.spotlight-actions {
+  display: flex;
+  gap: 10px;
+}
+/* Knöpfe auf dem farbigen Hero: Primär = Akzent, Sekundär = transluzentes Weiß. */
+.spotlight-actions .btn.primary {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  padding: 10px 20px;
+  font-weight: 600;
+}
+.spotlight-actions .btn.primary:hover:not(:disabled) {
+  background: var(--accent-bright);
+}
+.spotlight-actions .btn:not(.primary) {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 10px 18px;
+}
+.spotlight-actions .btn:not(.primary):hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.continue-section {
+  margin-bottom: 26px;
+}
+.continue-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px;
+}
+.continue-card {
+  cursor: pointer;
+}
+.continue-art {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  border-radius: 12px;
+  overflow: hidden;
+  background-size: cover;
+  background-position: center;
+  border: 1px solid var(--border);
+  transition: border-color 0.14s ease;
+}
+.continue-card:hover .continue-art {
+  border-color: var(--accent-line);
+}
+.continue-letter {
+  position: absolute;
+  right: 8px;
+  bottom: -14px;
+  font-family: var(--font-display);
+  font-size: 96px;
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.12);
+  user-select: none;
+  pointer-events: none;
+}
+.continue-source {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  padding: 3px 7px;
+  border-radius: 6px;
+}
+.continue-update {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  background: var(--accent);
+  color: #fff;
+  padding: 3px 7px;
+  border-radius: 6px;
+}
+.continue-info {
+  padding: 8px 2px 0;
+}
+.continue-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.continue-meta {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted-dim);
+  margin-top: 2px;
+}
+/* Echte Cover (Option B): breites Steam-Header-Bild füllt das Querformat sauber. */
+.spotlight.has-photo {
+  min-height: 260px;
+  background-position: center;
+}
+.continue-art.has-photo {
+  background-position: center;
+}
+
+/* ===== „Claude Design": Raster/Listen-Umschalter + dichte Liste (Design C) ===== */
+.view-toggle {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.view-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  align-self: stretch;
+  background: var(--panel);
+  color: var(--muted);
+  border: none;
+  cursor: pointer;
+}
+.view-btn + .view-btn {
+  border-left: 1px solid var(--border);
+}
+.view-btn:hover {
+  background: var(--btn-hover);
+  color: var(--text);
+}
+.view-btn.on {
+  background: var(--accent-dim);
+  color: var(--accent);
+}
+
+.games-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.games-list-head,
+.game-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 110px 150px 150px 120px;
+  align-items: center;
+  gap: 12px;
+}
+.games-list-head {
+  padding: 0 12px 8px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted-dim);
+  border-bottom: 1px solid var(--border-soft);
+}
+.game-group {
+  margin-top: 14px;
+}
+.group-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px 8px;
+}
+.group-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+}
+.group-name {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text);
+}
+.group-count {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted-dim);
+}
+.group-total {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted-dim);
+}
+.game-row {
+  padding: 8px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+.game-row:hover {
+  background: var(--panel);
+}
+.row-game {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.row-cover {
+  width: 38px;
+  height: 38px;
+  border-radius: 7px;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: var(--panel-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.row-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.row-cover .cover-fallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 600;
+  border-radius: 0;
+}
+.row-titles {
+  min-width: 0;
+}
+.row-name {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.row-source {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted-dim);
+}
+.row-playtime,
+.row-last {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.row-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+.row-badge.ok {
+  color: var(--ok);
+  background: rgba(74, 222, 128, 0.1);
+}
+.row-badge.update {
+  color: var(--accent);
+  background: var(--accent-dim);
+}
+.row-badge.live {
+  color: var(--accent-bright);
+  background: var(--accent-dim);
+}
+.row-action {
+  display: flex;
+  justify-content: flex-start;
 }

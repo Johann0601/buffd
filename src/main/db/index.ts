@@ -195,6 +195,20 @@ const MIGRATIONS: ((db: Database.Database) => void)[] = [
       ALTER TABLE wishlist ADD COLUMN alt_store_url TEXT;
       ALTER TABLE wishlist ADD COLUMN alt_checked_at INTEGER;
     `)
+  },
+  // v15: SteamGridDB-„Hero"-Banner (Querformat) pro Spiel zwischenspeichern — für
+  //      den Library-Spotlight und die „Weiter spielen"-Karten. hero_url:
+  //      NULL = noch nicht geprüft, '' = geprüft/keins gefunden, sonst die URL(s).
+  (database) => {
+    database.exec(`
+      ALTER TABLE games ADD COLUMN hero_url TEXT;
+      ALTER TABLE games ADD COLUMN hero_checked_at INTEGER;
+    `)
+  },
+  // v16: Hero-Cache einmal leeren — das Format wurde von einer einzelnen URL auf
+  //      eine JSON-Liste der besten 3 (gefiltert: kein NSFW/Humor) umgestellt.
+  (database) => {
+    database.exec(`UPDATE games SET hero_url = NULL, hero_checked_at = NULL;`)
   }
 ]
 
@@ -926,6 +940,28 @@ export function applyUpdateState(
 export function setGameCover(platform: string, platformId: string, url: string): void {
   getDatabase()
     .prepare('UPDATE games SET cover_url = ? WHERE platform = ? AND platform_id = ?')
+    .run(url, platform, platformId)
+}
+
+/**
+ * Zwischengespeicherten SteamGridDB-„Hero" (Querformat) eines Spiels lesen.
+ * Rückgabe: undefined = kein Eintrag, null = noch nicht geprüft,
+ * '' = geprüft/keiner gefunden, sonst die URL.
+ */
+export function getGameHero(platform: string, platformId: string): string | null | undefined {
+  const row = getDatabase()
+    .prepare('SELECT hero_url FROM games WHERE platform = ? AND platform_id = ?')
+    .get(platform, platformId) as { hero_url: string | null } | undefined
+  return row ? row.hero_url : undefined
+}
+
+/** Hero-Banner-URL (oder '' für „keiner gefunden") eines Spiels speichern. */
+export function setGameHero(platform: string, platformId: string, url: string): void {
+  getDatabase()
+    .prepare(
+      `UPDATE games SET hero_url = ?, hero_checked_at = strftime('%s','now')
+       WHERE platform = ? AND platform_id = ?`
+    )
     .run(url, platform, platformId)
 }
 

@@ -79,7 +79,7 @@ import {
   spotifyControl,
   type SpotifyAction
 } from './services/spotify'
-import { sgdbStatus, setSgdbKey, clearSgdbKey, upgradeWikiCovers } from './services/sgdb'
+import { sgdbStatus, setSgdbKey, clearSgdbKey, upgradeWikiCovers, gameHero } from './services/sgdb'
 import { COVER_PLATFORMS } from './services/covers'
 import { analyzeGameStorage, computeGameSize, listGameStorage } from './services/storage'
 import {
@@ -523,6 +523,12 @@ app.whenReady().then(() => {
     return { ok: true as const, upgradedCovers: upgraded }
   })
   ipcMain.handle('sgdb:clear', () => clearSgdbKey())
+  // Querformat-„Hero"-Banner für ein einzelnes Spiel (Library-Spotlight/Karten).
+  ipcMain.handle(
+    'sgdb:hero',
+    (_e, ref: { platform: string; platformId: string; name: string }) =>
+      gameHero(ref.platform, ref.platformId, ref.name)
+  )
 
   // Wunschliste mit Preisalarm + Steam-Store-Suche + Preis-Infos.
   ipcMain.handle('wishlist:list', () => listWishlist())

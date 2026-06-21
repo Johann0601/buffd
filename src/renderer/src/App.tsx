@@ -41,7 +41,9 @@ import {
   TriangleAlert,
   ChevronLeft,
   ChevronRight,
-  MessageSquare
+  MessageSquare,
+  LayoutGrid,
+  List
 } from 'lucide-react'
 import { formatGameSize, formatLastPlayed, formatPlaytime } from './format'
 import { platformLabel } from './platforms'
@@ -620,6 +622,10 @@ function GamesView({
     const saved = localStorage.getItem('games-sort')
     return SORT_OPTIONS.some((o) => o.value === saved) ? (saved as GameSort) : 'playtime'
   })
+  // Ansicht der Spiele-Auflistung: Raster (wie bisher) oder dichte Liste (Design C).
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>(() =>
+    localStorage.getItem('games-view') === 'list' ? 'list' : 'grid'
+  )
   // Tag-Filter (Steam-Community-Tags), mehrfach wählbar — wird gemerkt.
   const [selectedTags, setSelectedTags] = useState<string[]>(() => {
     try {
@@ -680,6 +686,9 @@ function GamesView({
   useEffect(() => {
     localStorage.setItem('games-sort', sortBy)
   }, [sortBy])
+  useEffect(() => {
+    localStorage.setItem('games-view', viewMode)
+  }, [viewMode])
   useEffect(() => {
     localStorage.setItem('ni-sort', niSort)
   }, [niSort])
@@ -883,6 +892,67 @@ function GamesView({
     return list
   }, [notInstalled, search, platformFilter, selectedTags, collectionFilter, niSort])
 
+  // „Claude Design"-Startbereich: Spotlight (zuletzt gespielt) + „Weiter spielen"-
+  // Reihe. Nur ohne aktive Suche/Filter, damit das Suchen nicht gestört wird.
+  const homeView = search.trim() === '' && activeFilterCount === 0
+  const recentlyPlayed = useMemo(
+    () =>
+      playable
+        .filter((g) => g.lastPlayed)
+        .sort((a, b) => (b.lastPlayed ?? 0) - (a.lastPlayed ?? 0)),
+    [playable]
+  )
+  const spotlight = homeView ? recentlyPlayed[0] ?? null : null
+  const continueRow = useMemo(
+    () => (homeView ? recentlyPlayed.slice(1, 7) : []),
+    [homeView, recentlyPlayed]
+  )
+
+  // SteamGridDB-„Hero"-Banner (Querformat) für die sichtbaren Hero/Continue-Spiele
+  // lazy nachladen und merken. Das Backend cached die URLs in der DB, daher wird
+  // pro Spiel höchstens einmal wirklich bei SGDB angefragt.
+  const [heroes, setHeroes] = useState<Map<string, string[]>>(new Map())
+  const heroTargets = useMemo(
+    () => [spotlight, ...continueRow].filter((g): g is GameCard => !!g),
+    [spotlight, continueRow]
+  )
+  useEffect(() => {
+    for (const g of heroTargets) {
+      const key = `${g.platform}:${g.platformId}`
+      if (heroes.has(key)) continue
+      window.api
+        .getGameHero({ platform: g.platform, platformId: g.platformId, name: g.name })
+        .then((urls) =>
+          setHeroes((m) => {
+            if (m.has(key)) return m
+            const next = new Map(m)
+            next.set(key, urls)
+            return next
+          })
+        )
+        .catch(() => {})
+    }
+  }, [heroTargets, heroes])
+
+  // Für die Listenansicht (Design C): sichtbare Spiele nach Quelle gruppieren,
+  // größte Gruppe zuerst. Reihenfolge innerhalb der Gruppe folgt der Sortierung.
+  const groupedBySource = useMemo(() => {
+    const map = new Map<Platform, GameCard[]>()
+    for (const g of visible) {
+      const arr = map.get(g.platform)
+      if (arr) arr.push(g)
+      else map.set(g.platform, [g])
+    }
+    return [...map.entries()].sort((a, b) => b[1].length - a[1].length)
+  }, [visible])
+
+  // Minecraft-Kachel/-Zeile nur zeigen, wenn es MC-Launcher gibt und der aktuelle
+  // Filter/die Suche dazu passt (gleiche Bedingung in Raster- und Listenansicht).
+  const showMinecraft =
+    mcLaunchers.length > 0 &&
+    (platformFilter === 'all' || ['modrinth', 'curseforge', 'ftb'].includes(platformFilter)) &&
+    (search.trim() === '' || 'minecraft'.includes(search.trim().toLowerCase()))
+
   if (selectedMinecraft) {
     return <MinecraftView onBack={() => setSelectedMinecraft(false)} />
   }
@@ -935,6 +1005,40 @@ function GamesView({
         )}
         {games.length === 0 && !scanning && !error && (
           <div className="empty">Nichts gefunden. Klicke auf „Aktualisieren".</div>
+        )}
+
+        {spotlight && (
+          <Spotlight
+            game={spotlight}
+            isRunning={running.has(spotlight.id)}
+            liveTotalSec={liveTotal(spotlight)}
+            heroUrls={heroes.get(`${spotlight.platform}:${spotlight.platformId}`)}
+            onLaunch={() => window.api.launchGame(spotlight.id)}
+            onDetails={() => {
+              setFromHome(false)
+              setSelectedId(spotlight.id)
+            }}
+          />
+        )}
+
+        {continueRow.length > 0 && (
+          <section className="continue-section">
+            <h2 className="section-title">Weiter spielen</h2>
+            <div className="continue-row">
+              {continueRow.map((g) => (
+                <ContinueCard
+                  key={g.id}
+                  game={g}
+                  liveTotalSec={liveTotal(g)}
+                  heroUrls={heroes.get(`${g.platform}:${g.platformId}`)}
+                  onClick={() => {
+                    setFromHome(false)
+                    setSelectedId(g.id)
+                  }}
+                />
+              ))}
+            </div>
+          </section>
         )}
 
         {nonMcLaunchers.length > 0 && (
@@ -1013,6 +1117,22 @@ function GamesView({
               >
                 <Folder size={15} /> Sammlungen
               </button>
+              <div className="view-toggle" role="group" aria-label="Ansicht">
+                <button
+                  className={`view-btn ${viewMode === 'grid' ? 'on' : ''}`}
+                  onClick={() => setViewMode('grid')}
+                  title="Rasteransicht"
+                >
+                  <LayoutGrid size={15} />
+                </button>
+                <button
+                  className={`view-btn ${viewMode === 'list' ? 'on' : ''}`}
+                  onClick={() => setViewMode('list')}
+                  title="Listenansicht"
+                >
+                  <List size={15} />
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -1091,10 +1211,9 @@ function GamesView({
         {playable.length > 0 && visible.length === 0 && (
           <div className="empty">Kein Spiel passt zu Suche/Filter.</div>
         )}
-        <div className="grid">
-          {mcLaunchers.length > 0 &&
-            (platformFilter === 'all' || ['modrinth', 'curseforge', 'ftb'].includes(platformFilter)) &&
-            (search.trim() === '' || 'minecraft'.includes(search.trim().toLowerCase())) && (
+        {viewMode === 'grid' ? (
+          <div className="grid">
+            {showMinecraft && (
               <MinecraftTile
                 launcherCount={mcLaunchers.length}
                 totalPlaytimeSec={mcTotalPlaytimeSec}
@@ -1104,19 +1223,100 @@ function GamesView({
                 }}
               />
             )}
-          {visible.map((game) => (
-            <GameTile
-              key={game.id}
-              game={game}
-              isRunning={running.has(game.id)}
-              liveTotalSec={liveTotal(game)}
-              onClick={() => {
-                setFromHome(false)
-                setSelectedId(game.id)
-              }}
-            />
-          ))}
-        </div>
+            {visible.map((game) => (
+              <GameTile
+                key={game.id}
+                game={game}
+                isRunning={running.has(game.id)}
+                liveTotalSec={liveTotal(game)}
+                onClick={() => {
+                  setFromHome(false)
+                  setSelectedId(game.id)
+                }}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="games-list">
+            <div className="games-list-head">
+              <span>Spiel</span>
+              <span>Spielzeit</span>
+              <span>Zuletzt</span>
+              <span>Status</span>
+              <span>Aktion</span>
+            </div>
+            {showMinecraft && (
+              <div className="game-group">
+                <div className="group-head">
+                  <span className="group-dot" />
+                  <span className="group-name">Minecraft</span>
+                  <span className="group-count">{mcLaunchers.length} Launcher</span>
+                  <span className="group-total">{formatPlaytime(mcTotalPlaytimeSec)} gesamt</span>
+                </div>
+                <div
+                  className="game-row"
+                  title="Minecraft"
+                  onClick={() => {
+                    setFromHome(false)
+                    setSelectedMinecraft(true)
+                  }}
+                >
+                  <div className="row-game">
+                    <div className="row-cover">
+                      <img src={minecraftIconUrl} alt="Minecraft" />
+                    </div>
+                    <div className="row-titles">
+                      <div className="row-name">Minecraft</div>
+                      <div className="row-source">{mcLaunchers.length} Launcher</div>
+                    </div>
+                  </div>
+                  <div className="row-playtime">{formatPlaytime(mcTotalPlaytimeSec)}</div>
+                  <div className="row-last">—</div>
+                  <div className="row-status">
+                    <span className="row-badge ok">● Installiert</span>
+                  </div>
+                  <div className="row-action">
+                    <button
+                      className="btn small"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setFromHome(false)
+                        setSelectedMinecraft(true)
+                      }}
+                    >
+                      Öffnen
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+            {groupedBySource.map(([platform, list]) => (
+              <div className="game-group" key={platform}>
+                <div className="group-head">
+                  <span className="group-dot" />
+                  <span className="group-name">{platformLabel(platform)}</span>
+                  <span className="group-count">{list.length} Spiele</span>
+                  <span className="group-total">
+                    {formatPlaytime(list.reduce((s, g) => s + liveTotal(g), 0))} gesamt
+                  </span>
+                </div>
+                {list.map((game) => (
+                  <GameRow
+                    key={game.id}
+                    game={game}
+                    isRunning={running.has(game.id)}
+                    liveTotalSec={liveTotal(game)}
+                    onClick={() => {
+                      setFromHome(false)
+                      setSelectedId(game.id)
+                    }}
+                    onLaunch={() => window.api.launchGame(game.id)}
+                  />
+                ))}
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Nicht installierte Spiele (Besitz-Katalog) */}
         {notInstalled === null ? (
@@ -1504,6 +1704,235 @@ function MinecraftTile({
       <div className="tile-info">
         <div className="tile-name">Minecraft</div>
         <div className="tile-meta">{launcherCount} Launcher</div>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * Deterministischer Farbverlauf aus einem Spielnamen — für Spotlight-Hero und
+ * „Weiter spielen"-Karten im „Claude Design"-Look (gleicher Name = gleiche Farbe).
+ */
+function gradientFor(seed: string): string {
+  let h = 0
+  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0
+  const hue = h % 360
+  const hue2 = (hue + 38) % 360
+  return `linear-gradient(135deg, hsl(${hue} 52% 34%), hsl(${hue2} 58% 19%))`
+}
+
+/**
+ * Querformat-Artwork für die Landscape-Karten (Hero + „Weiter spielen").
+ * Steam liefert ein breites Header-Bild (460×215) pro AppID — perfekt fürs
+ * Querformat. Das normale Cover ist hochkant (600×900) und würde hässlich
+ * beschnitten, daher nutzen wir es hier NICHT.
+ */
+function landscapeArt(game: GameCard): string | null {
+  if (game.platform === 'steam' && game.platformId) {
+    return `https://cdn.cloudflare.steamstatic.com/steam/apps/${game.platformId}/header.jpg`
+  }
+  return null
+}
+
+/**
+ * Querformat-Bilder für Spotlight/Continue-Karten. Priorität: SteamGridDB-„Heroes"
+ * (bis zu 3, quellenübergreifend, sobald geladen) → Steam-Header → keins (dann
+ * zeigt die Karte den Farbverlauf + Anfangsbuchstaben).
+ */
+function artUrls(game: GameCard, heroUrls?: string[] | null): string[] {
+  if (heroUrls && heroUrls.length > 0) return heroUrls
+  const steam = landscapeArt(game)
+  return steam ? [steam] : []
+}
+
+// Gemeinsamer Takt für ALLE Karten: ein einziger Timer treibt sämtliche
+// RotatingArt-Instanzen, damit sie exakt gleichzeitig überblenden.
+let sharedTick = 0
+const tickSubscribers = new Set<() => void>()
+let tickTimer: ReturnType<typeof setInterval> | null = null
+function ensureTicker(): void {
+  if (tickTimer) return
+  tickTimer = setInterval(() => {
+    sharedTick++
+    tickSubscribers.forEach((fn) => fn())
+  }, 7000) // alle 7 s gemeinsam wechseln
+}
+function useSharedTick(): number {
+  const [, force] = useState(0)
+  useEffect(() => {
+    const fn = (): void => force((n) => n + 1)
+    tickSubscribers.add(fn)
+    ensureTicker()
+    return () => {
+      tickSubscribers.delete(fn)
+      if (tickSubscribers.size === 0 && tickTimer) {
+        clearInterval(tickTimer)
+        tickTimer = null
+      }
+    }
+  }, [])
+  return sharedTick
+}
+
+/**
+ * Querformat-Artwork als Hintergrund mit weichem Crossfade. Liegen mehrere Bilder
+ * vor (Top-3-Heroes), blenden ALLE Karten im gemeinsamen 7-s-Takt gleichzeitig um.
+ * Der Farbverlauf liegt als Fallback darunter (greift, falls ein Bild nicht lädt).
+ */
+function RotatingArt({ urls, seed }: { urls: string[]; seed: string }): JSX.Element {
+  const tick = useSharedTick()
+  const idx = urls.length > 1 ? tick % urls.length : 0
+  return (
+    <div className="rot-art" style={{ backgroundImage: gradientFor(seed) }}>
+      {urls.map((u, i) => (
+        <div
+          key={u}
+          className="art-layer"
+          style={{ backgroundImage: `url("${u}")`, opacity: i === idx ? 1 : 0 }}
+        />
+      ))}
+    </div>
+  )
+}
+
+/** Großer Spotlight-Hero: zuletzt gespieltes Spiel mit Start- und Details-Knopf. */
+function Spotlight({
+  game,
+  isRunning,
+  liveTotalSec,
+  heroUrls,
+  onLaunch,
+  onDetails
+}: {
+  game: GameCard
+  isRunning: boolean
+  liveTotalSec: number
+  heroUrls?: string[] | null
+  onLaunch: () => void
+  onDetails: () => void
+}): JSX.Element {
+  const letter = game.name.trim()[0]?.toUpperCase() ?? '?'
+  const arts = artUrls(game, heroUrls)
+  return (
+    <section className={`spotlight ${arts.length > 0 ? 'has-photo' : ''}`}>
+      <RotatingArt urls={arts} seed={game.name} />
+      {arts.length === 0 && (
+        <span className="spotlight-letter" aria-hidden>
+          {letter}
+        </span>
+      )}
+      <div className="spotlight-body">
+        <div className="spotlight-kicker">Zuletzt gespielt</div>
+        <h2 className="spotlight-title">{game.name}</h2>
+        <div className="spotlight-meta">
+          <span>{platformLabel(game.platform)}</span>
+          <span className="dot">·</span>
+          <span>{formatPlaytime(liveTotalSec)} gespielt</span>
+          <span className="dot">·</span>
+          <span>{formatLastPlayed(game.lastPlayed)}</span>
+        </div>
+        <div className="spotlight-actions">
+          <button className="btn primary" onClick={onLaunch} disabled={isRunning}>
+            <Play size={16} /> {isRunning ? 'Läuft …' : 'Spiel starten'}
+          </button>
+          <button className="btn" onClick={onDetails}>
+            Details
+          </button>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+/** Landscape-Karte für die „Weiter spielen"-Reihe. */
+function ContinueCard({
+  game,
+  liveTotalSec,
+  heroUrls,
+  onClick
+}: {
+  game: GameCard
+  liveTotalSec: number
+  heroUrls?: string[] | null
+  onClick: () => void
+}): JSX.Element {
+  const letter = game.name.trim()[0]?.toUpperCase() ?? '?'
+  const arts = artUrls(game, heroUrls)
+  return (
+    <div className="continue-card" title={game.name} onClick={onClick}>
+      <div className={`continue-art ${arts.length > 0 ? 'has-photo' : ''}`}>
+        <RotatingArt urls={arts} seed={game.name} />
+        {arts.length === 0 && (
+          <span className="continue-letter" aria-hidden>
+            {letter}
+          </span>
+        )}
+        <span className="continue-source">{platformLabel(game.platform)}</span>
+        {game.updatePending && (
+          <span className="continue-update">
+            <CircleArrowUp size={11} /> Update
+          </span>
+        )}
+      </div>
+      <div className="continue-info">
+        <div className="continue-name">{game.name}</div>
+        <div className="continue-meta">
+          {formatPlaytime(liveTotalSec)} · {formatLastPlayed(game.lastPlayed)}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/** Eine Zeile der dichten Listenansicht (Design C): Spiel · Spielzeit · Zuletzt · Status · Aktion. */
+function GameRow({
+  game,
+  isRunning,
+  liveTotalSec,
+  onClick,
+  onLaunch
+}: {
+  game: GameCard
+  isRunning: boolean
+  liveTotalSec: number
+  onClick: () => void
+  onLaunch: () => void
+}): JSX.Element {
+  return (
+    <div className="game-row" onClick={onClick} title={game.name}>
+      <div className="row-game">
+        <div className="row-cover">
+          <Cover game={game} />
+        </div>
+        <div className="row-titles">
+          <div className="row-name">{game.name}</div>
+          <div className="row-source">{platformLabel(game.platform)}</div>
+        </div>
+      </div>
+      <div className="row-playtime">{formatPlaytime(liveTotalSec)}</div>
+      <div className="row-last">{formatLastPlayed(game.lastPlayed)}</div>
+      <div className="row-status">
+        {isRunning ? (
+          <span className="row-badge live">● läuft</span>
+        ) : game.updatePending ? (
+          <span className="row-badge update">
+            <CircleArrowUp size={11} /> Update
+          </span>
+        ) : (
+          <span className="row-badge ok">● Installiert</span>
+        )}
+      </div>
+      <div className="row-action">
+        <button
+          className="btn small"
+          disabled={isRunning}
+          onClick={(e) => {
+            e.stopPropagation()
+            onLaunch()
+          }}
+        >
+          <Play size={14} /> {isRunning ? 'Läuft' : 'Starten'}
+        </button>
       </div>
     </div>
   )

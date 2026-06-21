@@ -252,6 +252,9 @@ const api = {
   ): Promise<{ ok: true; upgradedCovers: number } | { ok: false; error: string }> =>
     ipcRenderer.invoke('sgdb:set', key),
   clearSgdbKey: (): Promise<SgdbStatus> => ipcRenderer.invoke('sgdb:clear'),
+  /** Bis zu 3 Querformat-„Hero"-Banner (SteamGridDB) für ein Spiel — gecacht in der DB. */
+  getGameHero: (ref: { platform: string; platformId: string; name: string }): Promise<string[]> =>
+    ipcRenderer.invoke('sgdb:hero', ref),
 
   /** Speicherplatz-Analyse: gecachter Stand und komplette Neuberechnung. */
   getGameStorage: (): Promise<GameStorageInfo[]> => ipcRenderer.invoke('storage:list'),
