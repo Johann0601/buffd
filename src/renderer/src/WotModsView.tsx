@@ -72,24 +72,13 @@ function WotModsView({ onBack }: { onBack?: () => void }): JSX.Element {
           </div>
         )}
 
-        {status?.ok && status.needsRestore > 0 && (
-          <div className="nvidia-update available" style={{ marginBottom: 20, maxWidth: 860 }}>
-            <span className="icon-line">
-              <TriangleAlert size={15} /> <strong>{status.needsRestore} aktive Mods fehlen</strong>{' '}
-              im aktuellen Versionsordner — vermutlich hat World of Tanks ein Update bekommen.
-            </span>
-            <button className="btn small" onClick={() => run(() => window.api.restoreWotMods())} disabled={busy}>
-              Mods wiederherstellen
-            </button>
-          </div>
-        )}
-
         {status?.ok && (
           <div className="banner info">
             Mods werden als Kopie in der App-Bibliothek gesichert. Aus/Einschalten verschiebt
-            nur die Datei im Spielordner — nach einem WoT-Update kannst du alle aktiven Mods
-            mit einem Klick wiederherstellen. Verwaltet werden <code>.wotmod</code>-Dateien
-            (der Standard moderner WoT-Mods).
+            nur die Datei im Spielordner. Nach einem WoT-Update legt das Spiel einen neuen
+            Versionsordner an — buffd verschiebt dann nichts von selbst; betroffene Mods werden
+            als „fehlt im Spielordner" markiert und kommen durch erneutes Aktivieren zurück.
+            Verwaltet werden <code>.wotmod</code>-Dateien (der Standard moderner WoT-Mods).
           </div>
         )}
 

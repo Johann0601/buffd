@@ -18,8 +18,9 @@ import type { WotMod, WotStatus } from '@shared/types'
  *  - Die App führt deshalb eine eigene Mod-Bibliothek (Kopie jeder bekannten Mod
  *    im userData-Ordner). Aktivieren = Kopie in den aktuellen Versionsordner,
  *    Deaktivieren = dort löschen (Bibliothekskopie bleibt).
- *  - "Wiederherstellen" kopiert nach einem Spiel-Update alle aktiven Mods in den
- *    neuen Versionsordner.
+ *  - Nach einem Spiel-Update verschiebt die App NICHTS automatisch: fehlende Mods
+ *    werden pro Mod als "fehlt im Spielordner" markiert und durch erneutes
+ *    Aktivieren (Toggle) wieder in den neuen Versionsordner kopiert.
  */
 
 /** Bibliotheksordner der App (überlebt Spiel-Updates und Neuinstallationen). */
@@ -110,7 +111,6 @@ export function getWotStatus(): WotStatus {
     wotDir: null,
     currentVersion: null,
     mods: [],
-    needsRestore: 0,
     error
   })
 
@@ -148,8 +148,7 @@ export function getWotStatus(): WotStatus {
     ok: true,
     wotDir,
     currentVersion: version,
-    mods,
-    needsRestore: mods.filter((m) => m.enabled && !m.installed).length
+    mods
   }
 }
 
@@ -168,29 +167,6 @@ export function toggleWotMod(id: number, enable: boolean): WotStatus {
       setWotModEnabled(id, enable)
     } catch {
       /* Datei gesperrt (Spiel läuft?) -> Zustand unverändert lassen */
-    }
-  }
-  return getWotStatus()
-}
-
-/** Stellt alle aktiven Mods im aktuellen Versionsordner wieder her (nach Spiel-Update). */
-export function restoreWotMods(): WotStatus {
-  const wotDir = resolveWotDir()
-  const version = wotDir ? (readGameVersion(wotDir) ?? listVersionFolders(wotDir)[0]) : null
-  if (wotDir && version) {
-    const folder = currentModsFolder(wotDir, version)
-    const lib = libraryDir()
-    for (const row of listWotMods()) {
-      if (row.enabled !== 1) continue
-      const source = join(lib, row.fileName)
-      const target = join(folder, row.fileName)
-      if (existsSync(source) && !existsSync(target)) {
-        try {
-          copyFileSync(source, target)
-        } catch {
-          /* einzelne Datei fehlgeschlagen -> Rest trotzdem versuchen */
-        }
-      }
     }
   }
   return getWotStatus()

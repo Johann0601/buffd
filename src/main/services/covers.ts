@@ -11,12 +11,17 @@ import { listGamesWithoutCover, setGameCover } from '../db'
 import { sgdbCover } from './sgdb'
 import { steamSearchAppId } from './steam/storesearch'
 
-export const COVER_PLATFORMS = ['battlenet', 'ubisoft', 'riot', 'rsi']
+export const COVER_PLATFORMS = ['battlenet', 'ubisoft', 'riot', 'rsi', 'wargaming']
 
 /** Kuratierte Cover: "<platform>:<platformId>" -> URL. */
 const CURATED: Record<string, string> = {
   // Call of Duty (HQ) ist auf Steam gelistet -> deren CDN-Cover.
-  'battlenet:AUKS': 'https://cdn.cloudflare.steamstatic.com/steam/apps/1938090/library_600x900.jpg'
+  'battlenet:AUKS': 'https://cdn.cloudflare.steamstatic.com/steam/apps/1938090/library_600x900.jpg',
+  // World of Tanks über den eigenständigen Wargaming Game Center (alle Regionen):
+  // dasselbe Steam-Cover (AppID 1407200) wie die Steam-Version nutzen.
+  'wargaming:WOT.EU.PRODUCTION': 'https://cdn.cloudflare.steamstatic.com/steam/apps/1407200/library_600x900.jpg',
+  'wargaming:WOT.NA.PRODUCTION': 'https://cdn.cloudflare.steamstatic.com/steam/apps/1407200/library_600x900.jpg',
+  'wargaming:WOT.ASIA.PRODUCTION': 'https://cdn.cloudflare.steamstatic.com/steam/apps/1407200/library_600x900.jpg'
 }
 
 /** Wikipedia-Artikel für Spiele, deren Name allein nicht eindeutig genug ist. */

@@ -188,7 +188,6 @@ const api = {
   getWotStatus: (): Promise<WotStatus> => ipcRenderer.invoke('wot:status'),
   toggleWotMod: (id: number, enable: boolean): Promise<WotStatus> =>
     ipcRenderer.invoke('wot:toggle', { id, enable }),
-  restoreWotMods: (): Promise<WotStatus> => ipcRenderer.invoke('wot:restore'),
   addWotMods: (): Promise<WotStatus> => ipcRenderer.invoke('wot:add'),
   openWotModsFolder: (): Promise<void> => ipcRenderer.invoke('wot:open-folder'),
 

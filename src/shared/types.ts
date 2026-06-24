@@ -154,7 +154,6 @@ export interface WotStatus {
   wotDir: string | null // Spielordner (…\World of Tanks\eu)
   currentVersion: string | null // z. B. "2.3.0.1"
   mods: WotMod[]
-  needsRestore: number // aktive Mods, die im aktuellen Versionsordner fehlen
   error?: string
 }
 

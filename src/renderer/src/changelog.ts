@@ -11,6 +11,15 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.23.4',
+    date: '2026-06-24',
+    title: 'WoT-Cover & Mod-Feinschliff',
+    changes: [
+      'World of Tanks aus dem eigenständigen Wargaming-Launcher bekommt jetzt das passende Cover (dasselbe wie die Steam-Version).',
+      'World-of-Tanks-Mods: buffd schiebt nach einem Spiel-Update keine Mods mehr von selbst in den neuen Versionsordner. Fehlende Mods werden wie bisher markiert und kommen durch erneutes Aktivieren zurück — du behältst die Kontrolle.'
+    ]
+  },
+  {
     version: '0.23.3',
     date: '2026-06-24',
     title: 'World of Tanks ohne Steam',

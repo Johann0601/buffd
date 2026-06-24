@@ -28,13 +28,7 @@ import { ensureGameTags } from './services/tags'
 import { startTracker, stopTracker, flushActiveSessions, closeGame } from './services/tracker'
 import { readDevices } from './services/system/drivers'
 import { checkNvidiaUpdate } from './services/system/nvidia'
-import {
-  addWotMods,
-  getWotStatus,
-  openWotModsFolder,
-  restoreWotMods,
-  toggleWotMod
-} from './services/wot'
+import { addWotMods, getWotStatus, openWotModsFolder, toggleWotMod } from './services/wot'
 import { listMcProfiles } from './services/minecraft'
 import { listMcServerStatus } from './services/minecraft/serverPing'
 import {
@@ -446,7 +440,6 @@ app.whenReady().then(() => {
   ipcMain.handle('wot:toggle', (_e, args: { id: number; enable: boolean }) =>
     toggleWotMod(args.id, args.enable)
   )
-  ipcMain.handle('wot:restore', () => restoreWotMods())
   ipcMain.handle('wot:add', () => addWotMods())
   ipcMain.handle('wot:open-folder', () => openWotModsFolder())
 
