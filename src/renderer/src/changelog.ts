@@ -11,6 +11,15 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.23.3',
+    date: '2026-06-24',
+    title: 'World of Tanks ohne Steam',
+    changes: [
+      'Wargaming-Spiele, die über den eigenständigen Wargaming Game Center (nicht über Steam) installiert sind, werden jetzt erkannt und als eigene Kachel angezeigt — z. B. World of Tanks, egal in welchen Ordner es installiert wurde.',
+      'Die Erkennung liest die Spieleliste direkt aus dem Game Center, sodass auch ein noch laufender Download bereits als Spiel auftaucht. Spielzeit wird getrackt, Cover kommt automatisch dazu.'
+    ]
+  },
+  {
     version: '0.23.2',
     date: '2026-06-24',
     title: 'Wargaming Game Center wird erkannt',

@@ -6,6 +6,7 @@ import { persistBattlenet } from './battlenet'
 import { persistUbisoft } from './ubisoft'
 import { persistRiot } from './riot'
 import { persistRsi } from './rsi'
+import { persistWargaming } from './wargaming'
 import { persistXbox } from './xbox'
 import { resolveMissingCovers } from './covers'
 import type { ScanResult } from '@shared/types'
@@ -66,6 +67,14 @@ export async function scanLibrary(): Promise<ScanResult> {
     persistXbox() // Xbox-App-Spiele (XboxGames-Ordner) — vor den Launchern,
     // damit deren PowerShell-Abfrage auch das Xbox-App-Logo mitliefert
     scanned.push('xbox')
+  } catch {
+    /* weiter */
+  }
+  try {
+    // Eigenständig (nicht über Steam) installierte Wargaming-Spiele — liest die
+    // WGC-eigene preferences.xml. Vor persistLaunchers, beide vor markMissing.
+    persistWargaming()
+    scanned.push('wargaming')
   } catch {
     /* weiter */
   }
