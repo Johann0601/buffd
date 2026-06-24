@@ -24,7 +24,13 @@ const CLEANUP_IDLE_SEC = 90 * 24 * 3600 // 90 Tage
  * Die eigentliche Größen-Analyse läuft im Hauptprozess (storage.ts) und meldet
  * jedes fertige Spiel einzeln zurück.
  */
-function StorageView({ onBack }: { onBack?: () => void }): JSX.Element {
+function StorageView({
+  onBack,
+  embedded
+}: {
+  onBack?: () => void
+  embedded?: boolean
+}): JSX.Element {
   const [games, setGames] = useState<GameStorageInfo[]>([])
   const [analyzing, setAnalyzing] = useState(false)
   // Hinweis nach Klick auf 🗑 bei Nicht-Steam-Spielen ("im Launcher deinstallieren").
@@ -72,8 +78,8 @@ function StorageView({ onBack }: { onBack?: () => void }): JSX.Element {
   const cleanupBytes = cleanupGames.reduce((sum, g) => sum + (g.sizeBytes ?? 0), 0)
 
   return (
-    <div className="app">
-      <header className="topbar">
+    <div className={embedded ? 'set-sub' : 'app'}>
+      <header className={embedded ? 'topbar topbar-embedded' : 'topbar'}>
         {onBack && (
           <button className="btn" onClick={onBack}>
             <ArrowLeft size={16} /> Zurück

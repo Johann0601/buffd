@@ -81,6 +81,7 @@ export type View =
   | 'settings-system'
   | 'settings-storage'
   | 'settings-changelog'
+  | 'settings-app'
 
 /** Unter-Tabs innerhalb der „Bibliothek". */
 export type LibrarySub = 'spiele' | 'updates' | 'mods'

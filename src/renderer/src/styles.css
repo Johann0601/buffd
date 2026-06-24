@@ -4434,6 +4434,639 @@ img.logo-cover {
 }
 
 /* ===================================================================== */
+/* Einstellungen (Redesign nach Entwurf „buffd-settings"): persistente       */
+/* Unternavigation + Inhalts-Panel; bestehende Unterseiten eingebettet.      */
+/* ===================================================================== */
+.set-view {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+.set-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 18px 24px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border-soft);
+}
+.set-topbar h1 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+.set-ver {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--muted-dim);
+}
+.set-body {
+  display: flex;
+  gap: 28px;
+  align-items: flex-start;
+  width: 100%;
+  max-width: 1340px;
+  margin: 0 auto;
+  box-sizing: border-box;
+  padding: 24px;
+}
+.set-nav {
+  position: sticky;
+  top: 86px;
+  flex: none;
+  width: 208px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.set-nav-cap {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted-dim);
+  padding: 0 10px 8px;
+}
+.set-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 9px 12px;
+  border: none;
+  border-radius: 10px;
+  background: none;
+  color: var(--muted);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.set-nav-item:hover {
+  background: var(--btn-hover);
+  color: var(--text);
+}
+.set-nav-item.active {
+  background: var(--accent-dim);
+  color: var(--accent-bright);
+}
+.set-panel {
+  flex: 1;
+  min-width: 0;
+}
+.set-panel-head h2 {
+  margin: 0 0 6px;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+.set-panel-desc {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--muted);
+  max-width: 640px;
+}
+.set-cap {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted-dim);
+  margin: 24px 0 12px;
+}
+.set-card {
+  background: var(--panel);
+  border: 1px solid var(--border-soft);
+  border-radius: 14px;
+  overflow: hidden;
+}
+.set-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 20px;
+}
+.set-row + .set-row {
+  border-top: 1px solid var(--border-soft);
+}
+.set-row-main {
+  flex: 1;
+  min-width: 0;
+}
+.set-row-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+.set-row-desc {
+  margin-top: 3px;
+  font-size: 13px;
+  color: var(--muted-dim);
+  line-height: 1.5;
+}
+.set-row-note {
+  margin-top: 6px;
+  font-size: 12.5px;
+  color: var(--accent-bright);
+}
+.set-row-note.warn {
+  color: var(--error);
+}
+.set-row-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-end;
+}
+.set-changelog-embed {
+  margin-top: 12px;
+}
+
+/* Eingebettete Unterseiten (Konten/Speicher/System/Changelog): App-Chrome aus */
+.set-sub {
+  display: block;
+}
+.topbar-embedded {
+  position: static;
+  height: auto;
+  min-height: 0;
+  padding: 0 0 18px;
+  border: none;
+  background: none;
+}
+.set-sub .content {
+  padding: 0;
+  max-width: none;
+  margin: 0;
+}
+
+@media (max-width: 820px) {
+  .set-body {
+    flex-direction: column;
+  }
+  .set-nav {
+    position: static;
+    width: 100%;
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+}
+
+/* ===================================================================== */
+/* Statistik (Redesign nach Entwurf „Statistik"): KPI-Karten, Heatmap,      */
+/* Meistgespielt-Liste, Wochentags-Chart. Theme-sicher über die Tokens.     */
+/* ===================================================================== */
+.st-view {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+.st-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 18px 24px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border-soft);
+}
+.st-badge {
+  width: 46px;
+  height: 46px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 13px;
+  background: linear-gradient(160deg, color-mix(in srgb, var(--accent) 22%, var(--panel)), var(--panel));
+  border: 1px solid var(--accent-line);
+  color: var(--accent-bright);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+.st-head-titles h1 {
+  margin: 0;
+  font-size: 25px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+.st-head-titles p {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--muted-dim);
+}
+.st-spacer {
+  flex: 1;
+}
+.st-stamp {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  font-family: var(--font-mono);
+}
+.st-stamp-cap {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted-dim);
+}
+.st-stamp-val {
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.st-spin {
+  animation: st-spin 1s linear infinite;
+}
+@keyframes st-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.st-content {
+  max-width: 1340px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+/* KPI-Karten */
+.st-kpis {
+  display: grid;
+  grid-template-columns: 1.25fr 1fr 1fr 1fr;
+  gap: 16px;
+}
+.st-kpi {
+  position: relative;
+  overflow: hidden;
+  padding: 22px 22px;
+  border-radius: 18px;
+  background: var(--panel);
+  border: 1px solid var(--border-soft);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+.st-kpi-head {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--muted-dim);
+}
+.st-kpi-cap {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted-dim);
+}
+.st-kpi-num {
+  position: relative;
+  margin-top: 20px;
+  font-weight: 700;
+  font-size: 32px;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.st-unit {
+  font-size: 0.52em;
+  font-weight: 500;
+  color: var(--muted);
+  margin: 0 2px 0 5px;
+}
+.st-kpi-sub {
+  position: relative;
+  margin-top: 12px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.st-kpi-sub.mono {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--muted-dim);
+}
+.st-kpi-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 99px;
+  background: var(--panel-3);
+}
+
+/* Karten allgemein (Heatmap, Listen) */
+.st-card {
+  padding: 22px 24px 20px;
+  border-radius: 18px;
+  background: var(--panel);
+  border: 1px solid var(--border-soft);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+.st-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+.st-card-head.col {
+  display: block;
+  margin-bottom: 4px;
+}
+.st-cap {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.st-cap-sub {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted-dim);
+}
+.st-empty {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: var(--muted-dim);
+}
+
+/* Heatmap */
+.st-heat-section {
+  display: grid;
+  grid-template-columns: 1fr 248px;
+  gap: 16px;
+}
+.st-legend {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--muted-dim);
+}
+.st-swatch {
+  width: 11px;
+  height: 11px;
+  border-radius: 3px;
+}
+.st-heat-body {
+  display: flex;
+  gap: 11px;
+}
+.st-heat-labels {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding-top: 1px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--muted-dim);
+}
+.st-heat-labels span {
+  height: 14px;
+  line-height: 14px;
+}
+.st-heat-weeks {
+  display: flex;
+  gap: 5px;
+  flex: 1;
+}
+.st-week {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex: 1;
+}
+.st-cell {
+  width: 100%;
+  height: 14px;
+  border-radius: 3px;
+}
+.st-pad {
+  background: transparent;
+}
+.st-lvl-0 {
+  background: color-mix(in srgb, var(--text) 7%, transparent);
+}
+.st-lvl-1 {
+  background: color-mix(in srgb, var(--accent) 28%, transparent);
+}
+.st-lvl-2 {
+  background: color-mix(in srgb, var(--accent) 48%, transparent);
+}
+.st-lvl-3 {
+  background: color-mix(in srgb, var(--accent) 70%, transparent);
+}
+.st-lvl-4 {
+  background: color-mix(in srgb, var(--accent) 92%, transparent);
+}
+
+/* Info-Karte rechts neben der Heatmap */
+.st-info {
+  padding: 20px 22px;
+  border-radius: 18px;
+  background: var(--bg);
+  border: 1px solid var(--border-soft);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.st-info-block {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.st-info-cap {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted-dim);
+}
+.st-info-val {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+}
+.st-info-val.big {
+  font-size: 22px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.st-info-div {
+  height: 1px;
+  background: var(--border-soft);
+}
+.st-info-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 99px;
+  background: var(--accent);
+}
+
+/* Meistgespielt + Wochentage */
+.st-bottom {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 16px;
+  align-items: start;
+}
+.st-top-list {
+  display: flex;
+  flex-direction: column;
+}
+.st-top-row {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 11px 0;
+  border-top: 1px solid var(--border-soft);
+}
+.st-top-row:first-child {
+  border-top: none;
+}
+.st-rank {
+  width: 22px;
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--muted-dim);
+  text-align: right;
+}
+.st-tile {
+  width: 40px;
+  height: 40px;
+  flex: none;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 17px;
+  color: #fff;
+  background-size: cover;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), inset 0 -8px 14px rgba(0, 0, 0, 0.25);
+}
+.st-top-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.st-top-line {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.st-top-name {
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.st-top-time {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--muted);
+  flex: none;
+  font-variant-numeric: tabular-nums;
+}
+.st-top-bar {
+  height: 6px;
+  border-radius: 99px;
+  background: color-mix(in srgb, var(--text) 6%, transparent);
+  overflow: hidden;
+}
+.st-top-fill {
+  height: 100%;
+  border-radius: 99px;
+  background: linear-gradient(90deg, var(--accent-bright), var(--accent));
+}
+.st-weekday-sub {
+  margin: 6px 0 22px;
+  font-size: 12.5px;
+  color: var(--muted-dim);
+}
+.st-weekday-chart {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 10px;
+  height: 168px;
+}
+.st-wd-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  height: 100%;
+  justify-content: flex-end;
+}
+.st-wd-bar {
+  width: 100%;
+  max-width: 30px;
+  min-height: 4px;
+  border-radius: 7px;
+  background: var(--panel-3);
+}
+.st-wd-bar.peak {
+  background: var(--accent);
+}
+.st-wd-label {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--muted-dim);
+}
+.st-wd-label.peak {
+  color: var(--accent-bright);
+}
+.st-note {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.65;
+  color: var(--muted-dim);
+  max-width: 1000px;
+}
+
+@media (max-width: 1100px) {
+  .st-kpis {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .st-heat-section,
+  .st-bottom {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 560px) {
+  .st-kpis {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ===================================================================== */
 /* Ladescreen / Splash beim Start (Entwurf „Loading Screen"). Immer dunkel  */
 /* (Markenmoment, nicht themed). Liegt als Overlay über der App, blendet aus */
 /* sobald die erste Update-Prüfung durch ist (oder das Zeitlimit greift).    */

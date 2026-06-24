@@ -11,6 +11,17 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.23.1',
+    date: '2026-06-24',
+    title: 'Neue Statistik- & Einstellungsseite',
+    changes: [
+      'Komplett neu gestaltete Statistik: vier Kennzahlen-Karten (Gesamt, letzte 7 & 30 Tage, Spiele), eine Aktivitäts-Heatmap der letzten 16 Wochen, „Meistgespielt" und eine Wochentags-Verteilung.',
+      'Die gesamte Spielzeit zählt jetzt auch nicht installierte (aber besessene) Spiele mit — z. B. Steam-Titel, die du gespielt und wieder deinstalliert hast.',
+      'Neu aufgebaute Einstellungen: feste Unternavigation links (Allgemein, Konten, Speicher, System, App, Über) mit eingebetteten Bereichen statt einzelner Unterseiten.',
+      '„Nach Updates suchen" und „Deinstallieren" sitzen jetzt übersichtlich im eigenen Bereich „App".'
+    ]
+  },
+  {
     version: '0.23.0',
     date: '2026-06-24',
     title: 'Neue Startseite & Ladescreen',

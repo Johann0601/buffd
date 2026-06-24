@@ -21,10 +21,16 @@ import type {
 
 // Konten-Bereich: externe Konten mit der App VERBINDEN (kein eigenes
 // App-Login). Aktuell: Epic Games — lesend für Spielzeiten & Bibliothek.
-function AccountsView({ onBack }: { onBack?: () => void }): JSX.Element {
+function AccountsView({
+  onBack,
+  embedded
+}: {
+  onBack?: () => void
+  embedded?: boolean
+}): JSX.Element {
   return (
-    <div className="app">
-      <header className="topbar">
+    <div className={embedded ? 'set-sub' : 'app'}>
+      <header className={embedded ? 'topbar topbar-embedded' : 'topbar'}>
         {onBack && (
           <button className="btn" onClick={onBack}>
             <ArrowLeft size={16} /> Zurück

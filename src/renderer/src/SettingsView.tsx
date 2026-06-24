@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react'
 import {
-  Settings,
+  SlidersHorizontal,
   User,
   HardDrive,
   MonitorCog,
-  ScrollText,
+  Info,
   Trash2,
-  ChevronRight,
-  RefreshCw
+  RefreshCw,
+  Wrench
 } from 'lucide-react'
 import AccountsView from './AccountsView'
 import ChangelogView from './ChangelogView'
@@ -29,8 +29,20 @@ function formatChecked(ms: number): string {
   })
 }
 
-// Einstellungen: bündelt die selteneren Bereiche (Konten, System/Treiber,
-// Changelog) und App-Optionen wie den Hell-/Dunkel-Modus.
+type Section = 'allgemein' | 'konten' | 'speicher' | 'system' | 'app' | 'ueber'
+
+const NAV: { key: Section; view: View; label: string; Icon: typeof User }[] = [
+  { key: 'allgemein', view: 'settings', label: 'Allgemein', Icon: SlidersHorizontal },
+  { key: 'konten', view: 'settings-accounts', label: 'Konten', Icon: User },
+  { key: 'speicher', view: 'settings-storage', label: 'Speicher', Icon: HardDrive },
+  { key: 'system', view: 'settings-system', label: 'System', Icon: MonitorCog },
+  { key: 'app', view: 'settings-app', label: 'App', Icon: Wrench },
+  { key: 'ueber', view: 'settings-changelog', label: 'Über', Icon: Info }
+]
+
+// Einstellungen (Redesign nach Entwurf „buffd-settings"): persistente Unter-
+// navigation links + Inhalts-Panel rechts. Die bestehenden Unterseiten (Konten,
+// Speicher, System, Changelog) werden als Panels eingebettet (embedded-Flag).
 function SettingsView({
   view,
   onNavigate,
@@ -42,7 +54,23 @@ function SettingsView({
   theme: Theme
   onThemeChange: (t: Theme) => void
 }): JSX.Element {
-  const back = (): void => onNavigate('settings')
+  const section: Section =
+    view === 'settings-accounts'
+      ? 'konten'
+      : view === 'settings-storage'
+        ? 'speicher'
+        : view === 'settings-system'
+          ? 'system'
+          : view === 'settings-app'
+            ? 'app'
+            : view === 'settings-changelog'
+              ? 'ueber'
+              : 'allgemein'
+
+  const [appVersion, setAppVersion] = useState('')
+  useEffect(() => {
+    window.api.getAppVersion().then(setAppVersion).catch(() => {})
+  }, [])
 
   // Manuell nach App-Updates suchen: Lauf-Zustand + Ergebnis-Hinweis + letzter Check.
   const [checkingUpdates, setCheckingUpdates] = useState(false)
@@ -55,8 +83,6 @@ function SettingsView({
     setLastChecked(ts)
     localStorage.setItem('update-last-checked', String(ts))
   }
-  // Beim Öffnen den im Hauptprozess gemerkten Stand holen (erfasst auch die
-  // automatischen Prüfungen beim Start / alle 6 h) und den neueren Wert behalten.
   useEffect(() => {
     window.api
       .getLastUpdateCheck()
@@ -91,7 +117,7 @@ function SettingsView({
 
   // Deinstallieren: Rückfrage-Zustand + Hinweis (z. B. im Experimentier-Build).
   const [confirmUninstall, setConfirmUninstall] = useState(false)
-  const [deleteData, setDeleteData] = useState(false) // „Meine buffd-Daten löschen"
+  const [deleteData, setDeleteData] = useState(false)
   const [uninstallNote, setUninstallNote] = useState<string | null>(null)
   const doUninstall = async (): Promise<void> => {
     const res = await window.api.uninstallApp({ deleteData })
@@ -103,182 +129,169 @@ function SettingsView({
           : 'Deinstallieren nicht möglich.'
       )
     }
-    // bei Erfolg startet der Uninstaller und die App beendet sich von selbst.
   }
 
-  if (view === 'settings-accounts') return <AccountsView onBack={back} />
-  if (view === 'settings-storage') return <StorageView onBack={back} />
-  if (view === 'settings-system') return <SystemView onBack={back} />
-  if (view === 'settings-changelog') return <ChangelogView onBack={back} />
-
   return (
-    <div className="app">
-      <header className="topbar">
-        <div className="brand">
-          <h1 className="h2-icon">
-            <Settings size={22} /> Einstellungen
-          </h1>
-        </div>
+    <div className="set-view">
+      <header className="set-topbar">
+        <h1>Einstellungen</h1>
+        {appVersion && <span className="set-ver">buffd v{appVersion}</span>}
       </header>
 
-      <main className="content">
-        {/* App-Optionen */}
-        <h2 className="section-title">Darstellung</h2>
-        <div className="settings-row">
-          <div className="settings-row-main">
-            <div className="settings-row-title">Darkmode</div>
-            <div className="settings-row-desc">
-              Dunkles Erscheinungsbild (Standard). Ausschalten für den Hell-Modus.
-            </div>
-          </div>
-          <label className="switch" title="Darkmode an/aus">
-            <input
-              type="checkbox"
-              checked={theme === 'dark'}
-              onChange={(e) => onThemeChange(e.target.checked ? 'dark' : 'light')}
-            />
-            <span className="slider" />
-          </label>
-        </div>
-
-        {/* Bereiche */}
-        <h2 className="section-title" style={{ marginTop: 26 }}>
-          Bereiche
-        </h2>
-        <div className="settings-list">
-          <button className="settings-row clickable" onClick={() => onNavigate('settings-accounts')}>
-            <span className="settings-row-icon">
-              <User size={22} />
-            </span>
-            <div className="settings-row-main">
-              <div className="settings-row-title">Konten</div>
-              <div className="settings-row-desc">
-                Epic-Konto sowie Keys für Steam-Erfolge, SteamGridDB-Cover und Preisvergleich
-              </div>
-            </div>
-            <span className="settings-row-arrow">
-              <ChevronRight size={18} />
-            </span>
-          </button>
-          <button className="settings-row clickable" onClick={() => onNavigate('settings-storage')}>
-            <span className="settings-row-icon">
-              <HardDrive size={22} />
-            </span>
-            <div className="settings-row-main">
-              <div className="settings-row-title">Speicher verwalten</div>
-              <div className="settings-row-desc">
-                Größe aller Spiele und Aufräum-Vorschläge: groß &amp; lange nicht gespielt
-              </div>
-            </div>
-            <span className="settings-row-arrow">
-              <ChevronRight size={18} />
-            </span>
-          </button>
-          <button className="settings-row clickable" onClick={() => onNavigate('settings-system')}>
-            <span className="settings-row-icon">
-              <MonitorCog size={22} />
-            </span>
-            <div className="settings-row-main">
-              <div className="settings-row-title">System / Treiber</div>
-              <div className="settings-row-desc">
-                Hardware mit Treiberversionen und Nvidia-Update-Prüfung
-              </div>
-            </div>
-            <span className="settings-row-arrow">
-              <ChevronRight size={18} />
-            </span>
-          </button>
-          <button
-            className="settings-row clickable"
-            onClick={() => onNavigate('settings-changelog')}
-          >
-            <span className="settings-row-icon">
-              <ScrollText size={22} />
-            </span>
-            <div className="settings-row-main">
-              <div className="settings-row-title">Changelog</div>
-              <div className="settings-row-desc">Was sich in der App geändert hat</div>
-            </div>
-            <span className="settings-row-arrow">
-              <ChevronRight size={18} />
-            </span>
-          </button>
-        </div>
-
-        {/* App-Verwaltung */}
-        <h2 className="section-title" style={{ marginTop: 26 }}>
-          App
-        </h2>
-        <div className="settings-list">
-        <div className="settings-row">
-          <div className="settings-row-main">
-            <div className="settings-row-title">Nach Updates suchen</div>
-            <div className="settings-row-desc">
-              Sofort prüfen, ob eine neuere buffd-Version verfügbar ist. Normalerweise passiert
-              das automatisch beim Start.
-            </div>
-            {lastChecked && (
-              <div className="settings-row-desc">Zuletzt geprüft: {formatChecked(lastChecked)}</div>
-            )}
-            {updateNote && <div className="settings-row-note">{updateNote}</div>}
-          </div>
-          <button className="btn" onClick={checkUpdates} disabled={checkingUpdates}>
-            {checkingUpdates ? (
-              'Prüfe …'
-            ) : (
-              <>
-                <RefreshCw size={16} /> Nach Updates suchen
-              </>
-            )}
-          </button>
-        </div>
-        <div className="settings-row">
-          <div className="settings-row-main">
-            <div className="settings-row-title">buffd deinstallieren</div>
-            <div className="settings-row-desc">
-              Entfernt buffd von diesem PC. Deine Spiele und Launcher sind davon nicht betroffen.
-            </div>
-            {uninstallNote && <div className="manage-warn">{uninstallNote}</div>}
-          </div>
-          {confirmUninstall ? (
-            <div className="settings-row-actions">
-              <label className="uninstall-data-opt" title="Spielzeit, Statistik und Einstellungen entfernen">
-                <input
-                  type="checkbox"
-                  checked={deleteData}
-                  onChange={(e) => setDeleteData(e.target.checked)}
-                />
-                Meine buffd-Daten (Spielzeit &amp; Einstellungen) auch löschen
-              </label>
-              <div className="settings-row-actions-row">
-                <button className="btn danger" onClick={doUninstall}>
-                  Ja, deinstallieren
-                </button>
-                <button
-                  className="btn"
-                  onClick={() => {
-                    setConfirmUninstall(false)
-                    setDeleteData(false)
-                  }}
-                >
-                  Abbrechen
-                </button>
-              </div>
-            </div>
-          ) : (
+      <div className="set-body">
+        <nav className="set-nav">
+          <span className="set-nav-cap">Einstellungen</span>
+          {NAV.map(({ key, view: target, label, Icon }) => (
             <button
-              className="btn danger"
-              onClick={() => {
-                setUninstallNote(null)
-                setConfirmUninstall(true)
-              }}
+              key={key}
+              className={`set-nav-item ${section === key ? 'active' : ''}`}
+              onClick={() => onNavigate(target)}
             >
-              <Trash2 size={16} /> Deinstallieren
+              <Icon size={18} />
+              <span>{label}</span>
             </button>
+          ))}
+        </nav>
+
+        <div className="set-panel">
+          {section === 'allgemein' && (
+            <>
+              <div className="set-panel-head">
+                <h2>Allgemein</h2>
+                <p className="set-panel-desc">
+                  Grundlegende App-Einstellungen. Weitere Optionen (Autostart, Tray, einzelne
+                  Launcher) folgen.
+                </p>
+              </div>
+              <span className="set-cap">Darstellung</span>
+              <div className="set-card">
+                <div className="set-row">
+                  <div className="set-row-main">
+                    <div className="set-row-title">Dunkles Design</div>
+                    <div className="set-row-desc">
+                      Dunkles Erscheinungsbild (Standard). Ausschalten für den Hell-Modus.
+                    </div>
+                  </div>
+                  <label className="switch" title="Darkmode an/aus">
+                    <input
+                      type="checkbox"
+                      checked={theme === 'dark'}
+                      onChange={(e) => onThemeChange(e.target.checked ? 'dark' : 'light')}
+                    />
+                    <span className="slider" />
+                  </label>
+                </div>
+              </div>
+            </>
+          )}
+
+          {section === 'konten' && <AccountsView embedded />}
+          {section === 'speicher' && <StorageView embedded />}
+          {section === 'system' && <SystemView embedded />}
+
+          {section === 'app' && (
+            <>
+              <div className="set-panel-head">
+                <h2>App</h2>
+                <p className="set-panel-desc">
+                  App-Updates und Verwaltung von buffd.
+                </p>
+              </div>
+
+              <span className="set-cap">Updates</span>
+              <div className="set-card">
+                <div className="set-row">
+                  <div className="set-row-main">
+                    <div className="set-row-title">Nach Updates suchen</div>
+                    <div className="set-row-desc">
+                      Sofort prüfen, ob eine neuere buffd-Version verfügbar ist. Normalerweise
+                      passiert das automatisch beim Start.
+                    </div>
+                    {lastChecked && (
+                      <div className="set-row-desc">Zuletzt geprüft: {formatChecked(lastChecked)}</div>
+                    )}
+                    {updateNote && <div className="set-row-note">{updateNote}</div>}
+                  </div>
+                  <button className="btn" onClick={checkUpdates} disabled={checkingUpdates}>
+                    {checkingUpdates ? (
+                      'Prüfe …'
+                    ) : (
+                      <>
+                        <RefreshCw size={16} /> Suchen
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              <span className="set-cap">Verwaltung</span>
+              <div className="set-card">
+                <div className="set-row">
+                  <div className="set-row-main">
+                    <div className="set-row-title">buffd deinstallieren</div>
+                    <div className="set-row-desc">
+                      Entfernt buffd von diesem PC. Deine Spiele und Launcher sind davon nicht
+                      betroffen.
+                    </div>
+                    {uninstallNote && <div className="set-row-note warn">{uninstallNote}</div>}
+                  </div>
+                  {confirmUninstall ? (
+                    <div className="set-row-actions">
+                      <label className="uninstall-data-opt">
+                        <input
+                          type="checkbox"
+                          checked={deleteData}
+                          onChange={(e) => setDeleteData(e.target.checked)}
+                        />
+                        Meine buffd-Daten (Spielzeit &amp; Einstellungen) auch löschen
+                      </label>
+                      <div className="settings-row-actions-row">
+                        <button className="btn danger" onClick={doUninstall}>
+                          Ja, deinstallieren
+                        </button>
+                        <button
+                          className="btn"
+                          onClick={() => {
+                            setConfirmUninstall(false)
+                            setDeleteData(false)
+                          }}
+                        >
+                          Abbrechen
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      className="btn danger"
+                      onClick={() => {
+                        setUninstallNote(null)
+                        setConfirmUninstall(true)
+                      }}
+                    >
+                      <Trash2 size={16} /> Deinstallieren
+                    </button>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+
+          {section === 'ueber' && (
+            <>
+              <div className="set-panel-head">
+                <h2>Über buffd</h2>
+                <p className="set-panel-desc">
+                  {appVersion ? `Aktuell installiert: buffd v${appVersion}. ` : ''}Was sich in den
+                  Versionen geändert hat:
+                </p>
+              </div>
+              <div className="set-changelog-embed">
+                <ChangelogView embedded />
+              </div>
+            </>
           )}
         </div>
-        </div>
-      </main>
+      </div>
     </div>
   )
 }

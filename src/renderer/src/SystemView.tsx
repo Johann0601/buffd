@@ -48,7 +48,13 @@ function formatBytes(bytes: number): string {
   return `${Math.round(gib)} GB`
 }
 
-function SystemView({ onBack }: { onBack?: () => void }): JSX.Element {
+function SystemView({
+  onBack,
+  embedded
+}: {
+  onBack?: () => void
+  embedded?: boolean
+}): JSX.Element {
   const [devices, setDevices] = useState<DeviceInfo[]>([])
   const [loading, setLoading] = useState(true)
   const [collapsed, setCollapsed] = useState<Set<string>>(loadCollapsed)
@@ -115,8 +121,8 @@ function SystemView({ onBack }: { onBack?: () => void }): JSX.Element {
   }, [devices])
 
   return (
-    <div className="app">
-      <header className="topbar">
+    <div className={embedded ? 'set-sub' : 'app'}>
+      <header className={embedded ? 'topbar topbar-embedded' : 'topbar'}>
         {onBack && (
           <button className="btn" onClick={onBack}>
             <ArrowLeft size={16} /> Zurück

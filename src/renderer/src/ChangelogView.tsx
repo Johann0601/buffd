@@ -3,7 +3,13 @@ import { ArrowLeft, ScrollText } from 'lucide-react'
 import { CHANGELOG } from './changelog'
 
 // Zeigt die Versions-Historie der App selbst (nicht der Spiele!).
-function ChangelogView({ onBack }: { onBack?: () => void }): JSX.Element {
+function ChangelogView({
+  onBack,
+  embedded
+}: {
+  onBack?: () => void
+  embedded?: boolean
+}): JSX.Element {
   const [appVersion, setAppVersion] = useState('')
 
   useEffect(() => {
@@ -11,8 +17,8 @@ function ChangelogView({ onBack }: { onBack?: () => void }): JSX.Element {
   }, [])
 
   return (
-    <div className="app">
-      <header className="topbar">
+    <div className={embedded ? 'set-sub' : 'app'}>
+      <header className={embedded ? 'topbar topbar-embedded' : 'topbar'}>
         {onBack && (
           <button className="btn" onClick={onBack}>
             <ArrowLeft size={16} /> Zurück
