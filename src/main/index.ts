@@ -97,6 +97,9 @@ let mainWindow: BrowserWindow | null = null
 let pendingUpdateVersion: string | null = null
 // Zeitpunkt (ms) der letzten erfolgreichen Update-Prüfung (Start, 6-h-Takt, manuell).
 let lastUpdateCheckAt: number | null = null
+// Ergebnis der ERSTEN Update-Prüfung beim Start — der Ladescreen wartet darauf.
+// null = ungepackt/kein Updater (Ladescreen läuft dann sofort weiter).
+let startupUpdateCheck: Promise<{ updateAvailable: boolean; version?: string }> | null = null
 
 // Datenordner fest auf %APPDATA%\spiele-hub legen. Ohne das würde die
 // installierte App (productName "Spiele Hub") einen ANDEREN Ordner nutzen
@@ -193,11 +196,18 @@ function setupAutoUpdater(): void {
   autoUpdater.on('update-not-available', () => {
     lastUpdateCheckAt = Date.now()
   })
-  const check = (): void => {
-    autoUpdater.checkForUpdates().catch(() => {})
-  }
-  check()
-  setInterval(check, 6 * 60 * 60 * 1000)
+  const check = (): Promise<{ updateAvailable: boolean; version?: string }> =>
+    autoUpdater
+      .checkForUpdates()
+      .then((r) => {
+        lastUpdateCheckAt = Date.now()
+        const version = r?.updateInfo?.version
+        return { updateAvailable: !!version && version !== app.getVersion(), version }
+      })
+      .catch(() => ({ updateAvailable: false }))
+  // Erste Prüfung beim Start merken — der Ladescreen wartet auf genau diese.
+  startupUpdateCheck = check()
+  setInterval(() => void check(), 6 * 60 * 60 * 1000)
 }
 
 app.whenReady().then(() => {
@@ -257,6 +267,9 @@ app.whenReady().then(() => {
   ipcMain.handle('app:update-status', () => pendingUpdateVersion)
   // Zeitpunkt (ms) der letzten erfolgreichen Update-Prüfung (oder null).
   ipcMain.handle('app:last-update-check', () => lastUpdateCheckAt)
+  // Der Ladescreen wartet auf die ERSTE Update-Prüfung beim Start. Löst auf,
+  // sobald die Prüfung durch ist — oder sofort, wenn ungepackt/kein Updater.
+  ipcMain.handle('app:startup-check', () => startupUpdateCheck ?? { updateAvailable: false })
 
   // Feedback / Bug-Report: an den Discord-Webhook senden + ob konfiguriert.
   ipcMain.handle('feedback:available', () => feedbackAvailable())

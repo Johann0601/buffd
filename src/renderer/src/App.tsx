@@ -55,6 +55,7 @@ import FriendsForGame from './FriendsForGame'
 import FriendsView from './FriendsView'
 import GameDetailExtras from './GameDetailExtras'
 import HomeView from './HomeView'
+import Splash from './Splash'
 import ModsView from './ModsView'
 import FeedbackView from './FeedbackView'
 import NewsView from './NewsView'
@@ -105,6 +106,8 @@ function App(): JSX.Element {
   const [appVersion, setAppVersion] = useState('')
   const [experimental, setExperimental] = useState(false) // Test-/Vorab-Build?
   const [updateVersion, setUpdateVersion] = useState<string | null>(null) // fertig geladenes App-Update
+  // Ladescreen beim Start: 'loading' -> 'fading' (blendet aus) -> 'done' (weg).
+  const [boot, setBoot] = useState<'loading' | 'fading' | 'done'>('loading')
   const [theme, setTheme] = useState<Theme>(() =>
     localStorage.getItem('theme') === 'light' ? 'light' : 'dark'
   )
@@ -293,8 +296,33 @@ function App(): JSX.Element {
 
   const inSettings = view.startsWith('settings')
 
+  // Ladescreen steuern: auf die erste Update-Prüfung beim Start warten, dabei mit
+  // Mindestdauer (gegen Flackern) und Höchstdauer (offline nicht hängen bleiben).
+  useEffect(() => {
+    let cancelled = false
+    const MIN_MS = 900
+    const MAX_MS = 6000
+    const started = Date.now()
+    const check = window.api.awaitStartupUpdateCheck().catch(() => ({ updateAvailable: false }))
+    const limit = new Promise((res) => setTimeout(res, MAX_MS))
+    void Promise.race([check, limit]).then(async () => {
+      const elapsed = Date.now() - started
+      if (elapsed < MIN_MS) await new Promise((r) => setTimeout(r, MIN_MS - elapsed))
+      if (cancelled) return
+      setBoot('fading')
+      setTimeout(() => {
+        if (!cancelled) setBoot('done')
+      }, 450)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   return (
-    <div className="shell">
+    <>
+      {boot !== 'done' && <Splash fading={boot === 'fading'} />}
+      <div className="shell">
       <button
         className="sidebar-toggle"
         onClick={() => setSidebarPinned((p) => !p)}
@@ -437,6 +465,9 @@ function App(): JSX.Element {
               setLibrarySub('spiele')
               setView('games')
             }}
+            pendingGames={pendingGames}
+            nvidia={nvidia}
+            appUpdateVersion={updateVersion}
           />
         )}
         {view === 'games' && (
@@ -512,7 +543,8 @@ function App(): JSX.Element {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </>
   )
 }
 

@@ -1,38 +1,89 @@
-import { useEffect, useState, type ReactNode } from 'react'
-import { House, ArrowRight, Play } from 'lucide-react'
-import { formatEuro, formatPlaytime } from './format'
+import { useEffect, useMemo, useState } from 'react'
+import {
+  Search,
+  Library,
+  Play,
+  ChevronRight,
+  CircleArrowUp,
+  MonitorCog,
+  Gamepad2,
+  Clock,
+  Users
+} from 'lucide-react'
+import { formatEuro, formatPlaytime, formatLastPlayed } from './format'
+import { platformLabel } from './platforms'
+import { RotatingArt, artUrls, gradientFor, useGameHeroes } from './heroArt'
+import { updateActionFor } from './updateAction'
 import type {
   EpicFreeGame,
   EpicSearchResult,
   GameCard,
-  LibraryNewsItem,
-  PlaytimePeriods,
+  NvidiaUpdate,
+  PlayStatsResult,
+  Platform,
   SteamFriend,
-  SteamOffer,
-  WotStatus
+  SteamOffer
 } from '@shared/types'
 import type { LibrarySub, View } from './App'
-import Dashboard from './Dashboard'
+
+/** Quellfarbe für die Status-Punkte (Hero-Meta, Angebote, Updates). */
+function sourceColor(p: Platform): string {
+  switch (p) {
+    case 'steam':
+      return '#4a9eff'
+    case 'epic':
+      return '#d6d6d6'
+    case 'battlenet':
+      return '#00aeff'
+    case 'riot':
+      return '#ff4655'
+    default:
+      return 'var(--accent)'
+  }
+}
+
+/** Sekunden -> kompakte Stundenangabe, z. B. "18.4h" (für KPI-Zahlen). */
+function hoursLabel(sec: number): string {
+  const h = sec / 3600
+  if (h >= 10) return `${h.toFixed(0)}h`
+  if (h >= 1) return `${h.toFixed(1)}h`
+  const min = Math.round(sec / 60)
+  return `${min}min`
+}
+
+/** Ein normalisiertes Angebot aus beliebiger Quelle für die „Angebote"-Reihe. */
+type Deal = {
+  key: string
+  name: string
+  source: Platform
+  letter: string
+  badge: string // z. B. "GRATIS" oder "-40%"
+  price: JSX.Element | string
+  coverUrl: string | null
+  onClick: () => void
+}
 
 function HomeView({
   onNavigate,
   onOpenLibrary,
-  onOpenGame
+  onOpenGame,
+  pendingGames,
+  nvidia,
+  appUpdateVersion
 }: {
   onNavigate: (v: View) => void
   onOpenLibrary: (sub: LibrarySub) => void
   onOpenGame: (gameId: number) => void
+  pendingGames: GameCard[]
+  nvidia: NvidiaUpdate | null
+  appUpdateVersion: string | null
 }): JSX.Element {
   const [games, setGames] = useState<GameCard[]>([])
-  const [wot, setWot] = useState<WotStatus | null>(null)
-  const [mcCount, setMcCount] = useState<number | null>(null)
+  const [stats, setStats] = useState<PlayStatsResult | null>(null)
   const [freeGames, setFreeGames] = useState<EpicFreeGame[]>([])
   const [epicOffers, setEpicOffers] = useState<EpicSearchResult[]>([])
   const [steamOffers, setSteamOffers] = useState<SteamOffer[]>([])
-  const [news, setNews] = useState<LibraryNewsItem[]>([])
   const [friends, setFriends] = useState<SteamFriend[]>([])
-  const [friendsKeyMissing, setFriendsKeyMissing] = useState(false)
-  const [periods, setPeriods] = useState<PlaytimePeriods | null>(null)
 
   useEffect(() => {
     // Sofort den letzten Stand zeigen, parallel im Hintergrund frisch scannen.
@@ -43,12 +94,7 @@ function HomeView({
         if (r.ok) setGames(r.games)
       })
       .catch(() => {})
-    window.api.getWotStatus().then(setWot).catch(() => {})
-    window.api
-      .getMcProfiles()
-      .then((p) => setMcCount(p.length))
-      .catch(() => {})
-    // Beste Angebote für die Startseite (beides öffentliche Endpunkte).
+    window.api.getPlayStats().then(setStats).catch(() => {})
     window.api
       .getEpicFreeGames()
       .then((g) => setFreeGames(g.filter((f) => f.status === 'gratis')))
@@ -58,260 +104,414 @@ function HomeView({
       .getSteamOffers()
       .then((o) => setSteamOffers(o.slice(0, 12)))
       .catch(() => {})
-    // Ein paar aktuelle News aus der Bibliothek (gecacht, daher günstig).
-    window.api
-      .getLibraryNews()
-      .then((r) => setNews(r.items.slice(0, 5)))
-      .catch(() => {})
-    // Fürs Dashboard: Online-Freunde und Spielzeit-Zeiträume.
     window.api
       .getSteamFriends()
-      .then((r) => {
-        setFriends(r.friends)
-        setFriendsKeyMissing(r.keyMissing)
-      })
+      .then((r) => setFriends(r.friends))
       .catch(() => {})
-    window.api.getPlaytimePeriods().then(setPeriods).catch(() => {})
   }, [])
 
-  const playable = games.filter((g) => g.kind === 'game')
-  const launchers = games.filter((g) => g.kind === 'launcher')
-  const totalSec = playable.reduce((s, g) => s + g.totalPlaytimeSec, 0)
-  const recent = playable
-    .filter((g) => g.lastPlayed)
-    .sort((a, b) => (b.lastPlayed ?? 0) - (a.lastPlayed ?? 0))
-    .slice(0, 10)
-
-  const wotRestore = wot?.ok ? wot.needsRestore : 0
-  const wotActive = wot?.ok ? wot.mods.filter((m) => m.enabled && m.installed).length : null
-
-  // Epic-Angebote, die nicht ohnehin schon als Gratisspiel laufen.
-  const epicOffersToShow = epicOffers.filter(
-    (o) => !freeGames.some((f) => titlesMatch(f.title, o.name))
+  const playable = useMemo(() => games.filter((g) => g.kind === 'game'), [games])
+  const recent = useMemo(
+    () =>
+      playable
+        .filter((g) => g.lastPlayed)
+        .sort((a, b) => (b.lastPlayed ?? 0) - (a.lastPlayed ?? 0)),
+    [playable]
   )
+  const hero = recent[0] ?? null
+  const recentRow = recent.slice(0, 6)
+
+  // Hero-Banner für Hero + „Letzte Spiele" laden (gecacht, gemeinsamer Crossfade).
+  const heroTargets = useMemo(
+    () => (hero ? [hero, ...recentRow] : recentRow).filter((g): g is GameCard => !!g),
+    [hero, recentRow]
+  )
+  const heroes = useGameHeroes(heroTargets)
+
+  // Angebote quellenübergreifend zusammenführen (Gratis zuerst), max. 5.
+  const deals = useMemo<Deal[]>(() => {
+    const list: Deal[] = []
+    for (const g of freeGames) {
+      list.push({
+        key: `free:${g.title}`,
+        name: g.title,
+        source: 'epic',
+        letter: g.title.trim()[0]?.toUpperCase() ?? '?',
+        badge: 'GRATIS',
+        price: g.originalPrice ? `statt ${g.originalPrice}` : 'kostenlos',
+        coverUrl: g.wideCoverUrl ?? g.coverUrl,
+        onClick: () => g.storeUrl && window.open(g.storeUrl, '_blank')
+      })
+    }
+    for (const o of steamOffers) {
+      list.push({
+        key: `steam:${o.appId}`,
+        name: o.name,
+        source: 'steam',
+        letter: o.name.trim()[0]?.toUpperCase() ?? '?',
+        badge: `-${o.discountPercent}%`,
+        price: (
+          <>
+            {o.originalPriceCents !== null && <s>{formatEuro(o.originalPriceCents)}</s>}{' '}
+            <b>{o.finalPriceCents !== null ? formatEuro(o.finalPriceCents) : ''}</b>
+          </>
+        ),
+        coverUrl: o.coverUrl,
+        onClick: () => window.open(o.storeUrl, '_blank')
+      })
+    }
+    for (const o of epicOffers) {
+      if (o.discountPct <= 0) continue
+      list.push({
+        key: `epic:${o.id}`,
+        name: o.name,
+        source: 'epic',
+        letter: o.name.trim()[0]?.toUpperCase() ?? '?',
+        badge: `-${o.discountPct}%`,
+        price: (
+          <>
+            {o.originalCents !== null && <s>{formatEuro(o.originalCents)}</s>}{' '}
+            <b>{o.priceCents !== null ? formatEuro(o.priceCents) : ''}</b>
+          </>
+        ),
+        coverUrl: o.coverUrl,
+        onClick: () => o.storeUrl && window.open(o.storeUrl, '_blank')
+      })
+    }
+    return list.slice(0, 5)
+  }, [freeGames, steamOffers, epicOffers])
+
+  // 7-Tage-Spielzeit aus dem lückenlosen Tagesraster (nur getrackte Zeit).
+  const week = useMemo(() => {
+    if (!stats) return null
+    const days = stats.daily.slice(-7)
+    const max = Math.max(1, ...days.map((d) => d.sec))
+    const wdShort = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa']
+    const bars = days.map((d) => {
+      const date = new Date(d.day + 'T00:00:00')
+      return { label: wdShort[date.getDay()], pct: Math.round((d.sec / max) * 100), sec: d.sec }
+    })
+    // Trend: diese 7 Tage gegen die 7 davor.
+    const prev = stats.daily.slice(-14, -7).reduce((s, d) => s + d.sec, 0)
+    const cur = days.reduce((s, d) => s + d.sec, 0)
+    const trend = prev > 0 ? Math.round(((cur - prev) / prev) * 100) : null
+    const peak = bars.reduce((mi, b, i, a) => (b.sec > a[mi].sec ? i : mi), 0)
+    return { bars, trend, peak, weekSec: stats.weekSec }
+  }, [stats])
+
+  const topGame = stats?.topGames[0] ?? null
+  const onlineFriends = friends.filter((f) => f.state !== 'offline')
+
+  // „Updates verfügbar": App-Update + Nvidia-Treiber + ausstehende Spiel-Updates.
+  const updateCount =
+    (appUpdateVersion ? 1 : 0) + (nvidia?.updateAvailable ? 1 : 0) + pendingGames.length
 
   return (
-    <div className="app">
-      <header className="topbar">
-        <div className="brand">
-          <h1 className="h2-icon">
-            <House size={22} /> Startseite
-          </h1>
-          <span className="subtitle">Willkommen zurück!</span>
+    <div className="app home2">
+      <header className="home2-topbar">
+        <div className="home2-headline">
+          <div className="home2-kicker">Übersicht</div>
+          <h1 className="home2-title">Start</h1>
         </div>
+        <button
+          className="home2-search"
+          onClick={() => onOpenLibrary('spiele')}
+          title="Zur Bibliothek"
+        >
+          <Search size={16} />
+          <span>Bibliothek durchsuchen…</span>
+        </button>
+        <button className="btn" onClick={() => onOpenLibrary('spiele')}>
+          <Library size={15} /> Bibliothek öffnen
+        </button>
       </header>
 
-      <main className="content">
-        {/* Anpassbares Dashboard (Widgets per Drag & Drop) */}
-        <Dashboard
-          playable={playable}
-          totalSec={totalSec}
-          wotRestore={wotRestore}
-          wotActive={wotActive}
-          mcCount={mcCount}
-          friends={friends}
-          friendsKeyMissing={friendsKeyMissing}
-          periods={periods}
-          news={news}
-          onOpenLibrary={onOpenLibrary}
-          onNavigate={onNavigate}
-        />
+      <main className="content home2-content">
+        {/* Hero: zuletzt gespieltes Spiel mit echtem SteamGridDB-Banner */}
+        {hero && (
+          <section className="home2-hero">
+            <RotatingArt
+              urls={artUrls(hero, heroes.get(`${hero.platform}:${hero.platformId}`))}
+              seed={hero.name}
+            />
+            <div className="home2-hero-body">
+              <div className="home2-hero-kicker">Weiterspielen</div>
+              <h2 className="home2-hero-title">{hero.name}</h2>
+              <div className="home2-hero-meta">
+                <span className="home2-src">
+                  <span className="home2-dot" style={{ background: sourceColor(hero.platform) }} />
+                  {platformLabel(hero.platform)}
+                </span>
+                <span>{formatPlaytime(hero.totalPlaytimeSec)} gespielt</span>
+                <span>Zuletzt {formatLastPlayed(hero.lastPlayed)}</span>
+              </div>
+              <div className="home2-hero-actions">
+                <button className="btn primary" onClick={() => window.api.launchGame(hero.id)}>
+                  <Play size={16} fill="currentColor" /> Spielen
+                </button>
+                <button className="btn" onClick={() => onOpenGame(hero.id)}>
+                  Details
+                </button>
+              </div>
+            </div>
+          </section>
+        )}
 
-        {/* Zuletzt gespielt — Karussell wie die Angebote unten */}
-        {recent.length > 0 && (
-          <>
-            <div className="home-offers-head">
-              <h2 className="section-title icon-line" style={{ marginTop: 26 }}>
-                <Play size={18} /> Zuletzt gespielt
-              </h2>
-              <button className="btn small" onClick={() => onOpenLibrary('spiele')}>
-                Alle ansehen <ArrowRight size={14} />
+        {/* Letzte Spiele */}
+        {recentRow.length > 0 && (
+          <section className="home2-section">
+            <div className="home2-section-head">
+              <div className="home2-section-titles">
+                <h3>Letzte Spiele</h3>
+                <span>{recent.length} zuletzt gespielt</span>
+              </div>
+              <button className="home2-link" onClick={() => onOpenLibrary('spiele')}>
+                Alle anzeigen <ChevronRight size={14} />
               </button>
             </div>
-            <OfferRow>
-              {recent.map((g) => (
-                <div key={g.id} className="offer-card recent-card" title={g.name}>
-                  <div
-                    className="offer-cover tall recent-cover"
-                    onClick={() => onOpenGame(g.id)}
-                  >
-                    {g.coverUrl ? <img src={g.coverUrl} alt={g.name} loading="lazy" /> : <span />}
+            <div className="home2-recent-grid">
+              {recentRow.map((g) => (
+                <div key={g.id} className="home2-card" title={g.name} onClick={() => onOpenGame(g.id)}>
+                  <div className="home2-card-art">
+                    <RotatingArt
+                      urls={artUrls(g, heroes.get(`${g.platform}:${g.platformId}`))}
+                      seed={g.name}
+                    />
+                    <span className="home2-card-src">{platformLabel(g.platform)}</span>
+                    {g.updatePending && (
+                      <span className="home2-card-update">
+                        <CircleArrowUp size={11} /> Update
+                      </span>
+                    )}
                     <button
-                      className="recent-play"
+                      className="home2-card-play"
                       title={`${g.name} starten`}
                       onClick={(e) => {
                         e.stopPropagation()
                         window.api.launchGame(g.id)
                       }}
                     >
-                      <Play size={24} fill="currentColor" />
+                      <Play size={20} fill="currentColor" />
                     </button>
                   </div>
-                  <div className="offer-info recent-info" onClick={() => onOpenGame(g.id)}>
-                    <div className="offer-name">{g.name}</div>
-                    <div className="offer-meta">{formatPlaytime(g.totalPlaytimeSec)}</div>
+                  <div className="home2-card-name">{g.name}</div>
+                  <div className="home2-card-meta">
+                    {formatPlaytime(g.totalPlaytimeSec)} · {formatLastPlayed(g.lastPlayed)}
                   </div>
                 </div>
               ))}
-            </OfferRow>
-          </>
+            </div>
+          </section>
         )}
 
-        {/* Angebote bei Epic — Gratisspiele zuerst, dann reduzierte Spiele */}
-        {(freeGames.length > 0 || epicOffersToShow.length > 0) && (
-          <>
-            <div className="home-offers-head">
-              <h2 className="section-title" style={{ marginTop: 26 }}>
-                Angebote bei Epic
-              </h2>
-              <button className="btn small" onClick={() => onNavigate('shops')}>
-                Alle ansehen <ArrowRight size={14} />
+        {/* Angebote (quellenübergreifend) */}
+        {deals.length > 0 && (
+          <section className="home2-section">
+            <div className="home2-section-head">
+              <div className="home2-section-titles">
+                <h3>Angebote</h3>
+                <span>Über alle Quellen</span>
+              </div>
+              <button className="home2-link" onClick={() => onNavigate('shops')}>
+                Alle Deals <ChevronRight size={14} />
               </button>
             </div>
-            <OfferRow>
-              {freeGames.map((g) => (
-                <button
-                  key={g.title}
-                  className="offer-card epic-card"
-                  title="Im Epic Store ansehen"
-                  onClick={() => g.storeUrl && window.open(g.storeUrl, '_blank')}
+            <div className="home2-deals-grid">
+              {deals.map((d) => (
+                <div
+                  key={d.key}
+                  className="home2-deal"
+                  title={d.name}
+                  role="button"
+                  tabIndex={0}
+                  onClick={d.onClick}
                 >
-                  <div className="offer-cover tall">
-                    {g.coverUrl ? <img src={g.coverUrl} alt={g.title} loading="lazy" /> : <span />}
-                    <span className="offer-badge free">GRATIS</span>
-                  </div>
-                  <div className="offer-info">
-                    <div className="offer-name">{g.title}</div>
-                    <div className="offer-meta">
-                      {g.originalPrice ? `statt ${g.originalPrice}` : 'kostenlos'}
-                    </div>
-                  </div>
-                </button>
-              ))}
-              {epicOffersToShow.map((o) => (
-                <button
-                  key={o.id}
-                  className="offer-card epic-card"
-                  title="Im Epic Store ansehen"
-                  onClick={() => o.storeUrl && window.open(o.storeUrl, '_blank')}
-                >
-                  <div className="offer-cover tall">
-                    {o.coverUrl ? <img src={o.coverUrl} alt={o.name} loading="lazy" /> : <span />}
-                    {o.discountPct > 0 && (
-                      <span className="offer-badge discount">-{o.discountPct}%</span>
+                  <div className="home2-deal-art" style={{ backgroundImage: gradientFor(d.name) }}>
+                    {d.coverUrl && (
+                      <div
+                        className="home2-deal-photo"
+                        style={{ backgroundImage: `url("${d.coverUrl}")` }}
+                      />
                     )}
+                    <span className="home2-deal-letter" aria-hidden>
+                      {d.letter}
+                    </span>
+                    <span className="home2-deal-src">
+                      <span className="home2-dot" style={{ background: sourceColor(d.source) }} />
+                      {platformLabel(d.source)}
+                    </span>
+                    <span className={`home2-deal-badge ${d.badge === 'GRATIS' ? 'free' : ''}`}>
+                      {d.badge}
+                    </span>
+                    <h4 className="home2-deal-name">{d.name}</h4>
                   </div>
-                  <div className="offer-info">
-                    <div className="offer-name">{o.name}</div>
-                    <div className="offer-meta">
-                      {o.originalCents !== null && (
-                        <>
-                          <s>{formatEuro(o.originalCents)}</s>{' '}
-                        </>
-                      )}
-                      <b>{o.priceCents !== null ? formatEuro(o.priceCents) : ''}</b>
-                    </div>
-                  </div>
-                </button>
+                  <div className="home2-deal-price">{d.price}</div>
+                </div>
               ))}
-            </OfferRow>
-          </>
-        )}
-
-        {/* Steam-Angebote — eigene Reihe, Querformat, seitlich scrollbar */}
-        {steamOffers.length > 0 && (
-          <>
-            <div className="home-offers-head">
-              <h2 className="section-title" style={{ marginTop: 26 }}>
-                Steam-Angebote
-              </h2>
-              <button className="btn small" onClick={() => onNavigate('shops')}>
-                Alle ansehen <ArrowRight size={14} />
-              </button>
             </div>
-            <OfferRow>
-              {steamOffers.map((o) => (
-                <button
-                  key={o.appId}
-                  className="offer-card steam-card"
-                  title="Im Steam Store ansehen"
-                  onClick={() => window.open(o.storeUrl, '_blank')}
-                >
-                  <div className="offer-cover">
-                    {o.coverUrl ? <img src={o.coverUrl} alt={o.name} loading="lazy" /> : <span />}
-                    <span className="offer-badge discount">-{o.discountPercent}%</span>
-                  </div>
-                  <div className="offer-info">
-                    <div className="offer-name">{o.name}</div>
-                    <div className="offer-meta">
-                      <s>
-                        {o.originalPriceCents !== null
-                          ? `${(o.originalPriceCents / 100).toLocaleString('de-DE', { minimumFractionDigits: 2 })} €`
-                          : ''}
-                      </s>{' '}
-                      <b>
-                        {o.finalPriceCents !== null
-                          ? `${(o.finalPriceCents / 100).toLocaleString('de-DE', { minimumFractionDigits: 2 })} €`
-                          : ''}
-                      </b>
-                    </div>
-                  </div>
-                </button>
-              ))}
-            </OfferRow>
-          </>
+          </section>
         )}
 
-        {/* Launcher-Schnellstart */}
-        {launchers.length > 0 && (
-          <>
-            <h2 className="section-title" style={{ marginTop: 26 }}>
-              Launcher
-            </h2>
-            <div className="launcher-bar">
-              {launchers.map((l) => (
+        {/* Untere Widget-Reihe: Updates · Spielzeit · Freunde */}
+        <section className="home2-grid">
+          {/* Updates verfügbar */}
+          <div className="home2-widget">
+            <div className="home2-widget-head">
+              <span className="home2-widget-cap">Updates verfügbar</span>
+              <span className="home2-widget-count">
+                {updateCount === 0 ? 'nichts offen' : `${updateCount} offen`}
+              </span>
+            </div>
+            {updateCount === 0 && (
+              <div className="home2-empty">Alles aktuell — App, Spiele und Treiber.</div>
+            )}
+            {appUpdateVersion && (
+              <div className="home2-update-row">
+                <span className="home2-update-icon">
+                  <CircleArrowUp size={18} />
+                </span>
+                <div className="home2-update-main">
+                  <div className="home2-update-title">buffd {appUpdateVersion}</div>
+                  <div className="home2-update-sub">App-Update bereit</div>
+                </div>
+                <button className="home2-update-btn" onClick={() => window.api.installAppUpdate()}>
+                  Neu starten
+                </button>
+              </div>
+            )}
+            {nvidia?.updateAvailable && (
+              <div className="home2-update-row">
+                <span className="home2-update-icon">
+                  <MonitorCog size={18} />
+                </span>
+                <div className="home2-update-main">
+                  <div className="home2-update-title">Nvidia-Treiber {nvidia.latestVersion}</div>
+                  <div className="home2-update-sub">installiert: {nvidia.installedVersion}</div>
+                </div>
                 <button
-                  key={l.id}
-                  className="launcher-chip"
-                  onClick={() => window.api.launchGame(l.id)}
-                  title={`${l.name} öffnen`}
+                  className="home2-update-btn"
+                  onClick={async () => {
+                    const opened = await window.api.openNvidiaApp()
+                    if (!opened && nvidia.downloadUrl) window.open(nvidia.downloadUrl, '_blank')
+                  }}
                 >
-                  {l.coverUrl ? (
-                    <img className="launcher-icon" src={l.coverUrl} alt="" />
-                  ) : (
-                    <span className="launcher-icon fallback">{l.name.charAt(0)}</span>
+                  NVIDIA App
+                </button>
+              </div>
+            )}
+            {pendingGames.map((g) => {
+              const action = updateActionFor(g)
+              return (
+                <div key={g.id} className="home2-update-row">
+                  <span className="home2-update-icon">
+                    <Gamepad2 size={18} />
+                  </span>
+                  <div className="home2-update-main">
+                    <div className="home2-update-title">{g.name}</div>
+                    <div className="home2-update-sub">
+                      Update steht aus ({g.platform === 'battlenet' ? 'Battle.net' : 'Steam'})
+                    </div>
+                  </div>
+                  {action && (
+                    <button className="home2-update-btn" onClick={action.run}>
+                      Update
+                    </button>
                   )}
-                  <span className="launcher-name">{l.name}</span>
-                </button>
-              ))}
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Spielzeit · Diese Woche */}
+          <div className="home2-widget">
+            <div className="home2-widget-cap">
+              <Clock size={12} /> Spielzeit · Diese Woche
             </div>
-          </>
-        )}
+            <div className="home2-week-top">
+              <span className="home2-week-num">{week ? hoursLabel(week.weekSec) : '—'}</span>
+              {week?.trend != null && (
+                <span className={`home2-week-trend ${week.trend < 0 ? 'down' : ''}`}>
+                  {week.trend >= 0 ? '+' : ''}
+                  {week.trend}%
+                </span>
+              )}
+            </div>
+            <div className="home2-week-chart">
+              {(week?.bars ?? Array.from({ length: 7 }, () => ({ label: '', pct: 0, sec: 0 }))).map(
+                (b, i) => (
+                  <div key={i} className="home2-week-col">
+                    <div
+                      className={`home2-week-bar ${week && i === week.peak && b.sec > 0 ? 'peak' : ''}`}
+                      style={{ height: `${Math.max(3, b.pct)}%` }}
+                    />
+                    <span className="home2-week-day">{b.label}</span>
+                  </div>
+                )
+              )}
+            </div>
+            <div className="home2-week-foot">
+              <span>Meistgespielt</span>
+              <span className="home2-week-foot-game">{topGame ? topGame.name : '—'}</span>
+            </div>
+          </div>
+
+          {/* Freunde-Aktivität */}
+          <div className="home2-widget">
+            <div className="home2-widget-head">
+              <span className="home2-widget-cap">
+                <Users size={12} /> Freunde-Aktivität
+              </span>
+              <span className="home2-widget-count ok">{onlineFriends.length} online</span>
+            </div>
+            {onlineFriends.length === 0 && (
+              <div className="home2-empty">Niemand online — oder kein Steam-Key hinterlegt.</div>
+            )}
+            {onlineFriends.slice(0, 4).map((f) => (
+              <div key={f.steamId} className="home2-friend-row">
+                <div className="home2-friend-av" style={{ backgroundImage: gradientFor(f.personaName) }}>
+                  {f.avatarUrl ? (
+                    <img src={f.avatarUrl} alt="" />
+                  ) : (
+                    <span>{f.personaName.trim()[0]?.toUpperCase() ?? '?'}</span>
+                  )}
+                  <span
+                    className="home2-friend-dot"
+                    style={{
+                      background:
+                        f.state === 'ingame'
+                          ? 'var(--accent)'
+                          : f.state === 'online'
+                            ? 'var(--ok)'
+                            : '#e0b341'
+                    }}
+                  />
+                </div>
+                <div className="home2-friend-main">
+                  <div className="home2-friend-name">{f.personaName}</div>
+                  <div className="home2-friend-sub">
+                    {f.state === 'ingame' && f.currentGame
+                      ? `spielt ${f.currentGame}`
+                      : f.state === 'ingame'
+                        ? 'im Spiel'
+                        : f.state === 'away'
+                          ? 'abwesend'
+                          : f.state === 'busy'
+                            ? 'beschäftigt'
+                            : 'online'}
+                  </div>
+                </div>
+              </div>
+            ))}
+            {friends.length > 0 && (
+              <button className="home2-link end" onClick={() => onNavigate('friends')}>
+                Alle Freunde <ChevronRight size={14} />
+              </button>
+            )}
+          </div>
+        </section>
       </main>
     </div>
   )
-}
-
-/** Seitlich scrollbare Reihe. Bewusst OHNE Mausrad-Steuerung: Das Rad scrollt
- *  immer die Seite hoch/runter, die Reihe bewegt man am Scrollbalken. */
-function OfferRow({ children }: { children: ReactNode }): JSX.Element {
-  return <div className="offer-row">{children}</div>
-}
-
-/** Grober Titel-Abgleich, um Gratisspiele nicht doppelt als Angebot zu zeigen. */
-function titlesMatch(a: string, b: string): boolean {
-  const norm = (s: string): string =>
-    s
-      .toLowerCase()
-      .replace(/[™®©]/g, '')
-      .replace(/&/g, 'and')
-      .replace(/\b(deluxe|ultimate|standard|premium|definitive|complete|edition|remastered)\b/g, '')
-      .replace(/[^a-z0-9]+/g, '')
-  const na = norm(a)
-  const nb = norm(b)
-  if (!na || !nb) return false
-  if (na === nb) return true
-  return na.length >= 5 && nb.length >= 5 && (na.includes(nb) || nb.includes(na))
 }
 
 export default HomeView

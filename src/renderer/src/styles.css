@@ -4433,6 +4433,896 @@ img.logo-cover {
   background-position: center;
 }
 
+/* ===================================================================== */
+/* Ladescreen / Splash beim Start (Entwurf „Loading Screen"). Immer dunkel  */
+/* (Markenmoment, nicht themed). Liegt als Overlay über der App, blendet aus */
+/* sobald die erste Update-Prüfung durch ist (oder das Zeitlimit greift).    */
+/* ===================================================================== */
+.splash {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(120% 90% at 50% 38%, #20222c 0%, #1a1d24 55%, #15171d 100%);
+  font-family: var(--font-ui);
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  transition: opacity 0.42s ease;
+}
+.splash-hide {
+  opacity: 0;
+  pointer-events: none;
+}
+.splash-wordmark {
+  position: absolute;
+  top: 44px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--font-display);
+  font-size: 22px;
+  letter-spacing: 0.04em;
+  color: #f4f1f8;
+  user-select: none;
+}
+.splash-wordmark span {
+  color: #a855f7;
+}
+.splash-logo {
+  position: relative;
+  width: 300px;
+  height: 300px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.splash-glow {
+  position: absolute;
+  width: 220px;
+  height: 220px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(168, 85, 247, 0.38) 0%,
+    rgba(168, 85, 247, 0.12) 45%,
+    rgba(168, 85, 247, 0) 72%
+  );
+  animation: splash-breathe 3.4s ease-in-out infinite;
+}
+.splash-spin {
+  position: absolute;
+  inset: 0;
+  transform-origin: center;
+  animation: splash-spin 2.6s linear infinite;
+}
+.splash-hex {
+  position: absolute;
+  inset: 0;
+  animation: splash-hex 3.4s ease-in-out infinite;
+}
+.splash-line {
+  animation: splash-line 1.8s ease-in-out infinite;
+}
+.splash-node {
+  transform-box: fill-box;
+  transform-origin: center;
+  filter: drop-shadow(0 0 5px rgba(168, 85, 247, 0.9));
+  animation: splash-node 1.8s ease-in-out infinite;
+}
+.splash-mid-ring {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: splash-ring 1.8s ease-in-out infinite;
+}
+.splash-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: 14px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #e7e2ef;
+}
+.splash-dots {
+  display: inline-flex;
+  gap: 3px;
+}
+.splash-dots span {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #a855f7;
+  animation: splash-dot 1.2s ease-in-out infinite;
+}
+.splash-bar {
+  margin-top: 22px;
+  width: 240px;
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+}
+.splash-bar-fill {
+  width: 34%;
+  height: 100%;
+  border-radius: 2px;
+  background: linear-gradient(90deg, rgba(168, 85, 247, 0) 0%, #a855f7 50%, rgba(168, 85, 247, 0) 100%);
+  box-shadow: 0 0 8px rgba(168, 85, 247, 0.6);
+  animation: splash-bar 1.4s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+}
+.splash-source {
+  margin-top: 16px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #7a7385;
+}
+@keyframes splash-breathe {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scale(0.92);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1.08);
+  }
+}
+@keyframes splash-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes splash-node {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(1);
+  }
+  45% {
+    opacity: 1;
+    transform: scale(1.45);
+  }
+}
+@keyframes splash-ring {
+  0%,
+  100% {
+    opacity: 0.5;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.12);
+  }
+}
+@keyframes splash-line {
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+  45% {
+    opacity: 1;
+  }
+}
+@keyframes splash-bar {
+  0% {
+    transform: translateX(-110%);
+  }
+  100% {
+    transform: translateX(360%);
+  }
+}
+@keyframes splash-dot {
+  0%,
+  100% {
+    opacity: 0.2;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+@keyframes splash-hex {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 10px rgba(168, 85, 247, 0.25));
+  }
+  50% {
+    filter: drop-shadow(0 0 22px rgba(168, 85, 247, 0.55));
+  }
+}
+
+/* ===================================================================== */
+/* Startseite (Neuaufbau nach Entwurf „buffd-startseite"): Hero + Reihen   */
+/* + untere Widget-Reihe (Updates · Spielzeit · Freunde).                  */
+/* ===================================================================== */
+.home2 {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+/* --- Kopfzeile: Überschrift · zentrierte Suche · „Bibliothek öffnen" --- */
+.home2-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  height: 72px;
+  box-sizing: border-box;
+  padding: 0 24px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border-soft);
+}
+.home2-headline {
+  flex: none;
+}
+.home2-kicker {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted-dim);
+}
+.home2-title {
+  margin: 2px 0 0;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+.home2-search {
+  flex: 1;
+  max-width: 440px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 38px;
+  padding: 0 14px;
+  box-sizing: border-box;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--muted-dim);
+  font-size: 14px;
+  cursor: pointer;
+  transition: border-color 0.14s ease;
+}
+.home2-search:hover {
+  border-color: var(--accent-line);
+}
+
+.home2-content {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+
+/* --- Hero „Weiterspielen" --- */
+.home2-hero {
+  position: relative;
+  overflow: hidden;
+  border-radius: 20px;
+  border: 1px solid var(--border-soft);
+  min-height: 300px;
+  display: flex;
+  padding: 38px 44px;
+  background: var(--panel);
+}
+.home2-hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0.82) 0%,
+    rgba(0, 0, 0, 0.5) 48%,
+    rgba(0, 0, 0, 0.08) 100%
+  );
+}
+.home2-hero-body {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  max-width: 560px;
+  gap: 16px;
+}
+.home2-hero-kicker {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent-bright);
+}
+.home2-hero-title {
+  margin: 0;
+  font-size: 46px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  color: #fff;
+}
+.home2-hero-meta {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.82);
+}
+.home2-src {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.home2-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  box-shadow: 0 0 8px currentColor;
+}
+.home2-hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 6px;
+}
+.home2-hero-actions .btn.primary {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  height: 46px;
+  padding: 0 26px;
+  font-weight: 700;
+  box-shadow: 0 4px 16px rgba(168, 85, 247, 0.28);
+}
+.home2-hero-actions .btn.primary:hover:not(:disabled) {
+  background: var(--accent-bright);
+}
+.home2-hero-actions .btn:not(.primary) {
+  height: 46px;
+  padding: 0 22px;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+.home2-hero-actions .btn:not(.primary):hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+/* --- Reihen-Überschrift mit „Alle anzeigen" --- */
+.home2-section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.home2-section-titles {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+.home2-section-titles h3 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+.home2-section-titles span {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--muted-dim);
+}
+.home2-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--muted);
+  transition: color 0.14s ease;
+}
+.home2-link:hover {
+  color: var(--accent-bright);
+}
+.home2-link.end {
+  margin-top: 12px;
+  align-self: flex-start;
+}
+
+/* --- „Letzte Spiele": Querformat-Karten --- */
+.home2-recent-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 18px;
+}
+.home2-card {
+  min-width: 0;
+  cursor: pointer;
+}
+.home2-card-art {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  border-radius: 14px;
+  border: 1px solid var(--border-soft);
+  transition: border-color 0.14s ease;
+}
+.home2-card:hover .home2-card-art {
+  border-color: var(--accent-line);
+}
+.home2-card-src {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 2;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: rgba(11, 11, 16, 0.55);
+  backdrop-filter: blur(6px);
+  color: #fff;
+  padding: 3px 7px;
+  border-radius: 6px;
+}
+.home2-card-update {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  background: var(--accent);
+  color: #fff;
+  padding: 3px 7px;
+  border-radius: 6px;
+}
+.home2-card-play {
+  position: absolute;
+  z-index: 3;
+  right: 10px;
+  bottom: 10px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 0.14s ease, transform 0.14s ease, background 0.14s ease;
+}
+.home2-card:hover .home2-card-play {
+  opacity: 1;
+  transform: translateY(0);
+}
+.home2-card-play:hover {
+  background: var(--accent-bright);
+}
+.home2-card-name {
+  margin-top: 9px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.home2-card-meta {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted-dim);
+  margin-top: 2px;
+}
+
+/* --- „Angebote": Deal-Karten --- */
+.home2-deals-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 18px;
+}
+.home2-deal {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  padding: 0;
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+}
+.home2-deal-art {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  border-radius: 18px;
+  border: 1px solid var(--border-soft);
+  background-size: cover;
+  background-position: center;
+}
+.home2-deal-photo {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+}
+.home2-deal-art::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(11, 11, 16, 0) 35%, rgba(11, 11, 16, 0.82) 100%);
+}
+.home2-deal-letter {
+  position: absolute;
+  right: -2%;
+  bottom: -14%;
+  z-index: 1;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 120px;
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.08);
+  pointer-events: none;
+}
+.home2-deal-src {
+  position: absolute;
+  z-index: 2;
+  top: 12px;
+  left: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 24px;
+  padding: 0 10px;
+  background: rgba(11, 11, 16, 0.55);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--border-soft);
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #fff;
+}
+.home2-deal-src .home2-dot {
+  box-shadow: 0 0 8px currentColor;
+}
+.home2-deal-badge {
+  position: absolute;
+  z-index: 2;
+  top: 12px;
+  right: 12px;
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 9px;
+  background: var(--accent);
+  color: #fff;
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+.home2-deal-badge.free {
+  background: var(--ok);
+}
+.home2-deal-name {
+  position: absolute;
+  z-index: 2;
+  left: 16px;
+  right: 16px;
+  bottom: 14px;
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.home2-deal-price {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--muted-dim);
+}
+.home2-deal-price s {
+  opacity: 0.7;
+  margin-right: 5px;
+}
+.home2-deal-price b {
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* --- Untere Widget-Reihe --- */
+.home2-grid {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr 1fr;
+  gap: 18px;
+}
+.home2-widget {
+  display: flex;
+  flex-direction: column;
+  background: var(--panel);
+  border: 1px solid var(--border-soft);
+  border-radius: 14px;
+  padding: 20px 22px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+.home2-widget-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+.home2-widget-cap {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted-dim);
+}
+.home2-widget-count {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--accent-bright);
+}
+.home2-widget-count.ok {
+  color: var(--ok);
+}
+.home2-empty {
+  padding: 14px 0 4px;
+  font-size: 13px;
+  color: var(--muted-dim);
+}
+
+/* Update-Zeilen */
+.home2-update-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 0;
+  border-top: 1px solid var(--border-soft);
+}
+.home2-update-row:first-of-type {
+  margin-top: 6px;
+}
+.home2-update-icon {
+  width: 40px;
+  height: 40px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: var(--panel-2);
+  color: var(--accent-bright);
+}
+.home2-update-main {
+  min-width: 0;
+  flex: 1;
+}
+.home2-update-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.home2-update-sub {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted-dim);
+  margin-top: 3px;
+}
+.home2-update-btn {
+  flex: none;
+  height: 30px;
+  padding: 0 12px;
+  background: var(--accent-dim);
+  color: var(--accent-bright);
+  border: 1px solid var(--accent-line);
+  border-radius: 6px;
+  font-family: var(--font-ui);
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.home2-update-btn:hover {
+  background: var(--accent);
+  color: #fff;
+}
+
+/* Spielzeit-Widget */
+.home2-week-top {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-top: 10px;
+}
+.home2-week-num {
+  font-weight: 700;
+  font-size: 34px;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+.home2-week-trend {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 9px;
+  background: rgba(74, 222, 128, 0.14);
+  color: var(--ok);
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+.home2-week-trend.down {
+  background: rgba(248, 113, 113, 0.14);
+  color: var(--error);
+}
+.home2-week-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 9px;
+  height: 108px;
+  margin: 20px 0 12px;
+}
+.home2-week-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  height: 100%;
+  justify-content: flex-end;
+}
+.home2-week-bar {
+  width: 100%;
+  border-radius: 6px 6px 0 0;
+  background: var(--panel-3);
+  min-height: 3px;
+}
+.home2-week-bar.peak {
+  background: var(--accent);
+}
+.home2-week-day {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--muted-dim);
+}
+.home2-week-foot {
+  margin-top: auto;
+  padding-top: 14px;
+  border-top: 1px solid var(--border-soft);
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--muted-dim);
+}
+.home2-week-foot-game {
+  color: var(--text);
+  max-width: 60%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Freunde-Widget */
+.home2-friend-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 0;
+  border-top: 1px solid var(--border-soft);
+}
+.home2-friend-row:first-of-type {
+  margin-top: 6px;
+}
+.home2-friend-av {
+  position: relative;
+  width: 38px;
+  height: 38px;
+  flex: none;
+  border-radius: 50%;
+  overflow: visible;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-size: cover;
+  color: #fff;
+  font-weight: 700;
+  font-size: 14px;
+}
+.home2-friend-av img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.home2-friend-dot {
+  position: absolute;
+  right: -1px;
+  bottom: -1px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  border: 2px solid var(--panel);
+}
+.home2-friend-main {
+  min-width: 0;
+  flex: 1;
+}
+.home2-friend-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.home2-friend-sub {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted-dim);
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Schmalere Fenster: Reihen/Spalten reduzieren */
+@media (max-width: 1180px) {
+  .home2-recent-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+  .home2-deals-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .home2-grid {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 720px) {
+  .home2-recent-grid,
+  .home2-deals-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 /* ===== „Claude Design": Raster/Listen-Umschalter + dichte Liste (Design C) ===== */
 .view-toggle {
   display: inline-flex;

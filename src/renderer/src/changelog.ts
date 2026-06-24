@@ -11,6 +11,16 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.23.0',
+    date: '2026-06-24',
+    title: 'Neue Startseite & Ladescreen',
+    changes: [
+      'Komplett neu gestaltete Startseite: großer „Weiterspielen"-Hero mit dem zuletzt gespielten Spiel und echtem Banner, dazu Reihen für „Letzte Spiele" und shop-übergreifende „Angebote".',
+      'Neue Übersichts-Widgets: „Updates verfügbar" bündelt App-, Nvidia-Treiber- und Spiel-Updates an einem Ort; „Spielzeit · Diese Woche" zeigt den 7-Tage-Verlauf samt Meistgespielt; dazu die „Freunde-Aktivität".',
+      'Neuer Ladescreen beim Start: Während die App auf Updates prüft, läuft ein animierter Splash mit dem buffd-Logo. Er blendet sich aus, sobald die Prüfung durch ist — und nach spätestens 6 Sekunden auch ohne Internet, damit man nie hängen bleibt.'
+    ]
+  },
+  {
     version: '0.22.0',
     date: '2026-06-22',
     title: 'Neues Library-Design & Querformat-Banner',

@@ -81,6 +81,11 @@ const api = {
   /** Zeitpunkt (ms) der letzten erfolgreichen App-Update-Prüfung (oder null). */
   getLastUpdateCheck: (): Promise<number | null> => ipcRenderer.invoke('app:last-update-check'),
 
+  /** Der Ladescreen wartet auf die erste App-Update-Prüfung beim Start. Löst auf,
+   *  sobald die Prüfung durch ist (oder sofort, wenn ungepackt/kein Updater). */
+  awaitStartupUpdateCheck: (): Promise<{ updateAvailable: boolean; version?: string }> =>
+    ipcRenderer.invoke('app:startup-check'),
+
   /** Ist die Feedback-Funktion in diesem Build konfiguriert (Webhook vorhanden)? */
   feedbackAvailable: (): Promise<boolean> => ipcRenderer.invoke('feedback:available'),
 
