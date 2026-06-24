@@ -11,6 +11,14 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.23.2',
+    date: '2026-06-24',
+    title: 'Wargaming Game Center wird erkannt',
+    changes: [
+      'Das Wargaming Game Center wird jetzt zuverlässig als Schnellstart-Launcher erkannt — auch die eigenständige Version (über Wargamings eigenen Launcher statt Steam), egal in welchen Ordner sie installiert wurde.'
+    ]
+  },
+  {
     version: '0.23.1',
     date: '2026-06-24',
     title: 'Neue Statistik- & Einstellungsseite',

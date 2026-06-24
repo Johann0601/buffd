@@ -1,10 +1,61 @@
 import { app, nativeImage } from 'electron'
 import { existsSync } from 'fs'
 import { join } from 'path'
+import { execSync } from 'child_process'
 import { upsertGame } from '../../db'
 import { resolveSteamPath } from '../steam/scanner'
 import { getXboxAppIconPath } from '../xbox'
 import type { Platform } from '@shared/types'
+
+/**
+ * Findet die echte wgc.exe des Wargaming Game Center — egal wohin der Nutzer es
+ * installiert hat. Der Installordner ist frei wählbar, deshalb sind feste Pfade
+ * unzuverlässig (besonders bei der Standalone-Variante, die NICHT in ProgramData
+ * liegen muss). Maßgeblich ist der Windows-Uninstall-Eintrag: dessen `InstallLocation`
+ * ist bei WGC leer, aber `DisplayIcon` zeigt direkt auf "...\wgc.exe,0".
+ * Die Standalone-Version heißt "Wargaming.net Game Center", die Steam-Variante
+ * "... for Steam" — wir bevorzugen die Standalone, fallen aber auf jede gefundene zurück.
+ */
+function resolveWargamingExe(): string | null {
+  const hives = [
+    'HKLM\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall',
+    'HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall',
+    'HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall'
+  ]
+  let standalone: string | null = null
+  let steam: string | null = null
+
+  for (const hive of hives) {
+    let out = ''
+    try {
+      out = execSync(`reg query "${hive}" /s`, {
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'ignore'],
+        maxBuffer: 32 * 1024 * 1024 // Uninstall-Hive kann groß sein
+      })
+    } catch {
+      continue // Hive nicht lesbar -> nächster
+    }
+    // Ausgabe in Blöcke pro Schlüssel zerlegen (jeder beginnt mit HKEY_...).
+    for (const block of out.split(/\r?\n(?=HKEY_)/)) {
+      const nameMatch = block.match(/DisplayName\s+REG_SZ\s+(.+)/i)
+      const iconMatch = block.match(/DisplayIcon\s+REG_SZ\s+(.+)/i)
+      if (!nameMatch || !iconMatch) continue
+      const name = nameMatch[1].trim()
+      if (!/^Wargaming\.net Game Center/i.test(name)) continue
+      // DisplayIcon ist "C:\...\wgc.exe,0" — den Icon-Index abschneiden.
+      const exe = iconMatch[1].trim().replace(/,\d+\s*$/, '')
+      if (!/wgc\.exe$/i.test(exe) || !existsSync(exe)) continue
+      if (/for Steam/i.test(name)) {
+        steam ??= exe
+      } else {
+        standalone ??= exe
+      }
+    }
+    if (standalone) break // Standalone gefunden -> reicht
+  }
+  return standalone ?? steam
+}
 
 interface LauncherDef {
   platform: Platform
@@ -17,6 +68,7 @@ interface LauncherDef {
 function launcherDefs(): LauncherDef[] {
   const localApp = process.env.LOCALAPPDATA ?? ''
   const steamPath = resolveSteamPath()
+  const wgcExe = resolveWargamingExe()
   return [
     {
       platform: 'steam',
@@ -94,6 +146,9 @@ function launcherDefs(): LauncherDef[] {
       platform: 'wargaming',
       name: 'Wargaming Game Center',
       candidates: [
+        ...(wgcExe ? [wgcExe] : []), // echter Pfad aus der Registry (Standalone bevorzugt)
+        'C:\\Program Files (x86)\\Wargaming.net\\GameCenter\\wgc.exe',
+        'C:\\Program Files\\Wargaming.net\\GameCenter\\wgc.exe',
         'C:\\ProgramData\\Wargaming.net\\GameCenter\\wgc.exe',
         'C:\\ProgramData\\Wargaming.net\\GameCenter for Steam\\wgc.exe'
       ]
