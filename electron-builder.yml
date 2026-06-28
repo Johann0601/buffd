@@ -43,8 +43,12 @@ win:
       arch: [x64]
 
 nsis:
-  # Ein-Klick-Installer wie bei Discord: ausführen → installiert → startet.
-  oneClick: true
+  # Geführter Installer (kleiner Assistent) statt Ein-Klick: der Nutzer kann den
+  # Zielordner wählen. Auto-Updates laufen trotzdem geräuschlos durch, weil der
+  # Updater den Installer still (/S) in den bestehenden Ordner ausführt — dafür
+  # ruft die App quitAndInstall(true, true) auf (siehe src/main/index.ts).
+  oneClick: false
+  allowToChangeInstallationDirectory: true
   perMachine: false # Installation pro Benutzer, braucht keine Admin-Rechte
   createDesktopShortcut: true
   createStartMenuShortcut: true

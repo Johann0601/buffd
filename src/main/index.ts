@@ -1,6 +1,6 @@
 import { app, shell, BrowserWindow, ipcMain, protocol, net, screen } from 'electron'
 import { dirname, join } from 'path'
-import { existsSync, rmSync } from 'fs'
+import { existsSync, rmSync, renameSync } from 'fs'
 import { spawn } from 'child_process'
 import { pathToFileURL } from 'url'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
@@ -95,10 +95,39 @@ let lastUpdateCheckAt: number | null = null
 // null = ungepackt/kein Updater (Ladescreen läuft dann sofort weiter).
 let startupUpdateCheck: Promise<{ updateAvailable: boolean; version?: string }> | null = null
 
-// Datenordner fest auf %APPDATA%\spiele-hub legen. Ohne das würde die
-// installierte App (productName "Spiele Hub") einen ANDEREN Ordner nutzen
-// als der Dev-Modus (name "spiele-hub") — und alle Spielzeiten "verlieren".
-app.setPath('userData', join(app.getPath('appData'), 'spiele-hub'))
+// Datenordner: früher %APPDATA%\spiele-hub (interner Altname), seit dem Rebrand
+// %APPDATA%\buffd. Beim ersten Start der umbenannten Version wird der alte Ordner
+// EINMALIG komplett übernommen (DB, WAL/SHM, Einstellungen) — Spielzeit/Statistik
+// bleiben also erhalten. Die appId (com.spielehub.app) und damit der Update-Kanal
+// bleiben bewusst unberührt; nur der sichtbare Ordnername wandert auf „buffd".
+// Echte, vom NSIS-Installer eingerichtete Installation? Nur dann den (einmaligen,
+// einwegigen) Umzug spiele-hub -> buffd durchführen. Test-Builds (release\win-unpacked
+// via --dir) und der Dev-Modus teilen sich die Daten weiterhin am Altort und benennen
+// NICHTS um — sonst würde die installierte Release-Version ihren Datenordner „verlieren".
+function isRealInstall(): boolean {
+  if (!app.isPackaged) return false
+  return existsSync(join(dirname(app.getPath('exe')), 'Uninstall buffd.exe'))
+}
+
+function resolveUserDataDir(): string {
+  const appData = app.getPath('appData')
+  const newDir = join(appData, 'buffd')
+  const oldDir = join(appData, 'spiele-hub')
+  if (existsSync(newDir)) return newDir // bereits migriert oder Neuinstallation
+  if (existsSync(oldDir)) {
+    if (!isRealInstall()) return oldDir // Test/Dev: Altordner in Ruhe lassen
+    try {
+      renameSync(oldDir, newDir) // atomarer Umzug auf demselben Laufwerk
+      return newDir
+    } catch {
+      // Ordner evtl. noch gesperrt (alte Version läuft parallel) — diesmal den
+      // alten Ordner weiternutzen; der nächste saubere Start migriert erneut.
+      return oldDir
+    }
+  }
+  return newDir // frische Installation: gleich unter „buffd" anlegen
+}
+app.setPath('userData', resolveUserDataDir())
 
 // Nur eine Instanz zulassen: Dev-Modus und installierte App teilen sich die
 // Datenbank; zwei gleichzeitige Wächter würden doppelte Sitzungen schreiben.
@@ -255,7 +284,18 @@ app.whenReady().then(() => {
 
   // App-Version anzeigen + heruntergeladenes Update auf Klick installieren.
   ipcMain.handle('app:version', () => app.getVersion())
-  ipcMain.handle('app:install-update', () => autoUpdater.quitAndInstall())
+  // Update installieren: still (isSilent) + danach neu starten (isForceRunAfter).
+  // „still" ist seit dem Wechsel auf den geführten NSIS-Installer (oneClick:false)
+  // nötig, sonst würde bei JEDEM Update der Installer-Assistent aufpoppen.
+  ipcMain.handle('app:install-update', () => autoUpdater.quitAndInstall(true, true))
+
+  // Wo liegt buffd (Programm) und wo die eigenen Daten (Spielzeit/Einstellungen)?
+  ipcMain.handle('app:install-info', () => ({
+    installDir: dirname(app.getPath('exe')),
+    dataDir: app.getPath('userData')
+  }))
+  ipcMain.handle('app:open-install-dir', () => shell.openPath(dirname(app.getPath('exe'))))
+  ipcMain.handle('app:open-data-dir', () => shell.openPath(app.getPath('userData')))
   // Beim Start abfragen, ob schon ein Update fertig heruntergeladen ist (falls
   // der Download schneller war als der Renderer-Listener).
   ipcMain.handle('app:update-status', () => pendingUpdateVersion)
@@ -308,9 +348,11 @@ app.whenReady().then(() => {
       closeDatabase()
       stopTracker()
       for (const w of BrowserWindow.getAllWindows()) w.destroy()
-      const userData = app.getPath('userData') // …\Roaming\spiele-hub
-      const updaterCache = join(app.getPath('appData'), '..', 'Local', 'spiele-hub-updater')
-      for (const dir of [userData, updaterCache]) {
+      const userData = app.getPath('userData') // …\Roaming\buffd
+      const localAppData = join(app.getPath('appData'), '..', 'Local')
+      const updaterCache = join(localAppData, 'buffd-updater')
+      const legacyUpdaterCache = join(localAppData, 'spiele-hub-updater') // Altbestand
+      for (const dir of [userData, updaterCache, legacyUpdaterCache]) {
         try {
           rmSync(dir, { recursive: true, force: true })
         } catch {
@@ -323,13 +365,15 @@ app.whenReady().then(() => {
     return { ok: true as const }
   })
 
-  // Experimenteller (Test-)Build? Die veröffentlichte/installierte Version liegt
-  // unter „…\Programs\spiele-hub\". Läuft die App woanders (z. B. direkt aus dem
-  // gebauten release\win-unpacked\-Ordner) oder unverpackt im Dev-Modus, ist es
-  // ein Vorab-Build -> die Oberfläche kennzeichnet ihn als „Experimentell".
+  // Experimenteller (Test-)Build? Eine echte, vom NSIS-Installer eingerichtete
+  // Installation hat IMMER den Uninstaller „Uninstall buffd.exe" daneben liegen.
+  // Test-Builds (release\win-unpacked\ via --dir) und der Dev-Modus haben ihn nicht.
+  // Das ist robuster als ein fester Pfad — der Nutzer darf den Installordner jetzt
+  // frei wählen (oneClick:false), ein Ordnervergleich würde sonst danebenliegen.
   ipcMain.handle('app:experimental', () => {
     if (!app.isPackaged) return true
-    return !app.getPath('exe').toLowerCase().includes('\\programs\\spiele-hub\\')
+    const uninstaller = join(dirname(app.getPath('exe')), 'Uninstall buffd.exe')
+    return !existsSync(uninstaller)
   })
 
   ipcMain.handle('library:scan', () => scanLibrary())

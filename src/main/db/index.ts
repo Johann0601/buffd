@@ -1,5 +1,6 @@
 import { app } from 'electron'
-import { join } from 'path'
+import { dirname, join } from 'path'
+import { existsSync, renameSync } from 'fs'
 import Database from 'better-sqlite3'
 import type {
   Collection,
@@ -215,7 +216,32 @@ const MIGRATIONS: ((db: Database.Database) => void)[] = [
 export function initDatabase(): Database.Database {
   if (db) return db
 
-  const dbPath = join(app.getPath('userData'), 'spiele-hub.db')
+  // DB-Datei: früher „spiele-hub.db", seit dem Rebrand „buffd.db". Liegt nur die
+  // Altdatei vor, einmalig umbenennen (inkl. WAL/SHM, falls vorhanden). Klappt das
+  // nicht (z. B. gesperrt), die Altdatei direkt weiterverwenden — nie ein leeres
+  // buffd.db öffnen, sonst „verschwänden" alle Daten.
+  const userData = app.getPath('userData')
+  let dbPath = join(userData, 'buffd.db')
+  const legacyPath = join(userData, 'spiele-hub.db')
+  // Nur in der echten Installation umbenennen (analog resolveUserDataDir in index.ts).
+  // Test-/Dev-Builds öffnen eine vorhandene Altdatei in Ruhe am Ort, sonst würde die
+  // installierte Release-Version ihre DB „verlieren".
+  const realInstall =
+    app.isPackaged && existsSync(join(dirname(app.getPath('exe')), 'Uninstall buffd.exe'))
+  if (!existsSync(dbPath) && existsSync(legacyPath)) {
+    if (realInstall) {
+      try {
+        renameSync(legacyPath, dbPath)
+        for (const suffix of ['-wal', '-shm']) {
+          if (existsSync(legacyPath + suffix)) renameSync(legacyPath + suffix, dbPath + suffix)
+        }
+      } catch {
+        dbPath = legacyPath // Umbenennen nicht möglich -> Altdatei direkt öffnen
+      }
+    } else {
+      dbPath = legacyPath // Test/Dev: Altdatei am Ort öffnen, nichts umbenennen
+    }
+  }
   db = new Database(dbPath)
   db.pragma('journal_mode = WAL')
   db.pragma('foreign_keys = ON')

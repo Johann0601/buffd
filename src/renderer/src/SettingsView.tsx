@@ -7,7 +7,8 @@ import {
   Info,
   Trash2,
   RefreshCw,
-  Wrench
+  Wrench,
+  FolderOpen
 } from 'lucide-react'
 import AccountsView from './AccountsView'
 import ChangelogView from './ChangelogView'
@@ -70,6 +71,14 @@ function SettingsView({
   const [appVersion, setAppVersion] = useState('')
   useEffect(() => {
     window.api.getAppVersion().then(setAppVersion).catch(() => {})
+  }, [])
+
+  // Speicherort: wo liegt das Programm und wo die eigenen Daten (Spielzeit/Einstellungen)?
+  const [installInfo, setInstallInfo] = useState<{ installDir: string; dataDir: string } | null>(
+    null
+  )
+  useEffect(() => {
+    window.api.getInstallInfo().then(setInstallInfo).catch(() => {})
   }, [])
 
   // Manuell nach App-Updates suchen: Lauf-Zustand + Ergebnis-Hinweis + letzter Check.
@@ -224,19 +233,68 @@ function SettingsView({
                 </div>
               </div>
 
+              <span className="set-cap">Speicherort</span>
+              <div className="set-card">
+                <div className="set-row">
+                  <div className="set-row-main">
+                    <div className="set-row-title">Programmordner</div>
+                    <div className="set-row-desc">Hier ist buffd installiert.</div>
+                    {installInfo && <div className="set-row-path">{installInfo.installDir}</div>}
+                  </div>
+                  <button
+                    className="btn"
+                    onClick={() => window.api.openInstallDir()}
+                    disabled={!installInfo}
+                  >
+                    <FolderOpen size={16} /> Öffnen
+                  </button>
+                </div>
+                <div className="set-row">
+                  <div className="set-row-main">
+                    <div className="set-row-title">Datenordner</div>
+                    <div className="set-row-desc">
+                      Deine Spielzeit, Statistik und Einstellungen liegen hier. Bleibt bei einer
+                      Deinstallation erhalten (außer du wählst „Daten auch löschen").
+                    </div>
+                    {installInfo && <div className="set-row-path">{installInfo.dataDir}</div>}
+                  </div>
+                  <button
+                    className="btn"
+                    onClick={() => window.api.openDataDir()}
+                    disabled={!installInfo}
+                  >
+                    <FolderOpen size={16} /> Öffnen
+                  </button>
+                </div>
+              </div>
+
               <span className="set-cap">Verwaltung</span>
               <div className="set-card">
                 <div className="set-row">
                   <div className="set-row-main">
                     <div className="set-row-title">buffd deinstallieren</div>
                     <div className="set-row-desc">
-                      Entfernt buffd von diesem PC. Deine Spiele und Launcher sind davon nicht
+                      Entfernt das Programm von diesem PC. Deine Spiele und Launcher sind davon nicht
                       betroffen.
                     </div>
                     {uninstallNote && <div className="set-row-note warn">{uninstallNote}</div>}
                   </div>
                   {confirmUninstall ? (
                     <div className="set-row-actions">
+                      <div className="set-row-desc uninstall-explain">
+                        {deleteData ? (
+                          <>
+                            buffd und <strong>alle deine Daten</strong> (Spielzeit, Statistik,
+                            Einstellungen) werden gelöscht. Das lässt sich nicht rückgängig machen.
+                          </>
+                        ) : (
+                          <>
+                            Nur das Programm wird entfernt. Deine Daten (Spielzeit, Statistik,
+                            Einstellungen) <strong>bleiben erhalten</strong>
+                            {installInfo ? ` in ${installInfo.dataDir}` : ''}.
+                          </>
+                        )}
+                      </div>
                       <label className="uninstall-data-opt">
                         <input
                           type="checkbox"

@@ -11,6 +11,17 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.24.0',
+    date: '2026-06-28',
+    title: 'Installpfad wählbar & aufgeräumt',
+    changes: [
+      'Beim Installieren kannst du jetzt selbst den Zielordner wählen — der Installer führt dich kurz durch die Einrichtung, statt einfach loszulegen.',
+      'Neuer Bereich Einstellungen → App → „Speicherort": zeigt, wo buffd installiert ist und wo deine Daten (Spielzeit, Statistik, Einstellungen) liegen — jeweils mit einem Knopf zum Öffnen im Explorer.',
+      'Deinstallieren ist klarer: Du siehst jetzt genau, dass nur das Programm entfernt wird und deine Daten erhalten bleiben — es sei denn, du wählst ausdrücklich „auch löschen".',
+      'Aufgeräumt: Programm- und Datenordner heißen jetzt einheitlich „buffd". Bestehende Daten werden beim ersten Start automatisch übernommen — du musst nichts tun, nichts geht verloren.'
+    ]
+  },
+  {
     version: '0.23.4',
     date: '2026-06-24',
     title: 'WoT-Cover & Mod-Feinschliff',

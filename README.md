@@ -4,7 +4,7 @@
 
 buffd sammelt deine Spiele aus Steam, Epic, Battle.net & Co. an einem Ort: starten, Spielzeit verfolgen, Neuigkeiten lesen, aufräumen und organisieren – ohne ständig zwischen fünf Launchern zu wechseln. Eine Windows-Desktop-App (Electron) für den persönlichen Gebrauch.
 
-> Interner Projektname: `spiele-hub` (App-Daten, Update-Kanal). Der angezeigte Name der App ist **buffd**.
+> Interne App-ID: `com.spielehub.app` (Update-Kanal, bleibt aus Kompatibilitätsgründen unverändert). Programm, Datenordner und der angezeigte Name heißen **buffd**; ältere Installationen werden beim ersten Start automatisch von `spiele-hub` auf `buffd` migriert.
 
 ## Funktionen
 
@@ -34,7 +34,7 @@ Steam, Epic Games, Battle.net, Ubisoft Connect, Riot, EA, Rockstar, RSI (Star Ci
 - **[better-sqlite3](https://github.com/WiseLibs/better-sqlite3)** für die lokale Datenbank (Spiele, Sitzungen, Sammlungen …)
 - **electron-builder** (NSIS-Installer) + **electron-updater** (Auto-Update via GitHub-Releases)
 
-Alle Daten bleiben lokal auf dem Rechner (`%APPDATA%\spiele-hub`). API-Keys und verbundene Konten werden verschlüsselt gespeichert (Windows DPAPI / `safeStorage`).
+Alle Daten bleiben lokal auf dem Rechner (`%APPDATA%\buffd`; aus Altinstallationen von `%APPDATA%\spiele-hub` migriert). API-Keys und verbundene Konten werden verschlüsselt gespeichert (Windows DPAPI / `safeStorage`).
 
 ## Entwicklung
 

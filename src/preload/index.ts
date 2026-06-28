@@ -100,6 +100,14 @@ const api = {
     retryAfterMs?: number
   }> => ipcRenderer.invoke('feedback:send', { kind, message, attachment }),
 
+  /** Wo liegt das Programm (installDir) und wo die eigenen Daten (dataDir)? */
+  getInstallInfo: (): Promise<{ installDir: string; dataDir: string }> =>
+    ipcRenderer.invoke('app:install-info'),
+
+  /** Programm- bzw. Datenordner im Datei-Explorer öffnen. */
+  openInstallDir: (): Promise<string> => ipcRenderer.invoke('app:open-install-dir'),
+  openDataDir: (): Promise<string> => ipcRenderer.invoke('app:open-data-dir'),
+
   /** buffd deinstallieren (startet den Uninstaller; nur in der installierten Version).
    *  deleteData = true löscht zusätzlich die eigenen Nutzerdaten (Spielzeit, Einstellungen). */
   uninstallApp: (opts?: {
