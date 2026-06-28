@@ -63,6 +63,22 @@ type Deal = {
   onClick: () => void
 }
 
+// Cache über Mounts hinweg: die Startseite wird beim View-Wechsel ab-/aufgebaut.
+// Ohne Cache würde jeder Wechsel neu scannen und Angebote/Stats/Freunde übers Netz
+// holen (Ruckeln). Mit Cache zeigt der Wechsel sofort den letzten Stand; nur wenn
+// älter als HOME_TTL wird im Hintergrund frisch geladen.
+const HOME_TTL = 2 * 60 * 1000 // 2 Minuten
+type HomeCache = {
+  ts: number
+  games: GameCard[]
+  stats: PlayStatsResult | null
+  freeGames: EpicFreeGame[]
+  epicOffers: EpicSearchResult[]
+  steamOffers: SteamOffer[]
+  friends: SteamFriend[]
+}
+let homeCache: HomeCache | null = null
+
 function HomeView({
   onNavigate,
   onOpenLibrary,
@@ -78,35 +94,47 @@ function HomeView({
   nvidia: NvidiaUpdate | null
   appUpdateVersion: string | null
 }): JSX.Element {
-  const [games, setGames] = useState<GameCard[]>([])
-  const [stats, setStats] = useState<PlayStatsResult | null>(null)
-  const [freeGames, setFreeGames] = useState<EpicFreeGame[]>([])
-  const [epicOffers, setEpicOffers] = useState<EpicSearchResult[]>([])
-  const [steamOffers, setSteamOffers] = useState<SteamOffer[]>([])
-  const [friends, setFriends] = useState<SteamFriend[]>([])
+  const [games, setGames] = useState<GameCard[]>(homeCache?.games ?? [])
+  const [stats, setStats] = useState<PlayStatsResult | null>(homeCache?.stats ?? null)
+  const [freeGames, setFreeGames] = useState<EpicFreeGame[]>(homeCache?.freeGames ?? [])
+  const [epicOffers, setEpicOffers] = useState<EpicSearchResult[]>(homeCache?.epicOffers ?? [])
+  const [steamOffers, setSteamOffers] = useState<SteamOffer[]>(homeCache?.steamOffers ?? [])
+  const [friends, setFriends] = useState<SteamFriend[]>(homeCache?.friends ?? [])
 
   useEffect(() => {
+    // Cache noch frisch? -> sofortiger Wechsel ohne Neu-Scan/Netz-Abruf.
+    if (homeCache && Date.now() - homeCache.ts < HOME_TTL) return
+    const c: HomeCache = {
+      ts: Date.now(),
+      games: homeCache?.games ?? [],
+      stats: homeCache?.stats ?? null,
+      freeGames: homeCache?.freeGames ?? [],
+      epicOffers: homeCache?.epicOffers ?? [],
+      steamOffers: homeCache?.steamOffers ?? [],
+      friends: homeCache?.friends ?? []
+    }
+    homeCache = c
     // Sofort den letzten Stand zeigen, parallel im Hintergrund frisch scannen.
-    window.api.listGames().then(setGames).catch(() => {})
+    window.api.listGames().then((g) => { setGames(g); c.games = g }).catch(() => {})
     window.api
       .scanLibrary()
       .then((r) => {
-        if (r.ok) setGames(r.games)
+        if (r.ok) { setGames(r.games); c.games = r.games }
       })
       .catch(() => {})
-    window.api.getPlayStats().then(setStats).catch(() => {})
+    window.api.getPlayStats().then((s) => { setStats(s); c.stats = s }).catch(() => {})
     window.api
       .getEpicFreeGames()
-      .then((g) => setFreeGames(g.filter((f) => f.status === 'gratis')))
+      .then((g) => { const f = g.filter((x) => x.status === 'gratis'); setFreeGames(f); c.freeGames = f })
       .catch(() => {})
-    window.api.getEpicOffers().then(setEpicOffers).catch(() => {})
+    window.api.getEpicOffers().then((o) => { setEpicOffers(o); c.epicOffers = o }).catch(() => {})
     window.api
       .getSteamOffers()
-      .then((o) => setSteamOffers(o.slice(0, 12)))
+      .then((o) => { const s = o.slice(0, 12); setSteamOffers(s); c.steamOffers = s })
       .catch(() => {})
     window.api
       .getSteamFriends()
-      .then((r) => setFriends(r.friends))
+      .then((r) => { setFriends(r.friends); c.friends = r.friends })
       .catch(() => {})
   }, [])
 
@@ -216,7 +244,7 @@ function HomeView({
         <button
           className="home2-search"
           onClick={() => onOpenLibrary('spiele')}
-          title="Zur Bibliothek"
+          data-tip="Zur Bibliothek"
         >
           <Search size={16} />
           <span>Bibliothek durchsuchen…</span>
@@ -271,7 +299,7 @@ function HomeView({
             </div>
             <div className="home2-recent-grid">
               {recentRow.map((g) => (
-                <div key={g.id} className="home2-card" title={g.name} onClick={() => onOpenGame(g.id)}>
+                <div key={g.id} className="home2-card" data-tip={g.name} onClick={() => onOpenGame(g.id)}>
                   <div className="home2-card-art">
                     <RotatingArt
                       urls={artUrls(g, heroes.get(`${g.platform}:${g.platformId}`))}
@@ -285,7 +313,7 @@ function HomeView({
                     )}
                     <button
                       className="home2-card-play"
-                      title={`${g.name} starten`}
+                      data-tip={`${g.name} starten`}
                       onClick={(e) => {
                         e.stopPropagation()
                         window.api.launchGame(g.id)
@@ -321,7 +349,7 @@ function HomeView({
                 <div
                   key={d.key}
                   className="home2-deal"
-                  title={d.name}
+                  data-tip={d.name}
                   role="button"
                   tabIndex={0}
                   onClick={d.onClick}

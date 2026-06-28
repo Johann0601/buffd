@@ -305,7 +305,7 @@ function ShopsView(): JSX.Element {
                 <button
                   key={g.title}
                   className="offer-card epic-card"
-                  title="Im Epic Store ansehen"
+                  data-tip="Im Epic Store ansehen"
                   onClick={() => g.storeUrl && window.open(g.storeUrl, '_blank')}
                 >
                   <div className="offer-cover tall">
@@ -325,7 +325,7 @@ function ShopsView(): JSX.Element {
                 <div
                   key={o.id}
                   className="offer-card epic-card"
-                  title="Im Epic Store ansehen"
+                  data-tip="Im Epic Store ansehen"
                   onClick={() => o.storeUrl && window.open(o.storeUrl, '_blank')}
                 >
                   <div className="offer-cover tall">
@@ -335,7 +335,7 @@ function ShopsView(): JSX.Element {
                     )}
                     <button
                       className={`wish-btn ${wishedIds.has(o.id) ? 'active' : ''}`}
-                      title={
+                      data-tip={
                         wishedIds.has(o.id)
                           ? 'Von der Wunschliste entfernen'
                           : 'Auf die Wunschliste (mit Preisalarm)'
@@ -375,7 +375,7 @@ function ShopsView(): JSX.Element {
                 <div
                   key={o.appId}
                   className="offer-card steam-card"
-                  title="Im Steam Store ansehen"
+                  data-tip="Im Steam Store ansehen"
                   onClick={() => window.open(o.storeUrl, '_blank')}
                 >
                   <div className="offer-cover">
@@ -383,7 +383,7 @@ function ShopsView(): JSX.Element {
                     <span className="offer-badge discount">-{o.discountPercent}%</span>
                     <button
                       className={`wish-btn ${wishedIds.has(String(o.appId)) ? 'active' : ''}`}
-                      title={
+                      data-tip={
                         wishedIds.has(String(o.appId))
                           ? 'Von der Wunschliste entfernen'
                           : 'Auf die Wunschliste (mit Preisalarm)'
@@ -521,7 +521,7 @@ function StoreSearch({
           {searching ? 'Suche …' : 'Suchen'}
         </button>
         {canReset && (
-          <button className="btn" onClick={reset} title="Suche & Filter zurücksetzen">
+          <button className="btn" onClick={reset} data-tip="Suche & Filter zurücksetzen">
             <X size={15} /> Zurücksetzen
           </button>
         )}
@@ -558,7 +558,7 @@ function StoreSearch({
               max={PRICE_MAX}
               step="1"
               value={maxPrice}
-              title={`Höchstpreis in € — ${PRICE_MAX} bedeutet: kein Limit`}
+              data-tip={`Höchstpreis in € — ${PRICE_MAX} bedeutet: kein Limit`}
               onChange={(e) => {
                 const n = Math.round(Number(e.target.value))
                 if (Number.isNaN(n)) return
@@ -601,7 +601,7 @@ function StoreSearch({
               <div
                 key={r.key}
                 className="shop-row clickable"
-                title={r.storeUrl ? 'Im Store ansehen' : r.name}
+                data-tip={r.storeUrl ? 'Im Store ansehen' : r.name}
                 onClick={() => r.storeUrl && window.open(r.storeUrl, '_blank')}
               >
                 <RowCover url={r.coverUrl} name={r.name} />
@@ -627,7 +627,7 @@ function StoreSearch({
                 ) : (
                   <button
                     className="btn small icon-only"
-                    title="Auf die Wunschliste (mit Preisalarm)"
+                    data-tip="Auf die Wunschliste (mit Preisalarm)"
                     onClick={(e) => {
                       e.stopPropagation()
                       onAdd(r)
@@ -709,7 +709,7 @@ function WishlistDropdown({
             className="btn small"
             onClick={importFromSteam}
             disabled={importing}
-            title="Übernimmt die Wunschliste deines Steam-Kontos (muss öffentlich sein)"
+            data-tip="Übernimmt die Wunschliste deines Steam-Kontos (muss öffentlich sein)"
           >
             {importing ? (
               'Importiere …'
@@ -719,7 +719,7 @@ function WishlistDropdown({
               </>
             )}
           </button>
-          <button className="btn small icon-only" title="Schließen" onClick={onClose}>
+          <button className="btn small icon-only" data-tip="Schließen" onClick={onClose}>
             <X size={15} />
           </button>
         </div>
@@ -764,7 +764,7 @@ function WishlistDropdown({
                 )}
                 <button
                   className="btn small icon-only"
-                  title={`Im ${shopLabel(best.shop)}-Store ansehen`}
+                  data-tip={`Im ${shopLabel(best.shop)}-Store ansehen`}
                   onClick={() =>
                     window.open(
                       best.storeUrl ?? `https://store.steampowered.com/app/${w.appId}/`,
@@ -776,7 +776,7 @@ function WishlistDropdown({
                 </button>
                 <button
                   className="btn small icon-only"
-                  title="Von der Wunschliste entfernen"
+                  data-tip="Von der Wunschliste entfernen"
                   onClick={() => remove(w.appId)}
                 >
                   <X size={15} />

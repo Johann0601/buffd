@@ -109,10 +109,10 @@ function SpotifyWidget(): JSX.Element {
           <span className="spotify-label">Spotify</span>
           {state?.active && state.track ? (
             <>
-              <span className="spotify-track" title={state.track}>
+              <span className="spotify-track" data-tip={state.track}>
                 {state.track}
               </span>
-              <span className="spotify-artist" title={state.artists ?? ''}>
+              <span className="spotify-artist" data-tip={state.artists ?? ''}>
                 {state.artists}
               </span>
             </>
@@ -125,7 +125,7 @@ function SpotifyWidget(): JSX.Element {
       <div className="spotify-controls">
         <button
           className="spotify-btn"
-          title="Zurück"
+          data-tip="Zurück"
           onClick={(e) => {
             e.stopPropagation()
             control('previous')
@@ -135,7 +135,7 @@ function SpotifyWidget(): JSX.Element {
         </button>
         <button
           className="spotify-btn big"
-          title={playing ? 'Pause' : 'Wiedergabe'}
+          data-tip={playing ? 'Pause' : 'Wiedergabe'}
           onClick={(e) => {
             e.stopPropagation()
             control(playing ? 'pause' : 'play')
@@ -145,7 +145,7 @@ function SpotifyWidget(): JSX.Element {
         </button>
         <button
           className="spotify-btn"
-          title="Weiter"
+          data-tip="Weiter"
           onClick={(e) => {
             e.stopPropagation()
             control('next')

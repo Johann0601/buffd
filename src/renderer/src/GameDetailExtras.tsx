@@ -157,7 +157,7 @@ function GameDetailExtras({ gameRef }: { gameRef: GameRef }): JSX.Element | null
                 alt=""
                 className="shot-thumb"
                 loading="lazy"
-                title={new Date(s.takenAt * 1000).toLocaleString('de-DE')}
+                data-tip={new Date(s.takenAt * 1000).toLocaleString('de-DE')}
                 onClick={() => setLightbox(s.full)}
               />
             ))}
@@ -313,7 +313,7 @@ function AchievementsSection({ result }: { result: AchievementsResult }): JSX.El
               <div
                 key={a.name + a.iconUrl}
                 className={`ach-item ${a.achieved ? 'done' : 'locked'}`}
-                title={
+                data-tip={
                   a.description +
                   (a.globalPercent !== null ? ` — ${a.globalPercent} % aller Spieler` : '')
                 }

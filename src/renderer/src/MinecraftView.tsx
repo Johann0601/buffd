@@ -213,7 +213,7 @@ function ProfileRow({ profile }: { profile: McProfile }): JSX.Element {
           </div>
           <button
             className="btn tiny"
-            title="Instanz-Ordner im Explorer öffnen"
+            data-tip="Instanz-Ordner im Explorer öffnen"
             onClick={() => window.api.openMcFolder(profile.instancePath)}
           >
             <FolderOpen size={15} />

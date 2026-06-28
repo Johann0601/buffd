@@ -44,7 +44,7 @@ function FriendsForGame({ gameRef }: { gameRef: GameRef }): JSX.Element | null {
       <h3 className="section-title">Freunde mit diesem Spiel ({result.friends.length})</h3>
       <div className="fog-grid">
         {result.friends.map((f) => (
-          <div key={f.steamId} className="fog-item" title={f.personaName}>
+          <div key={f.steamId} className="fog-item" data-tip={f.personaName}>
             {f.avatarUrl ? (
               <img className="fog-avatar" src={f.avatarUrl} alt="" loading="lazy" />
             ) : (

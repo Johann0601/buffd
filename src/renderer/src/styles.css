@@ -188,17 +188,26 @@ body {
   align-items: center;
   gap: 10px;
   font-weight: 700;
-  padding: 6px 11px 16px;
+  padding: 8px 11px;
+  margin-bottom: 10px; /* Abstand zu den Nav-Punkten (früher als Bottom-Padding) */
+  border-radius: 9px;
   background: transparent;
   border: none;
   color: var(--text);
   text-align: left;
   cursor: pointer;
-  transition: color 0.12s;
+  transition: background 0.12s, color 0.12s;
 }
 
-.sidebar-brand:hover,
+/* Wie die Nav-Knöpfe darunter bekommt das Logo beim Hover/aktiv ein Hintergrund-
+   Highlight — so wird erkennbar, dass es anklickbar ist (führt zur Startseite). */
+.sidebar-brand:hover {
+  background: var(--panel);
+  color: var(--accent);
+}
+
 .sidebar-brand.active {
+  background: var(--panel-2);
   color: var(--accent);
 }
 
@@ -209,6 +218,16 @@ body {
   height: 30px;
   display: block;
   flex: none;
+  /* Überschwingen ("back"-ease) gibt dem Symbol beim Hover einen kleinen Pop. */
+  transition:
+    transform 0.24s cubic-bezier(0.34, 1.56, 0.64, 1),
+    filter 0.18s ease;
+}
+
+/* Hover: Symbol wächst, kippt leicht und bekommt einen weichen Akzent-Glow. */
+.sidebar-brand:hover .brand-mark {
+  transform: scale(1.12) rotate(-8deg);
+  filter: drop-shadow(0 0 4px var(--accent-line)) drop-shadow(0 0 8px var(--accent-line));
 }
 
 .brand-text {
@@ -217,10 +236,37 @@ body {
   letter-spacing: -0.5px;
   line-height: 1;
   color: var(--text);
+  /* enthält weiterhin die nav-label-Übergänge (Aufklappen), plus den Hover-Nudge */
+  transition:
+    opacity 0.14s ease,
+    max-width 0.16s ease,
+    transform 0.24s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.sidebar-brand:hover .brand-text {
+  transform: translateX(2px);
 }
 
 .brand-text-accent {
   color: var(--accent);
+  transition: text-shadow 0.18s ease;
+}
+
+/* Das Akzent-„d" glimmt beim Hover sanft auf. */
+.sidebar-brand:hover .brand-text-accent {
+  text-shadow: 0 0 10px var(--accent-line);
+}
+
+/* Bewegung respektieren: bei reduzierter Bewegung nur Highlight/Glow, kein Skalieren. */
+@media (prefers-reduced-motion: reduce) {
+  .brand-mark,
+  .brand-text {
+    transition: opacity 0.14s ease, max-width 0.16s ease;
+  }
+  .sidebar-brand:hover .brand-mark,
+  .sidebar-brand:hover .brand-text {
+    transform: none;
+  }
 }
 
 /* Marke in der Kopfzeile der Spiele-Seite. */
@@ -6140,4 +6186,62 @@ img.logo-cover {
 .row-action {
   display: flex;
   justify-content: flex-start;
+}
+
+/* ---- Globaler buffd-Tooltip (ersetzt die nativen title-Sprechblasen) ----
+   Wird vom Controller `Tooltip.tsx` per Portal an <body> gehängt; Position
+   kommt als inline left/top, der Pfeil über die Custom-Property --arrow-x. */
+.buffd-tooltip {
+  position: fixed;
+  z-index: 9999;
+  max-width: 260px;
+  padding: 6px 10px;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.35;
+  color: var(--text);
+  background: var(--panel-3);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  pointer-events: none; /* darf Hover/Klick nie abfangen */
+  white-space: normal;
+  word-break: break-word;
+  animation: buffd-tip-in 0.12s ease-out;
+}
+
+@keyframes buffd-tip-in {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* kleines Pfeilchen (gedrehtes Quadrat), zeigt zur Schaltfläche */
+.buffd-tooltip::after {
+  content: '';
+  position: absolute;
+  left: var(--arrow-x, 50%);
+  width: 8px;
+  height: 8px;
+  background: var(--panel-3);
+  border: 1px solid var(--border);
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.buffd-tooltip.top::after {
+  bottom: -5px;
+  border-top: none;
+  border-left: none;
+}
+
+.buffd-tooltip.bottom::after {
+  top: -5px;
+  border-bottom: none;
+  border-right: none;
 }

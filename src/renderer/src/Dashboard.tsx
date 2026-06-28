@@ -217,7 +217,7 @@ function Dashboard(props: DashboardProps): JSX.Element {
                       target="_blank"
                       rel="noreferrer"
                       onClick={(e) => e.stopPropagation()}
-                      title={n.title}
+                      data-tip={n.title}
                     >
                       <span className="widget-list-name">{n.title}</span>
                       <span className="widget-list-meta">{n.gameName}</span>
@@ -237,7 +237,7 @@ function Dashboard(props: DashboardProps): JSX.Element {
     <div className="dashboard">
       <div className="dashboard-toolbar">
         {editMode && (
-          <button className="btn small" onClick={resetLayout} title="Auf Standard-Belegung zurücksetzen">
+          <button className="btn small" onClick={resetLayout} data-tip="Auf Standard-Belegung zurücksetzen">
             <RotateCcw size={14} /> Zurücksetzen
           </button>
         )}
@@ -277,12 +277,12 @@ function Dashboard(props: DashboardProps): JSX.Element {
             >
               {editMode && (
                 <>
-                  <span className="widget-grip" title="Zum Verschieben ziehen">
+                  <span className="widget-grip" data-tip="Zum Verschieben ziehen">
                     <GripVertical size={16} />
                   </span>
                   <button
                     className="widget-remove"
-                    title="Entfernen"
+                    data-tip="Entfernen"
                     onClick={(e) => {
                       e.stopPropagation()
                       removeWidget(id)

@@ -147,7 +147,7 @@ function StorageView({
                   {uninstallActionFor(g.platform, g.platformId) && (
                     <button
                       className="btn small"
-                      title={
+                      data-tip={
                         g.platform === 'steam'
                           ? 'Deinstallieren (öffnet Steams Bestätigungs-Dialog)'
                           : 'Deinstallieren (öffnet den Launcher)'
@@ -194,7 +194,7 @@ function StorageView({
                       {uninstallActionFor(g.platform, g.platformId) && (
                         <button
                           className="uninstall-btn"
-                          title={
+                          data-tip={
                             g.platform === 'steam'
                               ? 'Deinstallieren (öffnet Steams Bestätigungs-Dialog)'
                               : 'Deinstallieren (öffnet den Launcher)'

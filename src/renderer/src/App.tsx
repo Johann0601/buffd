@@ -56,6 +56,7 @@ import FriendsView from './FriendsView'
 import GameDetailExtras from './GameDetailExtras'
 import HomeView from './HomeView'
 import Splash from './Splash'
+import Tooltip from './Tooltip'
 import ModsView from './ModsView'
 import FeedbackView from './FeedbackView'
 import NewsView from './NewsView'
@@ -323,11 +324,12 @@ function App(): JSX.Element {
   return (
     <>
       {boot !== 'done' && <Splash fading={boot === 'fading'} />}
+      <Tooltip />
       <div className="shell">
       <button
         className="sidebar-toggle"
         onClick={() => setSidebarPinned((p) => !p)}
-        title={sidebarPinned ? 'Seitenleiste einklappen' : 'Seitenleiste ausgeklappt halten'}
+        data-tip={sidebarPinned ? 'Seitenleiste einklappen' : 'Seitenleiste ausgeklappt halten'}
       >
         {sidebarPinned ? <ChevronLeft size={22} /> : <ChevronRight size={22} />}
       </button>
@@ -335,7 +337,7 @@ function App(): JSX.Element {
         <button
           className={`sidebar-brand ${view === 'home' ? 'active' : ''}`}
           onClick={() => setView('home')}
-          title="Zur Startseite"
+          data-tip="Zur Startseite"
         >
           <img className="brand-mark" src={logoUrl} alt="" />
           <span className="brand-text nav-label">
@@ -350,7 +352,7 @@ function App(): JSX.Element {
             setLibrarySub('spiele')
             setView('games')
           }}
-          title="Bibliothek"
+          data-tip="Bibliothek"
         >
           <span className="nav-icon">
             <Library size={20} />
@@ -360,7 +362,7 @@ function App(): JSX.Element {
         <button
           className={`nav-item ${view === 'stats' ? 'active' : ''}`}
           onClick={() => setView('stats')}
-          title="Statistik"
+          data-tip="Statistik"
         >
           <span className="nav-icon">
             <BarChart3 size={20} />
@@ -370,7 +372,7 @@ function App(): JSX.Element {
         <button
           className={`nav-item ${view === 'shops' ? 'active' : ''}`}
           onClick={() => setView('shops')}
-          title="Shops"
+          data-tip="Shops"
         >
           <span className="nav-icon">
             <ShoppingCart size={20} />
@@ -380,7 +382,7 @@ function App(): JSX.Element {
         <button
           className={`nav-item ${view === 'news' ? 'active' : ''}`}
           onClick={() => setView('news')}
-          title="News"
+          data-tip="News"
         >
           <span className="nav-icon">
             <Newspaper size={20} />
@@ -390,7 +392,7 @@ function App(): JSX.Element {
         <button
           className={`nav-item ${view === 'friends' ? 'active' : ''}`}
           onClick={() => setView('friends')}
-          title="Freunde"
+          data-tip="Freunde"
         >
           <span className="nav-icon">
             <Users size={20} />
@@ -402,7 +404,7 @@ function App(): JSX.Element {
           ref={notifBtnRef}
           className={`nav-item nav-bottom ${notifOpen ? 'active' : ''}`}
           onClick={() => setNotifOpen((o) => !o)}
-          title="Benachrichtigungen"
+          data-tip="Benachrichtigungen"
         >
           <span className="nav-icon">
             <Bell size={20} />
@@ -414,7 +416,7 @@ function App(): JSX.Element {
           ref={spotifyBtnRef}
           className={`nav-item ${spotifyOpen ? 'active' : ''}`}
           onClick={() => setSpotifyOpen((o) => !o)}
-          title="Spotify-Player"
+          data-tip="Spotify-Player"
         >
           <span className="nav-icon">
             <Music size={20} />
@@ -424,7 +426,7 @@ function App(): JSX.Element {
         <button
           className={`nav-item ${view === 'feedback' ? 'active' : ''}`}
           onClick={() => setView('feedback')}
-          title="Feedback senden"
+          data-tip="Feedback senden"
         >
           <span className="nav-icon">
             <MessageSquare size={20} />
@@ -434,7 +436,7 @@ function App(): JSX.Element {
         <button
           className={`nav-item ${inSettings ? 'active' : ''}`}
           onClick={() => setView('settings')}
-          title="Einstellungen"
+          data-tip="Einstellungen"
         >
           <span className="nav-icon">
             <Settings size={20} />
@@ -443,7 +445,7 @@ function App(): JSX.Element {
         </button>
         <div className="sidebar-footer">
           {experimental && (
-            <span className="exp-badge nav-label" title="Test-/Vorab-Build — keine veröffentlichte Version">
+            <span className="exp-badge nav-label" data-tip="Test-/Vorab-Build — keine veröffentlichte Version">
               <FlaskConical size={14} /> Experimenteller Build
             </span>
           )}
@@ -625,6 +627,20 @@ function LibraryView({
   )
 }
 
+// Cache über Mounts hinweg: die Bibliothek wird beim View-Wechsel ab-/aufgebaut.
+// Ohne Cache würde jeder Wechsel neu scannen + den Besitz-Katalog übers Netz
+// holen (Ruckeln). Mit Cache zeigt der Wechsel sofort den letzten Stand; nur wenn
+// die Daten älter als GAMES_TTL sind, wird im Hintergrund frisch geladen.
+const GAMES_TTL = 2 * 60 * 1000 // 2 Minuten
+type GamesCache = {
+  ts: number
+  games: GameCard[]
+  notInstalled: NotInstalledGame[] | null
+  niInfo: { steamKeyMissing: boolean; steamLoaded: boolean; epicConnected: boolean } | null
+  collections: Collection[]
+}
+let gamesCache: GamesCache | null = null
+
 function GamesView({
   initialSelectedId = null,
   openedFromHome = false,
@@ -636,7 +652,7 @@ function GamesView({
   onExitToHome?: () => void
   tabs?: React.ReactNode
 }): JSX.Element {
-  const [games, setGames] = useState<GameCard[]>([])
+  const [games, setGames] = useState<GameCard[]>(gamesCache?.games ?? [])
   const [running, setRunning] = useState<Map<number, number>>(new Map()) // gameId -> startedAt
   const [selectedId, setSelectedId] = useState<number | null>(initialSelectedId)
   // Wurde die gerade gezeigte Detailansicht direkt von der Startseite geöffnet?
@@ -673,14 +689,16 @@ function GamesView({
     localStorage.setItem('games-filter-tags', JSON.stringify(selectedTags))
   }, [selectedTags])
   // Eigene Sammlungen (B3): Liste + Filter (gemerkt) + Verwalten-Popup.
-  const [collections, setCollections] = useState<Collection[]>([])
+  const [collections, setCollections] = useState<Collection[]>(gamesCache?.collections ?? [])
   const [collectionFilter, setCollectionFilter] = useState<string>(
     () => localStorage.getItem('games-filter-collection') ?? 'all'
   )
   const [manageCollections, setManageCollections] = useState(false)
   const reloadCollections = useCallback(async () => {
     try {
-      setCollections(await window.api.listCollections())
+      const list = await window.api.listCollections()
+      setCollections(list)
+      if (gamesCache) gamesCache.collections = list
     } catch {
       /* ignorieren */
     }
@@ -699,13 +717,15 @@ function GamesView({
   }, [collections, collectionFilter])
   // Nicht installierte Spiele (Besitz-Katalog) — separat geladen, damit die
   // Seite sofort steht und der (teils langsame) Katalog-Abruf nachrückt.
-  const [notInstalled, setNotInstalled] = useState<NotInstalledGame[] | null>(null)
+  const [notInstalled, setNotInstalled] = useState<NotInstalledGame[] | null>(
+    gamesCache?.notInstalled ?? null
+  )
   const [selectedNi, setSelectedNi] = useState<NotInstalledGame | null>(null) // offene NI-Detailseite
   const [niInfo, setNiInfo] = useState<{
     steamKeyMissing: boolean
     steamLoaded: boolean
     epicConnected: boolean
-  } | null>(null)
+  } | null>(gamesCache?.niInfo ?? null)
   // Eigene Sortierung für die Sektion „Nicht installiert" (Suche + Plattform-Filter
   // teilen sich die Sektionen mit den installierten Spielen).
   const [niSort, setNiSort] = useState<NiSort>(() => {
@@ -728,7 +748,9 @@ function GamesView({
 
   const reloadGames = useCallback(async () => {
     try {
-      setGames(await window.api.listGames())
+      const list = await window.api.listGames()
+      setGames(list)
+      if (gamesCache) gamesCache.games = list
     } catch {
       /* ignorieren */
     }
@@ -737,15 +759,23 @@ function GamesView({
   // Besitz-Katalog laden (Steam + Epic + DB-Reste). Eigener Aufruf, weil der
   // Netz-Abruf je nach Bibliotheksgröße ein paar Sekunden dauern kann.
   const loadNotInstalled = useCallback(async () => {
-    setNotInstalled(null)
+    // Nur beim allerersten Laden (noch kein Cache) auf „Lade …" zurücksetzen —
+    // beim Auffrischen bleibt die bisherige Liste stehen, damit nichts flackert.
+    if (!gamesCache?.notInstalled) setNotInstalled(null)
     try {
       const res = await window.api.listNotInstalledGames()
-      setNotInstalled(res.ok ? res.games : [])
-      setNiInfo({
+      const list = res.ok ? res.games : []
+      const info = {
         steamKeyMissing: res.steamKeyMissing,
         steamLoaded: res.steamLoaded,
         epicConnected: res.epicConnected
-      })
+      }
+      setNotInstalled(list)
+      setNiInfo(info)
+      if (gamesCache) {
+        gamesCache.notInstalled = list
+        gamesCache.niInfo = info
+      }
     } catch {
       setNotInstalled([])
     }
@@ -757,7 +787,10 @@ function GamesView({
     try {
       const result = await window.api.scanLibrary()
       if (!result.ok) setError(result.error ?? 'Scan fehlgeschlagen.')
-      else setGames(result.games)
+      else {
+        setGames(result.games)
+        if (gamesCache) gamesCache.games = result.games
+      }
     } catch (err) {
       setError(String(err))
     } finally {
@@ -771,8 +804,20 @@ function GamesView({
 
   // Start: Liste laden, scannen, und auf Wächter-Updates hören.
   useEffect(() => {
-    reloadGames()
-    scan()
+    // Cache noch frisch? -> Wechsel zeigt sofort den letzten Stand, kein Neu-Scan
+    // und kein Katalog-Abruf übers Netz. Sonst (kalt oder veraltet) frisch laden.
+    const fresh = gamesCache && Date.now() - gamesCache.ts < GAMES_TTL
+    if (!fresh) {
+      gamesCache = {
+        ts: Date.now(),
+        games: gamesCache?.games ?? [],
+        notInstalled: gamesCache?.notInstalled ?? null,
+        niInfo: gamesCache?.niInfo ?? null,
+        collections: gamesCache?.collections ?? []
+      }
+      reloadGames()
+      scan() // scannt + frischt im finally den Besitz-Katalog auf
+    }
     const offTracker = window.api.onTrackerUpdate((list: RunningGame[]) => {
       setRunning(new Map(list.map((r) => [r.gameId, r.startedAt])))
     })
@@ -1115,7 +1160,7 @@ function GamesView({
                 className="toolbar-select"
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as GameSort)}
-                title="Sortierung"
+                data-tip="Sortierung"
               >
                 {SORT_OPTIONS.map((o) => (
                   <option key={o.value} value={o.value}>
@@ -1126,14 +1171,14 @@ function GamesView({
               <button
                 className={`toolbar-select filter-toggle icon-btn ${activeFilterCount ? 'active' : ''}`}
                 onClick={() => setFilterOpen((o) => !o)}
-                title="Nach Plattform, Tags und Sammlungen filtern"
+                data-tip="Nach Plattform, Tags und Sammlungen filtern"
               >
                 <Filter size={15} /> Filter{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
                 {activeFilterCount > 0 && (
                   <span
                     className="filter-clear"
                     role="button"
-                    title="Alle Filter zurücksetzen"
+                    data-tip="Alle Filter zurücksetzen"
                     onClick={(e) => {
                       e.stopPropagation() // nicht das Panel auf-/zuklappen
                       resetFilters()
@@ -1146,7 +1191,7 @@ function GamesView({
               <button
                 className="toolbar-select icon-btn"
                 onClick={() => setManageCollections(true)}
-                title="Sammlungen anlegen, umbenennen oder löschen"
+                data-tip="Sammlungen anlegen, umbenennen oder löschen"
               >
                 <Folder size={15} /> Sammlungen
               </button>
@@ -1154,14 +1199,14 @@ function GamesView({
                 <button
                   className={`view-btn ${viewMode === 'grid' ? 'on' : ''}`}
                   onClick={() => setViewMode('grid')}
-                  title="Rasteransicht"
+                  data-tip="Rasteransicht"
                 >
                   <LayoutGrid size={15} />
                 </button>
                 <button
                   className={`view-btn ${viewMode === 'list' ? 'on' : ''}`}
                   onClick={() => setViewMode('list')}
-                  title="Listenansicht"
+                  data-tip="Listenansicht"
                 >
                   <List size={15} />
                 </button>
@@ -1288,7 +1333,7 @@ function GamesView({
                 </div>
                 <div
                   className="game-row"
-                  title="Minecraft"
+                  data-tip="Minecraft"
                   onClick={() => {
                     setFromHome(false)
                     setSelectedMinecraft(true)
@@ -1375,7 +1420,7 @@ function GamesView({
                       className="toolbar-select"
                       value={niSort}
                       onChange={(e) => setNiSort(e.target.value as NiSort)}
-                      title="Sortierung"
+                      data-tip="Sortierung"
                     >
                       {NI_SORT_OPTIONS.map((o) => (
                         <option key={o.value} value={o.value}>
@@ -1521,13 +1566,13 @@ function CollectionsModal({
                           if (e.key === 'Escape') setEditId(null)
                         }}
                       />
-                      <button className="btn small icon-only" onClick={saveRename} title="Speichern">
+                      <button className="btn small icon-only" onClick={saveRename} data-tip="Speichern">
                         <Check size={15} />
                       </button>
                       <button
                         className="btn small icon-only"
                         onClick={() => setEditId(null)}
-                        title="Abbrechen"
+                        data-tip="Abbrechen"
                       >
                         <X size={15} />
                       </button>
@@ -1539,7 +1584,7 @@ function CollectionsModal({
                       </span>
                       <button
                         className="btn small icon-only"
-                        title="Umbenennen"
+                        data-tip="Umbenennen"
                         onClick={() => {
                           setEditId(c.id)
                           setEditName(c.name)
@@ -1559,7 +1604,7 @@ function CollectionsModal({
                       ) : (
                         <button
                           className="btn small danger icon-only"
-                          title="Löschen"
+                          data-tip="Löschen"
                           onClick={() => setConfirmDel(c.id)}
                         >
                           <Trash2 size={14} />
@@ -1603,13 +1648,15 @@ function NotInstalledTile({
   }
 
   return (
-    <div className="tile not-installed" title={game.name} onClick={onClick}>
+    <div className="tile not-installed" data-tip={game.name} onClick={onClick}>
       <div className="cover">
         {game.coverUrl && !failed ? (
           <img
             src={game.coverUrl}
             alt={game.name}
             className={isLogo ? 'logo-cover' : undefined}
+            loading="lazy"
+            decoding="async"
             onError={() => setFailed(true)}
           />
         ) : (
@@ -1650,6 +1697,8 @@ function Cover({ game }: { game: GameCard }): JSX.Element {
         src={game.coverUrl}
         alt={game.name}
         className={isLogo ? 'logo-cover' : undefined}
+        loading="lazy"
+        decoding="async"
         onError={() => setFailed(true)}
       />
     )
@@ -1670,7 +1719,7 @@ function LauncherChip({
     <button
       className={`launcher-chip ${active ? 'active' : ''}`}
       onClick={onClick}
-      title={
+      data-tip={
         active
           ? `Filter „${launcher.name}" aufheben`
           : `Nur ${launcher.name}-Spiele anzeigen`
@@ -1698,7 +1747,7 @@ function GameTile({
   onClick: () => void
 }): JSX.Element {
   return (
-    <div className={`tile ${isRunning ? 'running' : ''}`} title={game.name} onClick={onClick}>
+    <div className={`tile ${isRunning ? 'running' : ''}`} data-tip={game.name} onClick={onClick}>
       <div className="cover">
         <Cover game={game} />
         {isRunning && <span className="live-dot">● läuft</span>}
@@ -1727,7 +1776,7 @@ function MinecraftTile({
   onClick: () => void
 }): JSX.Element {
   return (
-    <div className="tile" title="Minecraft" onClick={onClick}>
+    <div className="tile" data-tip="Minecraft" onClick={onClick}>
       <div className="cover">
         <img src={minecraftIconUrl} alt="Minecraft" />
         {totalPlaytimeSec > 0 && (
@@ -1892,7 +1941,7 @@ function ContinueCard({
   const letter = game.name.trim()[0]?.toUpperCase() ?? '?'
   const arts = artUrls(game, heroUrls)
   return (
-    <div className="continue-card" title={game.name} onClick={onClick}>
+    <div className="continue-card" data-tip={game.name} onClick={onClick}>
       <div className={`continue-art ${arts.length > 0 ? 'has-photo' : ''}`}>
         <RotatingArt urls={arts} seed={game.name} />
         {arts.length === 0 && (
@@ -1932,7 +1981,7 @@ function GameRow({
   onLaunch: () => void
 }): JSX.Element {
   return (
-    <div className="game-row" onClick={onClick} title={game.name}>
+    <div className="game-row" onClick={onClick} data-tip={game.name}>
       <div className="row-game">
         <div className="row-cover">
           <Cover game={game} />
@@ -2040,7 +2089,7 @@ function CollectionPicker({
               className="btn small icon-only"
               onClick={createWithGame}
               disabled={!newName.trim()}
-              title="Anlegen"
+              data-tip="Anlegen"
             >
               <Check size={15} />
             </button>
@@ -2146,7 +2195,7 @@ function GameDetail({
                 {game.platform === 'epic' && editingHours === null && (
                   <button
                     className="edit-btn"
-                    title="Bisherige Spielzeit eintragen (steht in deiner Epic-Bibliothek)"
+                    data-tip="Bisherige Spielzeit eintragen (steht in deiner Epic-Bibliothek)"
                     onClick={() => setEditingHours('')}
                   >
                     <Pencil size={13} />
@@ -2168,7 +2217,7 @@ function GameDetail({
                       if (e.key === 'Escape') setEditingHours(null)
                     }}
                   />
-                  <button className="btn small icon-only" onClick={savePlaytime} title="Speichern">
+                  <button className="btn small icon-only" onClick={savePlaytime} data-tip="Speichern">
                     <Check size={15} />
                   </button>
                 </span>
@@ -2194,7 +2243,7 @@ function GameDetail({
                     className="btn small"
                     onClick={computeSize}
                     disabled={computingSize}
-                    title="Ordnergröße jetzt berechnen"
+                    data-tip="Ordnergröße jetzt berechnen"
                   >
                     {computingSize ? 'Berechne …' : 'Berechnen'}
                   </button>
@@ -2242,7 +2291,7 @@ function GameDetail({
               </button>
             )}
             {game.installDir && (
-              <button className="btn" onClick={() => setShowManage(true)} title="Spiel verwalten">
+              <button className="btn" onClick={() => setShowManage(true)} data-tip="Spiel verwalten">
                 <Wrench size={16} /> Verwalten
               </button>
             )}

@@ -57,7 +57,7 @@ function FriendRow({ friend }: { friend: SteamFriend }): JSX.Element {
 
   return (
     <div className={`friend-card ${open ? 'open' : ''}`}>
-      <button className="friend-head" onClick={toggle} title="Bibliothek anzeigen">
+      <button className="friend-head" onClick={toggle} data-tip="Bibliothek anzeigen">
         <span className="friend-avatar-wrap">
           {friend.avatarUrl ? (
             <img className="friend-avatar" src={friend.avatarUrl} alt="" />
@@ -89,7 +89,7 @@ function FriendRow({ friend }: { friend: SteamFriend }): JSX.Element {
           </span>
         )}
         {friend.private && (
-          <span className="friend-private" title="Profil privat">
+          <span className="friend-private" data-tip="Profil privat">
             <Lock size={14} />
           </span>
         )}
@@ -110,7 +110,7 @@ function FriendRow({ friend }: { friend: SteamFriend }): JSX.Element {
                     href={`https://store.steampowered.com/app/${g.appId}/`}
                     target="_blank"
                     rel="noreferrer"
-                    title={g.name}
+                    data-tip={g.name}
                   >
                     <GameCover game={g} />
                     <span className="friend-game-name">{g.name}</span>

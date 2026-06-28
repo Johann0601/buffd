@@ -72,7 +72,7 @@ function NewsView(): JSX.Element {
                 href={n.url}
                 target="_blank"
                 rel="noreferrer"
-                title={n.title}
+                data-tip={n.title}
               >
                 <div className="news-card-cover">
                   {n.coverUrl ? (

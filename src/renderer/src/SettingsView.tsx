@@ -181,7 +181,7 @@ function SettingsView({
                       Dunkles Erscheinungsbild (Standard). Ausschalten für den Hell-Modus.
                     </div>
                   </div>
-                  <label className="switch" title="Darkmode an/aus">
+                  <label className="switch" data-tip="Darkmode an/aus">
                     <input
                       type="checkbox"
                       checked={theme === 'dark'}

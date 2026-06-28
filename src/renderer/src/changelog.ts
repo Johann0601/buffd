@@ -11,6 +11,16 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.24.3',
+    date: '2026-06-28',
+    title: 'Feinschliff & flüssigerer Wechsel',
+    changes: [
+      'Flüssiger: Der Wechsel zwischen Startseite und Bibliothek ruckelt nicht mehr — die Inhalte stehen sofort und werden nur noch im Hintergrund aufgefrischt, statt jedes Mal komplett neu zu laden.',
+      'Das Logo oben links ist jetzt klar als Knopf erkennbar: Es hebt sich beim Überfahren hervor (wie die Menüpunkte) und führt zurück zur Startseite — mit einer kleinen Animation des Symbols.',
+      'Schönere Tooltips: Die kurzen Hinweise beim Überfahren von Schaltflächen erscheinen jetzt im buffd-Design statt als blasse Windows-Standard-Kästchen.'
+    ]
+  },
+  {
     version: '0.24.2',
     date: '2026-06-28',
     title: 'Star Citizen an jedem Installort',

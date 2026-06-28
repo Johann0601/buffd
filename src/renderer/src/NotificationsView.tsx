@@ -142,7 +142,7 @@ function NotificationsView({
               )}
               <button
                 className="btn small icon-only"
-                title="Diese Erinnerung ausblenden"
+                data-tip="Diese Erinnerung ausblenden"
                 onClick={() => onDismissFreebie(f.title)}
               >
                 <X size={15} />

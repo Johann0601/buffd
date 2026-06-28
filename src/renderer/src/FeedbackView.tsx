@@ -204,7 +204,7 @@ function FeedbackView(): JSX.Element {
                 <span className="feedback-file-size">({formatGameSize(attachment.size)})</span>
                 <button
                   className="btn small icon-only"
-                  title="Anhang entfernen"
+                  data-tip="Anhang entfernen"
                   onClick={() => setAttachment(null)}
                 >
                   <X size={14} />

@@ -209,7 +209,7 @@ function StatsView(): JSX.Element {
                               <span
                                 key={c.day}
                                 className={`st-cell st-lvl-${heatLevel(c.sec, maxDaily)}`}
-                                title={dayTooltip(c.day, c.sec)}
+                                data-tip={dayTooltip(c.day, c.sec)}
                               />
                             ) : (
                               <span key={`pad-${wi}-${di}`} className="st-cell st-pad" />
@@ -272,7 +272,7 @@ function StatsView(): JSX.Element {
                 {stats.topGames.length > 0 ? (
                   <div className="st-top-list">
                     {stats.topGames.map((g, i) => (
-                      <div key={g.platform + g.name} className="st-top-row" title={g.name}>
+                      <div key={g.platform + g.name} className="st-top-row" data-tip={g.name}>
                         <span className="st-rank">{i + 1}</span>
                         <span className="st-tile" style={{ backgroundImage: gradientFor(g.name) }}>
                           {g.name.trim()[0]?.toUpperCase() ?? '?'}
@@ -310,7 +310,7 @@ function StatsView(): JSX.Element {
                         <div
                           className={`st-wd-bar ${isPeak ? 'peak' : ''}`}
                           style={{ height: `${Math.max(2, ((stats.weekday[i] ?? 0) / maxWeekday) * 100)}%` }}
-                          title={formatPlaytime(stats.weekday[i] ?? 0)}
+                          data-tip={formatPlaytime(stats.weekday[i] ?? 0)}
                         />
                         <span className={`st-wd-label ${isPeak ? 'peak' : ''}`}>{w}</span>
                       </div>

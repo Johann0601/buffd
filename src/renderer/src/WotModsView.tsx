@@ -99,7 +99,7 @@ function WotModsView({ onBack }: { onBack?: () => void }): JSX.Element {
                     {m.fileName} {formatSize(m.sizeBytes) && `· ${formatSize(m.sizeBytes)}`}
                   </div>
                 </div>
-                <label className="switch" title={m.enabled ? 'Deaktivieren' : 'Aktivieren'}>
+                <label className="switch" data-tip={m.enabled ? 'Deaktivieren' : 'Aktivieren'}>
                   <input
                     type="checkbox"
                     checked={m.enabled}
