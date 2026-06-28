@@ -11,6 +11,15 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.24.2',
+    date: '2026-06-28',
+    title: 'Star Citizen an jedem Installort',
+    changes: [
+      'Star Citizen wird jetzt auch erkannt, wenn es nicht im Standardordner liegt — z. B. auf einer anderen Festplatte. buffd liest den tatsächlich gewählten Installort aus dem RSI Launcher.',
+      'Der RSI Launcher zum Starten wird unabhängig vom Installort gefunden (statt nur an festen Pfaden).'
+    ]
+  },
+  {
     version: '0.24.1',
     date: '2026-06-28',
     title: 'Eigenes App-Symbol & WoT-Feinschliff',
