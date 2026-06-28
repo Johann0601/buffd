@@ -52,15 +52,25 @@ function readGameMeta(workingDir: string): GameMeta | null {
   } catch {
     return null
   }
-  const name = /<name>([^<]+)<\/name>/i.exec(xml)?.[1]?.trim()
-  const appId = /<app_id>([^<]+)<\/app_id>/i.exec(xml)?.[1]?.trim()
+  // Tags können Attribute tragen: das neuere WGC-Format (z. B. World of Tanks:
+  // HEAT, metadata-Version 7.9) schreibt <app_id public="true">…</app_id> statt
+  // <app_id>…</app_id>. Darum optionale Attribute im Regex zulassen, sonst wird
+  // die App-ID nicht erkannt und das Spiel komplett übersprungen.
+  const name = /<name(?:\s[^>]*)?>([^<]+)<\/name>/i.exec(xml)?.[1]?.trim()
+  const appId = /<app_id(?:\s[^>]*)?>([^<]+)<\/app_id>/i.exec(xml)?.[1]?.trim()
   if (!name || !appId) return null
 
+  // Nur die Spiel-exe(s) aus dem <executables>-Block lesen. Das neue Format
+  // führt weitere <executable>-Tags in <post_install_action>/<pre_uninstall_action>
+  // (z. B. der EasyAntiCheat-Installer) — die dürfen weder Start-Ziel noch
+  // Tracking-exe werden. Fehlt der Block (altes Format ohne Wrapper), das ganze
+  // Dokument durchsuchen.
+  const execScope = /<executables>([\s\S]*?)<\/executables>/i.exec(xml)?.[1] ?? xml
   const exeRelPaths: string[] = []
   const exeNames = new Set<string>()
   const re = /<executable[^>]*>([^<]+)<\/executable>/gi
   let m: RegExpExecArray | null
-  while ((m = re.exec(xml))) {
+  while ((m = re.exec(execScope))) {
     const rel = m[1].trim()
     exeRelPaths.push(rel)
     exeNames.add(basename(rel).toLowerCase())

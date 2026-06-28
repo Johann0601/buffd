@@ -11,6 +11,16 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.24.1',
+    date: '2026-06-28',
+    title: 'Eigenes App-Symbol & WoT-Feinschliff',
+    changes: [
+      'buffd zeigt jetzt überall sein eigenes Logo — in der Taskleiste, beim Desktop-Symbol und im Installer — statt des allgemeinen Electron-Symbols.',
+      'World of Tanks: HEAT (und weitere Spiele im neueren Format des Wargaming Game Center) werden jetzt zuverlässig erkannt und angezeigt.',
+      'Kein irreführender „historischer Tiefstpreis" mehr bei kostenlosen Spielen wie World of Tanks: Ein Tiefstpreis, der über dem aktuellen Preis liegt, wird nicht mehr angezeigt.'
+    ]
+  },
+  {
     version: '0.24.0',
     date: '2026-06-28',
     title: 'Installpfad wählbar & aufgeräumt',

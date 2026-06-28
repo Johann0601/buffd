@@ -37,10 +37,19 @@ asarUnpack:
   - '**/*.node'
 
 win:
-  signAndEditExecutable: false # winCodeSign braucht Symlink-Rechte (Developer Mode) → überspringen
+  icon: build/icon.ico # Logo für Setup.exe, Uninstaller, Desktop-Verknüpfung
+  # signAndEditExecutable AUS: das An-/Bearbeiten der exe würde winCodeSign laden,
+  # dessen 7z-Extraktion ohne Windows-Developer-Mode an macOS-Symlinks scheitert.
+  # Das exe-Icon + die Versions-Infos (sonst stünde überall „Electron") setzt
+  # stattdessen der afterPack-Hook per rcedit — siehe build/afterPack.cjs.
+  signAndEditExecutable: false
   target:
     - target: nsis
       arch: [x64]
+
+# Nach dem Packen die exe-Ressourcen (Icon, Produktname, Version) per rcedit
+# setzen — ersetzt den durch signAndEditExecutable:false übersprungenen Schritt.
+afterPack: build/afterPack.cjs
 
 nsis:
   # Geführter Installer (kleiner Assistent) statt Ein-Klick: der Nutzer kann den

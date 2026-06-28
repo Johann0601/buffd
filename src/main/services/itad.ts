@@ -125,7 +125,16 @@ export async function getItadPrices(appId: number): Promise<ItadPrices | null> {
         }
       }
     }
-    return { best, historyLowCents: entry.historyLow?.all?.amountInt ?? null }
+    // Allzeit-Tief plausibilisieren: per Definition kann es nie ÜBER dem
+    // aktuell besten Preis liegen. ITAD liefert für Free-to-Play-Titel aber
+    // teils ein veraltetes Tief aus früheren Kauf-Editionen — z. B. World of
+    // Tanks: aktuell 0 €, ITAD-Allzeit-Tief jedoch 88 €. Solche
+    // widersprüchlichen Werte nicht anzeigen.
+    let historyLowCents = entry.historyLow?.all?.amountInt ?? null
+    if (historyLowCents !== null && best && historyLowCents > best.priceCents) {
+      historyLowCents = null
+    }
+    return { best, historyLowCents }
   } catch {
     return { best: null, historyLowCents: null }
   }

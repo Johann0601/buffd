@@ -1,6 +1,6 @@
 {
   "name": "buffd",
-  "version": "0.24.0",
+  "version": "0.24.1",
   "description": "buffd – zentraler Hub für deine PC-Spiele über alle Launcher hinweg: Bibliothek, Spielzeit-Tracking, News, Statistiken, Sammlungen und mehr.",
   "main": "./out/main/index.js",
   "author": "Johann",
@@ -38,6 +38,7 @@
     "electron": "^33.2.0",
     "electron-builder": "^25.1.8",
     "electron-vite": "^2.3.0",
+    "rcedit": "^5.0.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "typescript": "^5.6.3",
