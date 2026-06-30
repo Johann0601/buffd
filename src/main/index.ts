@@ -27,6 +27,7 @@ import { listNotInstalledGames } from './services/notinstalled'
 import { ensureGameTags } from './services/tags'
 import { startTracker, stopTracker, flushActiveSessions, closeGame } from './services/tracker'
 import { readDevices } from './services/system/drivers'
+import { setDeviceName } from './services/system/deviceNames'
 import { checkNvidiaUpdate } from './services/system/nvidia'
 import { addWotMods, getWotStatus, openWotModsFolder, toggleWotMod } from './services/wot'
 import { listMcProfiles } from './services/minecraft'
@@ -657,6 +658,11 @@ app.whenReady().then(() => {
 
   // Phase 6: installierte Geräte + Treiberversionen auslesen.
   ipcMain.handle('system:devices', () => readDevices())
+
+  // Eigenen Gerätenamen setzen/zurücksetzen (name = null -> Original).
+  ipcMain.handle('system:rename-device', (_e, args: { id: string; name: string | null }) => {
+    setDeviceName(args.id, args.name)
+  })
 
   // Phase 6: Update-Prüfung für eine Nvidia-GPU (nur Anzeige, kein Installieren).
   ipcMain.handle('nvidia:check', (_e, args: { name: string; driverVersion: string }) =>

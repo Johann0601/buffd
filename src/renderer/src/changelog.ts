@@ -11,6 +11,16 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.24.6',
+    date: '2026-06-30',
+    title: 'Geräte sauberer erkennen & umbenennen',
+    changes: [
+      'Genauere Geräteerkennung: Tastaturen werden nicht mehr fälschlich als „Maus" angezeigt, und viele Geräte erscheinen jetzt mit ihrem echten Modellnamen (z. B. „Keychron V6 Max") statt einer generischen Bezeichnung.',
+      'Geräte umbenennen: Im System-Bereich lässt sich jedem Gerät über das Stift-Symbol ein eigener Name geben — praktisch z. B. für Funk-Mäuse, deren Modell Windows nur als „Receiver" kennt. Der Name bleibt gespeichert und lässt sich jederzeit auf das Original zurücksetzen.',
+      'Die Festplatten im System-Bereich sind jetzt anklickbar und führen direkt ins Speicher-Menü.'
+    ]
+  },
+  {
     version: '0.24.5',
     date: '2026-06-30',
     title: 'Launcher an jedem Installort',

@@ -183,8 +183,10 @@ export type DeviceCategory =
 
 /** Ein erkanntes Gerät mit seinem aktuell INSTALLIERTEN Treiber. */
 export interface DeviceInfo {
+  id: string // stabiler Schlüssel pro Gerät (USB VID:PID o. Ä.) — für eigene Namen
   category: DeviceCategory
-  name: string
+  name: string // angezeigter Name (ggf. vom Nutzer umbenannt)
+  defaultName: string // automatisch erkannter Name (für „auf Original zurücksetzen")
   vendor: string
   driverVersion: string // kann leer sein (z. B. Maus/Tastatur/Speicher)
   driverDate: string | null // 'yyyy-MM-dd'

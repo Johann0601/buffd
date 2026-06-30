@@ -1,5 +1,6 @@
 import { execFile } from 'child_process'
 import type { DeviceCategory, DeviceInfo } from '@shared/types'
+import { getDeviceNames } from './deviceNames'
 
 // PnP-Geräteklassen, die wir direkt aus Win32_PnPSignedDriver übernehmen.
 // Maus/Tastatur, Speicher und Monitor lesen wir SEPARAT (genauere Quellen).
@@ -145,13 +146,20 @@ function readMonitorIds(): Promise<RawMonitor[]> {
 interface RawPnpDevice {
   Class: string | null
   FriendlyName: string | null
+  Bus: string | null // "Bus reported device description" = USB-Produktname des Geräts
   InstanceId: string | null
 }
 
 function readPnpDevices(): Promise<RawPnpDevice[]> {
+  // Zusätzlich zur (oft generischen) FriendlyName lesen wir die vom Gerät selbst
+  // gemeldete USB-Produktbezeichnung (BusReportedDeviceDesc). Die ist häufig der
+  // echte Modellname, z. B. "Keychron V6 Max" statt "USB-Eingabegerät".
   const script =
     'Get-PnpDevice -PresentOnly -Class Mouse,Keyboard,HIDClass,USB -ErrorAction SilentlyContinue | ' +
-    'Select-Object Class, FriendlyName, InstanceId | ConvertTo-Json -Compress'
+    'ForEach-Object { ' +
+    "$bus = (Get-PnpDeviceProperty -InstanceId $_.InstanceId -KeyName 'DEVPKEY_Device_BusReportedDeviceDesc' -ErrorAction SilentlyContinue).Data; " +
+    '[PSCustomObject]@{ Class=$_.Class; FriendlyName=$_.FriendlyName; Bus=$bus; InstanceId=$_.InstanceId } } | ' +
+    'ConvertTo-Json -Compress'
   return runPowerShellJson<RawPnpDevice>(script)
 }
 
@@ -200,8 +208,10 @@ function categorizePnp(raw: RawDriver[]): DeviceInfo[] {
 
     const isNvidiaGpu = category === 'Grafikkarte' && /nvidia/i.test(`${name} ${vendor}`)
     devices.push({
+      id: `pnp:${category}:${name}`,
       category,
       name,
+      defaultName: name,
       vendor,
       driverVersion,
       driverDate: (r.Date ?? '').trim() || null,
@@ -212,7 +222,7 @@ function categorizePnp(raw: RawDriver[]): DeviceInfo[] {
 }
 
 const GENERIC_PERIPHERAL =
-  /hid|usb-eingabe|usb input|eingabeger|standard|composite|verbund|systemcontroller|benutzersteuer|vom hersteller|virtual|\broot\b|\bhub\b/i
+  /hid|usb-eingabe|usb input|usb receiver|eingabeger|standard|composite|verbund|systemcontroller|benutzersteuer|vom hersteller|virtual|\broot\b|\bhub\b/i
 
 // Hersteller, die (fast) nur Tastaturen bauen — entscheidet bei Geräten,
 // die sich als Maus UND Tastatur melden, die richtige Kategorie.
@@ -234,8 +244,10 @@ function parseVidPid(instanceId: string): { vid: string; pid: string } | null {
 function buildPeripherals(raw: RawPnpDevice[]): DeviceInfo[] {
   interface Agg {
     vid: string
+    pid: string
     classes: Set<string> // 'mouse' / 'keyboard'
-    model?: string // bester nicht-generischer Name, z. B. "LIGHTSPEED Receiver"
+    busModel?: string // vom Gerät gemeldeter USB-Produktname, z. B. "Keychron V6 Max"
+    fnModel?: string // bester nicht-generischer FriendlyName, z. B. "LIGHTSPEED Receiver"
     virtual: boolean // G HUB Virtual Keyboard & Co. -> komplett ausblenden
   }
 
@@ -245,6 +257,7 @@ function buildPeripherals(raw: RawPnpDevice[]): DeviceInfo[] {
 
   for (const d of raw) {
     const fn = (d.FriendlyName ?? '').trim()
+    const bus = (d.Bus ?? '').trim()
     const cls = (d.Class ?? '').toLowerCase()
     const vp = parseVidPid(d.InstanceId ?? '')
 
@@ -256,12 +269,16 @@ function buildPeripherals(raw: RawPnpDevice[]): DeviceInfo[] {
     }
 
     const key = `${vp.vid}:${vp.pid}`
-    const agg = byDevice.get(key) ?? { vid: vp.vid, classes: new Set<string>(), virtual: false }
+    const agg =
+      byDevice.get(key) ?? { vid: vp.vid, pid: vp.pid, classes: new Set<string>(), virtual: false }
     if (cls === 'mouse' || cls === 'keyboard') agg.classes.add(cls)
     if (fn) {
       if (/virtual/i.test(fn)) agg.virtual = true
-      else if (!agg.model && !GENERIC_PERIPHERAL.test(fn)) agg.model = fn
+      else if (!agg.fnModel && !GENERIC_PERIPHERAL.test(fn)) agg.fnModel = fn
     }
+    // Der bus-reported Name ist der vom Gerät selbst gemeldete Produktname und
+    // damit der zuverlässigste Modellname -> bevorzugt vor dem FriendlyName.
+    if (bus && !agg.busModel && !GENERIC_PERIPHERAL.test(bus)) agg.busModel = bus
     byDevice.set(key, agg)
   }
 
@@ -271,19 +288,42 @@ function buildPeripherals(raw: RawPnpDevice[]): DeviceInfo[] {
     if (agg.virtual || agg.classes.size === 0) continue
 
     const vendor = USB_VENDORS[agg.vid] ?? `USB ${agg.vid}`
+    const model = agg.busModel ?? agg.fnModel
+    const modelLc = (model ?? '').toLowerCase()
+
+    // Kategorie bestimmen — Reihenfolge nach Verlässlichkeit:
     let category: DeviceCategory
-    if (agg.classes.size === 1) {
-      category = agg.classes.has('mouse') ? 'Maus' : 'Tastatur'
-    } else if (KEYBOARD_VENDOR_IDS.has(agg.vid)) {
-      category = 'Tastatur' // z. B. Keychron: meldet auch "Maus", ist aber eine Tastatur
-    } else if (agg.model && /receiver|mouse|maus/i.test(agg.model)) {
+    if (KEYBOARD_VENDOR_IDS.has(agg.vid)) {
+      // Reiner Tastatur-Hersteller (z. B. Keychron) -> NIE als Maus zeigen, auch
+      // wenn das Gerät (nur) eine Maus-HID-Collection für Medientasten meldet.
+      category = 'Tastatur'
+    } else if (/receiver|mouse|maus/.test(modelLc)) {
       category = 'Maus' // z. B. Logitech LIGHTSPEED Receiver (Funk-Maus)
+    } else if (/keyboard|tastatur/.test(modelLc)) {
+      category = 'Tastatur'
+    } else if (agg.classes.size === 1) {
+      category = agg.classes.has('mouse') ? 'Maus' : 'Tastatur'
     } else {
       category = 'Tastatur'
     }
 
-    const name = agg.model ? `${vendor} ${agg.model}` : `${vendor} ${category}`
-    result.push({ category, name, vendor, driverVersion: '', driverDate: null, isNvidiaGpu: false })
+    // Hersteller nicht doppeln, falls der Modellname ihn schon enthält
+    // (z. B. "Keychron V6 Max" -> nicht "Keychron Keychron V6 Max").
+    const name = model
+      ? model.toLowerCase().startsWith(vendor.toLowerCase())
+        ? model
+        : `${vendor} ${model}`
+      : `${vendor} ${category}`
+    result.push({
+      id: `dev:${agg.vid}:${agg.pid}`,
+      category,
+      name,
+      defaultName: name,
+      vendor,
+      driverVersion: '',
+      driverDate: null,
+      isNvidiaGpu: false
+    })
   }
 
   // 3) Geräte ohne USB-ID (Bluetooth) einzeln übernehmen, dedupliziert.
@@ -294,8 +334,10 @@ function buildPeripherals(raw: RawPnpDevice[]): DeviceInfo[] {
     if (seen.has(key)) continue
     seen.add(key)
     result.push({
+      id: `dev:bt:${category}:${e.name}`,
       category,
       name: e.name,
+      defaultName: e.name,
       vendor: 'Bluetooth',
       driverVersion: '',
       driverDate: null,
@@ -312,9 +354,12 @@ function buildMonitors(raw: RawMonitor[], driverVersion: string): DeviceInfo[] {
       const code = (m.Man ?? '').trim().toUpperCase()
       const model = (m.Name ?? '').trim()
       const vendor = MONITOR_VENDORS[code] ?? code ?? 'Unbekannt'
+      const name = model || `${vendor} Monitor`
       return {
+        id: `mon:${code || vendor}:${name}`,
         category: 'Monitor' as DeviceCategory,
-        name: model || `${vendor} Monitor`,
+        name,
+        defaultName: name,
         vendor: vendor || 'Unbekannt',
         driverVersion,
         driverDate: null,
@@ -330,9 +375,12 @@ function buildStorage(raw: RawDisk[]): DeviceInfo[] {
     .map((d) => {
       const label = (d.Label ?? '').trim()
       const id = (d.Id ?? '').trim()
+      const name = label ? `${label} (${id})` : `Laufwerk ${id}`
       return {
+        id: `disk:${id}`,
         category: 'Speicher' as DeviceCategory,
-        name: label ? `${label} (${id})` : `Laufwerk ${id}`,
+        name,
+        defaultName: name,
         vendor: (d.Model ?? '').trim() || 'Datenträger',
         driverVersion: '',
         driverDate: null,
@@ -340,6 +388,16 @@ function buildStorage(raw: RawDisk[]): DeviceInfo[] {
         storage: { totalBytes: Number(d.Size) || 0, freeBytes: Number(d.Free) || 0 }
       }
     })
+}
+
+/** Vom Nutzer vergebene eigene Namen anwenden (überschreibt nur `name`). */
+function applyCustomNames(devices: DeviceInfo[]): DeviceInfo[] {
+  const custom = getDeviceNames()
+  for (const d of devices) {
+    const c = custom[d.id]
+    if (c && c.trim()) d.name = c.trim()
+  }
+  return devices
 }
 
 function sortDevices(devices: DeviceInfo[]): DeviceInfo[] {
@@ -372,10 +430,12 @@ export async function readDevices(): Promise<DeviceInfo[]> {
   const monitorDriverVersion =
     raw.find((r) => (r.Class ?? '').toUpperCase() === 'MONITOR')?.Version?.trim() || '—'
 
-  return sortDevices([
-    ...categorizePnp(raw),
-    ...buildPeripherals(pnpDevices),
-    ...buildMonitors(monitorsRaw, monitorDriverVersion),
-    ...buildStorage(disks)
-  ])
+  return applyCustomNames(
+    sortDevices([
+      ...categorizePnp(raw),
+      ...buildPeripherals(pnpDevices),
+      ...buildMonitors(monitorsRaw, monitorDriverVersion),
+      ...buildStorage(disks)
+    ])
+  )
 }

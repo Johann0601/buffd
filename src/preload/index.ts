@@ -177,6 +177,10 @@ const api = {
   /** Phase 6: installierte Geräte + Treiberversionen auslesen. */
   getDevices: (): Promise<DeviceInfo[]> => ipcRenderer.invoke('system:devices'),
 
+  /** Eigenen Gerätenamen setzen; name = null -> wieder auf Originalnamen zurück. */
+  renameDevice: (id: string, name: string | null): Promise<void> =>
+    ipcRenderer.invoke('system:rename-device', { id, name }),
+
   /** Phase 6: Update-Prüfung für eine Nvidia-GPU. */
   checkNvidiaUpdate: (name: string, driverVersion: string): Promise<NvidiaUpdate> =>
     ipcRenderer.invoke('nvidia:check', { name, driverVersion }),

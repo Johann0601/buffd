@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type MouseEvent } from 'react'
 import {
   ArrowLeft,
   RefreshCw,
   ChevronDown,
+  ChevronRight,
   CircleArrowUp,
   CircleCheck,
   ExternalLink,
@@ -15,7 +16,11 @@ import {
   Volume2,
   Globe,
   Bluetooth,
-  HardDrive
+  HardDrive,
+  Pencil,
+  Check,
+  X,
+  RotateCcw
 } from 'lucide-react'
 import type { DeviceCategory, DeviceInfo, NvidiaUpdate } from '@shared/types'
 
@@ -50,10 +55,12 @@ function formatBytes(bytes: number): string {
 
 function SystemView({
   onBack,
-  embedded
+  embedded,
+  onOpenStorage
 }: {
   onBack?: () => void
   embedded?: boolean
+  onOpenStorage?: () => void
 }): JSX.Element {
   const [devices, setDevices] = useState<DeviceInfo[]>([])
   const [loading, setLoading] = useState(true)
@@ -67,15 +74,16 @@ function SystemView({
       setDevices(devs)
 
       const nvidiaGpus = devs.filter((d) => d.isNvidiaGpu)
-      setUpdates(Object.fromEntries(nvidiaGpus.map((d) => [d.name, null])))
+      setUpdates(Object.fromEntries(nvidiaGpus.map((d) => [d.id, null])))
       for (const d of nvidiaGpus) {
+        // defaultName (nicht den evtl. umbenannten Namen) für die GPU-Erkennung nutzen.
         window.api
-          .checkNvidiaUpdate(d.name, d.driverVersion)
-          .then((u) => setUpdates((prev) => ({ ...prev, [d.name]: u })))
+          .checkNvidiaUpdate(d.defaultName, d.driverVersion)
+          .then((u) => setUpdates((prev) => ({ ...prev, [d.id]: u })))
           .catch(() =>
             setUpdates((prev) => ({
               ...prev,
-              [d.name]: {
+              [d.id]: {
                 ok: false,
                 installedVersion: null,
                 latestVersion: null,
@@ -99,6 +107,14 @@ function SystemView({
   useEffect(() => {
     localStorage.setItem(COLLAPSED_KEY, JSON.stringify([...collapsed]))
   }, [collapsed])
+
+  // Eigenen Namen setzen (name = null -> zurück auf Original) und lokal übernehmen.
+  const handleRename = async (id: string, name: string | null): Promise<void> => {
+    await window.api.renameDevice(id, name)
+    setDevices((prev) =>
+      prev.map((d) => (d.id === id ? { ...d, name: name?.trim() || d.defaultName } : d))
+    )
+  }
 
   const toggle = (cat: string): void => {
     setCollapsed((prev) => {
@@ -176,7 +192,9 @@ function SystemView({
                     <DeviceRow
                       key={`${category}-${i}`}
                       device={d}
-                      update={d.isNvidiaGpu ? updates[d.name] : undefined}
+                      update={d.isNvidiaGpu ? updates[d.id] : undefined}
+                      onRename={handleRename}
+                      onOpenStorage={onOpenStorage}
                     />
                   ))}
                 </div>
@@ -191,16 +209,93 @@ function SystemView({
 
 function DeviceRow({
   device,
-  update
+  update,
+  onRename,
+  onOpenStorage
 }: {
   device: DeviceInfo
   update?: NvidiaUpdate | null
+  onRename: (id: string, name: string | null) => void | Promise<void>
+  onOpenStorage?: () => void
 }): JSX.Element {
+  const [editing, setEditing] = useState(false)
+  const [value, setValue] = useState(device.name)
+  const isCustom = device.name !== device.defaultName
+  // Speicher-Zeilen führen per Klick ins Speicher-Menü (außer beim Umbenennen).
+  const clickable = !!device.storage && !!onOpenStorage && !editing
+
+  const startEdit = (e: MouseEvent): void => {
+    e.stopPropagation() // nicht ins Speicher-Menü navigieren
+    setValue(device.name)
+    setEditing(true)
+  }
+  const save = (): void => {
+    const v = value.trim()
+    onRename(device.id, v && v !== device.defaultName ? v : null)
+    setEditing(false)
+  }
+  const reset = (): void => {
+    onRename(device.id, null)
+    setEditing(false)
+  }
+
   return (
-    <div className="device-row">
+    <div
+      className={`device-row${clickable ? ' clickable' : ''}`}
+      role={clickable ? 'button' : undefined}
+      tabIndex={clickable ? 0 : undefined}
+      onClick={clickable ? onOpenStorage : undefined}
+      onKeyDown={
+        clickable
+          ? (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                onOpenStorage?.()
+              }
+            }
+          : undefined
+      }
+    >
       <div className="device-row-top">
         <div className="device-main">
-          <div className="device-name">{device.name}</div>
+          {editing ? (
+            <div className="device-rename" onClick={(e) => e.stopPropagation()}>
+              <input
+                className="device-rename-input"
+                value={value}
+                autoFocus
+                placeholder={device.defaultName}
+                onChange={(e) => setValue(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') save()
+                  else if (e.key === 'Escape') setEditing(false)
+                }}
+              />
+              <button className="icon-btn" title="Speichern" onClick={save}>
+                <Check size={15} />
+              </button>
+              {isCustom && (
+                <button className="icon-btn" title="Auf Originalnamen zurücksetzen" onClick={reset}>
+                  <RotateCcw size={15} />
+                </button>
+              )}
+              <button className="icon-btn" title="Abbrechen" onClick={() => setEditing(false)}>
+                <X size={15} />
+              </button>
+            </div>
+          ) : (
+            <div className="device-name">
+              {device.name}
+              <button className="icon-btn rename" title="Gerät umbenennen" onClick={startEdit}>
+                <Pencil size={13} />
+              </button>
+              {isCustom && (
+                <span className="device-renamed" title={`Original: ${device.defaultName}`}>
+                  umbenannt
+                </span>
+              )}
+            </div>
+          )}
           <div className="device-vendor">{device.vendor}</div>
         </div>
         {!device.storage && device.driverVersion && (
@@ -208,6 +303,11 @@ function DeviceRow({
             <div className="driver-version">{device.driverVersion}</div>
             {device.driverDate && <div className="driver-date">{device.driverDate}</div>}
           </div>
+        )}
+        {clickable && (
+          <span className="device-go" title="Im Speicher-Menü öffnen">
+            <ChevronRight size={18} />
+          </span>
         )}
       </div>
 

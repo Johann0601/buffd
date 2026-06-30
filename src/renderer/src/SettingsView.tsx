@@ -196,7 +196,9 @@ function SettingsView({
 
           {section === 'konten' && <AccountsView embedded />}
           {section === 'speicher' && <StorageView embedded />}
-          {section === 'system' && <SystemView embedded />}
+          {section === 'system' && (
+            <SystemView embedded onOpenStorage={() => onNavigate('settings-storage')} />
+          )}
 
           {section === 'app' && (
             <>
