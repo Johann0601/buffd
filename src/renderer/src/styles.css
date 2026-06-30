@@ -398,6 +398,74 @@ body {
   color: var(--text);
 }
 
+/* „Nach oben"-Knopf: dezent unten rechts, blendet beim Scrollen weich ein.
+   Klein + halbtransparent, damit er keinen Inhalt verdeckt; voll beim Hover. */
+.scroll-top {
+  position: fixed;
+  right: 22px;
+  bottom: 22px;
+  z-index: 90;
+  width: 42px;
+  height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
+  opacity: 0;
+  transform: translateY(8px) scale(0.92);
+  pointer-events: none;
+  transition: opacity 0.18s ease, transform 0.18s ease, background 0.12s, color 0.12s,
+    border-color 0.12s;
+}
+.scroll-top.show {
+  opacity: 0.95;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+  /* Beim Erscheinen einmal kurz aufblinken, damit man den Knopf bemerkt. */
+  animation: scroll-top-pop 0.75s ease-out 1;
+}
+.scroll-top.show:hover {
+  opacity: 1;
+  background: var(--panel-2);
+  color: var(--text);
+  border-color: var(--accent);
+}
+
+/* Einmaliges Aufblinken: kurzer, nach außen verlaufender Akzent-Ring plus
+   Akzentfarbe für Rand/Icon, der danach in den Ruhezustand zurücksinkt. */
+@keyframes scroll-top-pop {
+  0% {
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28),
+      0 0 0 0 color-mix(in srgb, var(--accent) 78%, transparent);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  55% {
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28),
+      0 0 0 9px color-mix(in srgb, var(--accent) 0%, transparent);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  100% {
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28), 0 0 0 0 transparent;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .scroll-top {
+    transform: none;
+    transition: opacity 0.18s ease, background 0.12s, color 0.12s, border-color 0.12s;
+  }
+  .scroll-top.show {
+    transform: none;
+    animation: none;
+  }
+}
+
 .app {
   display: flex;
   flex-direction: column;

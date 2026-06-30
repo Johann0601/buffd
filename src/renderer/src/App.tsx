@@ -38,6 +38,7 @@ import {
   Gamepad2,
   Puzzle,
   ArrowLeft,
+  ArrowUp,
   TriangleAlert,
   ChevronLeft,
   ChevronRight,
@@ -494,6 +495,8 @@ function App(): JSX.Element {
         )}
       </div>
 
+      <ScrollTopButton />
+
       {/* Spotify-Mini-Player: kleines Popup an der Seitenleiste (ohne Backdrop,
           damit die Seitenleiste bedienbar bleibt; schließt per Klick außerhalb). */}
       {spotifyOpen && (
@@ -548,6 +551,43 @@ function App(): JSX.Element {
       )}
       </div>
     </>
+  )
+}
+
+/**
+ * „Nach oben"-Knopf: erscheint dezent unten rechts, sobald der Hauptinhalt
+ * (`.shell-content`, der einzige Scroll-Container) ein Stück gescrollt ist, und
+ * bringt ihn per Klick sanft zurück an den Anfang. Funktioniert auf ALLEN Seiten,
+ * da `.shell-content` beim View-Wechsel bestehen bleibt (nur sein Inhalt wechselt).
+ * Halbtransparent + klein, damit er keinen Inhalt verdeckt; voll sichtbar erst beim
+ * Überfahren. Wird ausgeblendet (kein Fokus/Klick), solange man oben ist.
+ */
+function ScrollTopButton(): JSX.Element {
+  const [visible, setVisible] = useState(false)
+  useEffect(() => {
+    const el = document.querySelector('.shell-content')
+    if (!el) return
+    const onScroll = (): void => setVisible(el.scrollTop > 400)
+    onScroll()
+    el.addEventListener('scroll', onScroll, { passive: true })
+    return () => el.removeEventListener('scroll', onScroll)
+  }, [])
+  const toTop = (): void => {
+    const el = document.querySelector('.shell-content')
+    if (!el) return
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    el.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' })
+  }
+  return (
+    <button
+      className={`scroll-top ${visible ? 'show' : ''}`}
+      onClick={toTop}
+      data-tip="Nach oben"
+      aria-label="Nach oben scrollen"
+      tabIndex={visible ? 0 : -1}
+    >
+      <ArrowUp size={20} />
+    </button>
   )
 }
 
@@ -970,48 +1010,6 @@ function GamesView({
     return list
   }, [notInstalled, search, platformFilter, selectedTags, collectionFilter, niSort])
 
-  // „Claude Design"-Startbereich: Spotlight (zuletzt gespielt) + „Weiter spielen"-
-  // Reihe. Nur ohne aktive Suche/Filter, damit das Suchen nicht gestört wird.
-  const homeView = search.trim() === '' && activeFilterCount === 0
-  const recentlyPlayed = useMemo(
-    () =>
-      playable
-        .filter((g) => g.lastPlayed)
-        .sort((a, b) => (b.lastPlayed ?? 0) - (a.lastPlayed ?? 0)),
-    [playable]
-  )
-  const spotlight = homeView ? recentlyPlayed[0] ?? null : null
-  const continueRow = useMemo(
-    () => (homeView ? recentlyPlayed.slice(1, 7) : []),
-    [homeView, recentlyPlayed]
-  )
-
-  // SteamGridDB-„Hero"-Banner (Querformat) für die sichtbaren Hero/Continue-Spiele
-  // lazy nachladen und merken. Das Backend cached die URLs in der DB, daher wird
-  // pro Spiel höchstens einmal wirklich bei SGDB angefragt.
-  const [heroes, setHeroes] = useState<Map<string, string[]>>(new Map())
-  const heroTargets = useMemo(
-    () => [spotlight, ...continueRow].filter((g): g is GameCard => !!g),
-    [spotlight, continueRow]
-  )
-  useEffect(() => {
-    for (const g of heroTargets) {
-      const key = `${g.platform}:${g.platformId}`
-      if (heroes.has(key)) continue
-      window.api
-        .getGameHero({ platform: g.platform, platformId: g.platformId, name: g.name })
-        .then((urls) =>
-          setHeroes((m) => {
-            if (m.has(key)) return m
-            const next = new Map(m)
-            next.set(key, urls)
-            return next
-          })
-        )
-        .catch(() => {})
-    }
-  }, [heroTargets, heroes])
-
   // Für die Listenansicht (Design C): sichtbare Spiele nach Quelle gruppieren,
   // größte Gruppe zuerst. Reihenfolge innerhalb der Gruppe folgt der Sortierung.
   const groupedBySource = useMemo(() => {
@@ -1083,58 +1081,6 @@ function GamesView({
         )}
         {games.length === 0 && !scanning && !error && (
           <div className="empty">Nichts gefunden. Klicke auf „Aktualisieren".</div>
-        )}
-
-        {spotlight && (
-          <Spotlight
-            game={spotlight}
-            isRunning={running.has(spotlight.id)}
-            liveTotalSec={liveTotal(spotlight)}
-            heroUrls={heroes.get(`${spotlight.platform}:${spotlight.platformId}`)}
-            onLaunch={() => window.api.launchGame(spotlight.id)}
-            onDetails={() => {
-              setFromHome(false)
-              setSelectedId(spotlight.id)
-            }}
-          />
-        )}
-
-        {continueRow.length > 0 && (
-          <section className="continue-section">
-            <h2 className="section-title">Weiter spielen</h2>
-            <div className="continue-row">
-              {continueRow.map((g) => (
-                <ContinueCard
-                  key={g.id}
-                  game={g}
-                  liveTotalSec={liveTotal(g)}
-                  heroUrls={heroes.get(`${g.platform}:${g.platformId}`)}
-                  onClick={() => {
-                    setFromHome(false)
-                    setSelectedId(g.id)
-                  }}
-                />
-              ))}
-            </div>
-          </section>
-        )}
-
-        {nonMcLaunchers.length > 0 && (
-          <section className="launcher-section">
-            <h2 className="section-title">Launcher</h2>
-            <div className="launcher-bar">
-              {nonMcLaunchers.map((l) => (
-                <LauncherChip
-                  key={l.id}
-                  launcher={l}
-                  active={platformFilter === l.platform}
-                  onClick={() =>
-                    setPlatformFilter((prev) => (prev === l.platform ? 'all' : l.platform))
-                  }
-                />
-              ))}
-            </div>
-          </section>
         )}
 
         {playable.length > 0 && (
@@ -1286,6 +1232,25 @@ function GamesView({
             )}
           </div>
         )}
+
+        {nonMcLaunchers.length > 0 && (
+          <section className="launcher-section">
+            <h2 className="section-title">Launcher</h2>
+            <div className="launcher-bar">
+              {nonMcLaunchers.map((l) => (
+                <LauncherChip
+                  key={l.id}
+                  launcher={l}
+                  active={platformFilter === l.platform}
+                  onClick={() =>
+                    setPlatformFilter((prev) => (prev === l.platform ? 'all' : l.platform))
+                  }
+                />
+              ))}
+            </div>
+          </section>
+        )}
+
         {playable.length > 0 && visible.length === 0 && (
           <div className="empty">Kein Spiel passt zu Suche/Filter.</div>
         )}
@@ -1786,181 +1751,6 @@ function MinecraftTile({
       <div className="tile-info">
         <div className="tile-name">Minecraft</div>
         <div className="tile-meta">{launcherCount} Launcher</div>
-      </div>
-    </div>
-  )
-}
-
-/**
- * Deterministischer Farbverlauf aus einem Spielnamen — für Spotlight-Hero und
- * „Weiter spielen"-Karten im „Claude Design"-Look (gleicher Name = gleiche Farbe).
- */
-function gradientFor(seed: string): string {
-  let h = 0
-  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0
-  const hue = h % 360
-  const hue2 = (hue + 38) % 360
-  return `linear-gradient(135deg, hsl(${hue} 52% 34%), hsl(${hue2} 58% 19%))`
-}
-
-/**
- * Querformat-Artwork für die Landscape-Karten (Hero + „Weiter spielen").
- * Steam liefert ein breites Header-Bild (460×215) pro AppID — perfekt fürs
- * Querformat. Das normale Cover ist hochkant (600×900) und würde hässlich
- * beschnitten, daher nutzen wir es hier NICHT.
- */
-function landscapeArt(game: GameCard): string | null {
-  if (game.platform === 'steam' && game.platformId) {
-    return `https://cdn.cloudflare.steamstatic.com/steam/apps/${game.platformId}/header.jpg`
-  }
-  return null
-}
-
-/**
- * Querformat-Bilder für Spotlight/Continue-Karten. Priorität: SteamGridDB-„Heroes"
- * (bis zu 3, quellenübergreifend, sobald geladen) → Steam-Header → keins (dann
- * zeigt die Karte den Farbverlauf + Anfangsbuchstaben).
- */
-function artUrls(game: GameCard, heroUrls?: string[] | null): string[] {
-  if (heroUrls && heroUrls.length > 0) return heroUrls
-  const steam = landscapeArt(game)
-  return steam ? [steam] : []
-}
-
-// Gemeinsamer Takt für ALLE Karten: ein einziger Timer treibt sämtliche
-// RotatingArt-Instanzen, damit sie exakt gleichzeitig überblenden.
-let sharedTick = 0
-const tickSubscribers = new Set<() => void>()
-let tickTimer: ReturnType<typeof setInterval> | null = null
-function ensureTicker(): void {
-  if (tickTimer) return
-  tickTimer = setInterval(() => {
-    sharedTick++
-    tickSubscribers.forEach((fn) => fn())
-  }, 7000) // alle 7 s gemeinsam wechseln
-}
-function useSharedTick(): number {
-  const [, force] = useState(0)
-  useEffect(() => {
-    const fn = (): void => force((n) => n + 1)
-    tickSubscribers.add(fn)
-    ensureTicker()
-    return () => {
-      tickSubscribers.delete(fn)
-      if (tickSubscribers.size === 0 && tickTimer) {
-        clearInterval(tickTimer)
-        tickTimer = null
-      }
-    }
-  }, [])
-  return sharedTick
-}
-
-/**
- * Querformat-Artwork als Hintergrund mit weichem Crossfade. Liegen mehrere Bilder
- * vor (Top-3-Heroes), blenden ALLE Karten im gemeinsamen 7-s-Takt gleichzeitig um.
- * Der Farbverlauf liegt als Fallback darunter (greift, falls ein Bild nicht lädt).
- */
-function RotatingArt({ urls, seed }: { urls: string[]; seed: string }): JSX.Element {
-  const tick = useSharedTick()
-  const idx = urls.length > 1 ? tick % urls.length : 0
-  return (
-    <div className="rot-art" style={{ backgroundImage: gradientFor(seed) }}>
-      {urls.map((u, i) => (
-        <div
-          key={u}
-          className="art-layer"
-          style={{ backgroundImage: `url("${u}")`, opacity: i === idx ? 1 : 0 }}
-        />
-      ))}
-    </div>
-  )
-}
-
-/** Großer Spotlight-Hero: zuletzt gespieltes Spiel mit Start- und Details-Knopf. */
-function Spotlight({
-  game,
-  isRunning,
-  liveTotalSec,
-  heroUrls,
-  onLaunch,
-  onDetails
-}: {
-  game: GameCard
-  isRunning: boolean
-  liveTotalSec: number
-  heroUrls?: string[] | null
-  onLaunch: () => void
-  onDetails: () => void
-}): JSX.Element {
-  const letter = game.name.trim()[0]?.toUpperCase() ?? '?'
-  const arts = artUrls(game, heroUrls)
-  return (
-    <section className={`spotlight ${arts.length > 0 ? 'has-photo' : ''}`}>
-      <RotatingArt urls={arts} seed={game.name} />
-      {arts.length === 0 && (
-        <span className="spotlight-letter" aria-hidden>
-          {letter}
-        </span>
-      )}
-      <div className="spotlight-body">
-        <div className="spotlight-kicker">Zuletzt gespielt</div>
-        <h2 className="spotlight-title">{game.name}</h2>
-        <div className="spotlight-meta">
-          <span>{platformLabel(game.platform)}</span>
-          <span className="dot">·</span>
-          <span>{formatPlaytime(liveTotalSec)} gespielt</span>
-          <span className="dot">·</span>
-          <span>{formatLastPlayed(game.lastPlayed)}</span>
-        </div>
-        <div className="spotlight-actions">
-          <button className="btn primary" onClick={onLaunch} disabled={isRunning}>
-            <Play size={16} /> {isRunning ? 'Läuft …' : 'Spiel starten'}
-          </button>
-          <button className="btn" onClick={onDetails}>
-            Details
-          </button>
-        </div>
-      </div>
-    </section>
-  )
-}
-
-/** Landscape-Karte für die „Weiter spielen"-Reihe. */
-function ContinueCard({
-  game,
-  liveTotalSec,
-  heroUrls,
-  onClick
-}: {
-  game: GameCard
-  liveTotalSec: number
-  heroUrls?: string[] | null
-  onClick: () => void
-}): JSX.Element {
-  const letter = game.name.trim()[0]?.toUpperCase() ?? '?'
-  const arts = artUrls(game, heroUrls)
-  return (
-    <div className="continue-card" data-tip={game.name} onClick={onClick}>
-      <div className={`continue-art ${arts.length > 0 ? 'has-photo' : ''}`}>
-        <RotatingArt urls={arts} seed={game.name} />
-        {arts.length === 0 && (
-          <span className="continue-letter" aria-hidden>
-            {letter}
-          </span>
-        )}
-        <span className="continue-source">{platformLabel(game.platform)}</span>
-        {game.updatePending && (
-          <span className="continue-update">
-            <CircleArrowUp size={11} /> Update
-          </span>
-        )}
-      </div>
-      <div className="continue-info">
-        <div className="continue-name">{game.name}</div>
-        <div className="continue-meta">
-          {formatPlaytime(liveTotalSec)} · {formatLastPlayed(game.lastPlayed)}
-        </div>
       </div>
     </div>
   )

@@ -11,6 +11,15 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.24.4',
+    date: '2026-06-30',
+    title: 'Aufgeräumte Bibliothek & „Nach oben"-Knopf',
+    changes: [
+      'Die Bibliothek beginnt nicht mehr mit demselben großen „Weiterspielen"-Banner wie die Startseite. Stattdessen führt sie direkt mit Suche, Sortierung und Filter ins Spiele-Raster — übersichtlicher und ohne Dopplung.',
+      'Neuer „Nach oben"-Knopf: Sobald du auf einer Seite ein Stück nach unten scrollst, erscheint unten rechts ein kleiner Knopf, der dich mit einem Klick wieder ganz nach oben bringt.'
+    ]
+  },
+  {
     version: '0.24.3',
     date: '2026-06-28',
     title: 'Feinschliff & flüssigerer Wechsel',
