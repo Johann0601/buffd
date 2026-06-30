@@ -11,6 +11,15 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.24.5',
+    date: '2026-06-30',
+    title: 'Launcher an jedem Installort',
+    changes: [
+      'CurseForge-Modpacks werden jetzt auch erkannt, wenn der CurseForge-Minecraft-Ordner an einem anderen Ort liegt (z. B. auf einer anderen Festplatte) — buffd liest den tatsächlich eingestellten Ordner aus CurseForge.',
+      'Epic, Battle.net und Riot werden jetzt auch gefunden, wenn Windows nicht auf Laufwerk C: installiert ist.'
+    ]
+  },
+  {
     version: '0.24.4',
     date: '2026-06-30',
     title: 'Aufgeräumte Bibliothek & „Nach oben"-Knopf',

@@ -2,7 +2,10 @@ import { existsSync, readFileSync } from 'fs'
 
 // Epics lokaler Katalog-Cache: Base64-kodiertes JSON mit allen Katalog-Einträgen
 // des Launchers — inklusive der Cover-Bild-URLs (CDN). Keine Anmeldung nötig.
-const CATCACHE = 'C:\\ProgramData\\Epic\\EpicGamesLauncher\\Data\\Catalog\\catcache.bin'
+// ProgramData kann verschoben sein (Windows auf anderer Platte) -> aus der
+// Umgebung lesen, C: nur als Fallback.
+const PROGRAM_DATA = process.env.ProgramData ?? 'C:\\ProgramData'
+const CATCACHE = `${PROGRAM_DATA}\\Epic\\EpicGamesLauncher\\Data\\Catalog\\catcache.bin`
 
 interface CatalogKeyImage {
   type?: string

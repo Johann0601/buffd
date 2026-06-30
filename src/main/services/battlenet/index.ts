@@ -8,7 +8,10 @@ import { basename, join } from 'path'
 import { applyUpdateState, upsertGame } from '../../db'
 import { findGameExeNames } from '../exeNames'
 
-const PRODUCT_DB = 'C:\\ProgramData\\Battle.net\\Agent\\product.db'
+// ProgramData kann verschoben sein (Windows auf anderer Platte) -> aus der
+// Umgebung lesen, C: nur als Fallback.
+const PROGRAM_DATA = process.env.ProgramData ?? 'C:\\ProgramData'
+const PRODUCT_DB = `${PROGRAM_DATA}\\Battle.net\\Agent\\product.db`
 
 const BNET_EXE_CANDIDATES = [
   'C:\\Program Files (x86)\\Battle.net\\Battle.net.exe',

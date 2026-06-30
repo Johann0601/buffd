@@ -10,7 +10,10 @@ export interface RawEpicGame {
 }
 
 // Epic legt für jedes installierte Spiel eine .item-Datei (JSON) hier ab.
-const MANIFESTS_DIR = 'C:\\ProgramData\\Epic\\EpicGamesLauncher\\Data\\Manifests'
+// ProgramData liegt fast immer auf C:, kann aber verschoben sein (Windows auf
+// anderer Platte) -> echten Pfad aus der Umgebung nehmen, C: nur als Fallback.
+const PROGRAM_DATA = process.env.ProgramData ?? 'C:\\ProgramData'
+const MANIFESTS_DIR = `${PROGRAM_DATA}\\Epic\\EpicGamesLauncher\\Data\\Manifests`
 
 /**
  * Liest Epics Manifeste und gibt die echten, startbaren Spiele zurück.

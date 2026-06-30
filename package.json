@@ -1,6 +1,6 @@
 {
   "name": "buffd",
-  "version": "0.24.4",
+  "version": "0.24.5",
   "description": "buffd – zentraler Hub für deine PC-Spiele über alle Launcher hinweg: Bibliothek, Spielzeit-Tracking, News, Statistiken, Sammlungen und mehr.",
   "main": "./out/main/index.js",
   "author": "Johann",

@@ -6,7 +6,7 @@ import type { McProfile } from '@shared/types'
 /**
  * Phase 5: Liest die Minecraft-Profile/Modpacks der drei Launcher — NUR lesend:
  *  - Modrinth:   SQLite-DB  %APPDATA%\ModrinthApp\app.db (Tabelle profiles)
- *  - CurseForge: JSON       %USERPROFILE%\curseforge\minecraft\Instances\*\minecraftinstance.json
+ *  - CurseForge: JSON       <minecraftRoot>\Instances\*\minecraftinstance.json (Pfad konfigurierbar, siehe curseForgeInstancesDir)
  *  - FTB App:    JSON       %LOCALAPPDATA%\.ftba\instances\*\instance.json
  */
 
@@ -88,8 +88,31 @@ function readModrinth(): McProfile[] {
   return profiles
 }
 
+/**
+ * Instanz-Ordner der CurseForge-App. Der Minecraft-Ordner ist in CurseForge frei
+ * wählbar (z. B. auf einer anderen Platte). Der konfigurierte Pfad steht in
+ * `%APPDATA%\CurseForge\storage.json` unter dem Schlüssel `minecraft-settings`
+ * (selbst wieder ein JSON-String) → `minecraftRoot`; die Instanzen liegen darin
+ * unter `Instances`. Fallback: der alte Standardpfad im Benutzerprofil.
+ */
+function curseForgeInstancesDir(): string {
+  const fallback = join(process.env.USERPROFILE ?? '', 'curseforge', 'minecraft', 'Instances')
+  try {
+    const storage = join(process.env.APPDATA ?? '', 'CurseForge', 'storage.json')
+    const raw = JSON.parse(readFileSync(storage, 'utf8'))
+    const mc = raw['minecraft-settings']
+    if (typeof mc === 'string') {
+      const root = JSON.parse(mc)?.minecraftRoot
+      if (typeof root === 'string' && root.trim()) return join(root, 'Instances')
+    }
+  } catch {
+    // keine/defekte Config -> Fallback
+  }
+  return fallback
+}
+
 function readCurseForge(): McProfile[] {
-  const instancesDir = join(process.env.USERPROFILE ?? '', 'curseforge', 'minecraft', 'Instances')
+  const instancesDir = curseForgeInstancesDir()
   if (!existsSync(instancesDir)) return []
 
   const profiles: McProfile[] = []

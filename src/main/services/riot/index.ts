@@ -8,8 +8,11 @@ import { join } from 'path'
 import { upsertGame } from '../../db'
 import { findGameExeNames } from '../exeNames'
 
-const METADATA_DIR = 'C:\\ProgramData\\Riot Games\\Metadata'
-const CLIENT_INSTALLS = 'C:\\ProgramData\\Riot Games\\RiotClientInstalls.json'
+// ProgramData kann verschoben sein (Windows auf anderer Platte) -> aus der
+// Umgebung lesen, C: nur als Fallback.
+const PROGRAM_DATA = process.env.ProgramData ?? 'C:\\ProgramData'
+const METADATA_DIR = `${PROGRAM_DATA}\\Riot Games\\Metadata`
+const CLIENT_INSTALLS = `${PROGRAM_DATA}\\Riot Games\\RiotClientInstalls.json`
 
 const RIOT_NAMES: Record<string, string> = {
   league_of_legends: 'League of Legends',
